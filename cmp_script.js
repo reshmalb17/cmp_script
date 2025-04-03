@@ -7,7 +7,8 @@
     const blockedScripts = [];
     let currentBannerType = null;
     let country =null;
-    
+    let visitorSessionToken = null;
+
     function blockAllScripts() {
       
     blockMetaFunctions();
@@ -26,54 +27,93 @@
   }
   }
 
-const SecurityUtils = {
- 
-    async getSecureToken() {
-      try {
-        const userinfo = localStorage.getItem("wf_hybrid_user");
-        const parsedUserInfo= JSON.parse(userinfo);
-        const sessionToken = parsedUserInfo.sessionToken;
-        if (!sessionToken) {
-          console.error('No session token found');
-          return null;
-        }
-        return await sessionToken;
-      } catch (error) {
-        console.error('Error getting secure token:', error);
-        return null;
-      }
-    },
 
-    validateScript(script) {
-      if (!script) return false;
-      
-      // Validate URL if present
-      if (script.url) {
+ // Function to get visitor session token
+    async function getVisitorSessionToken() {
         try {
-          new URL(script.url);
-        } catch {
-          return false;
+            // Get or create visitor ID
+            const visitorId = getOrCreateVisitorId();
+            
+            // Get cleaned site name
+            const siteName = cleanHostname(window.location.hostname);
+            
+            // Check if we have a valid token in localStorage
+            let token = localStorage.getItem('visitorSessionToken');
+            
+            // If we have a token and it's not expired, return it
+            if (token && !isTokenExpired(token)) {
+                return token;
+            }
+
+            // Request new token from server
+            const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    visitorId: visitorId,
+                    userAgent: navigator.userAgent,
+                    siteName: siteName
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get visitor session token');
+            }
+
+            const data = await response.json();
+            
+            // Store the new token
+            localStorage.setItem('visitorSessionToken', data.token);
+            
+            return data.token;
+        } catch (error) {
+            console.error('Error getting visitor session token:', error);
+            return null;
         }
-      }
-
-      // Validate category if present
-      if (script.category && typeof script.category !== 'string') {
-        return false;
-      }
-
-      // Validate name if present
-      if (script.name && typeof script.name !== 'string') {
-        return false;
-      }
-
-      return true;
     }
-  };
+ // Function to check if token is expired
+ function isTokenExpired(token) {
+    try {
+        const [payloadBase64] = token.split('.');
+        const payload = JSON.parse(atob(payloadBase64));
+        
+        if (!payload.exp) return true;
+        
+        return payload.exp < Math.floor(Date.now() / 1000);
+    } catch (error) {
+        console.error('Error checking token expiration:', error);
+        return true;
+    }
+}
+
+// Function to clean hostname
+function cleanHostname(hostname) {
+    let cleaned = hostname.replace(/^www\./, '');
+    cleaned = cleaned.split('.')[0];
+    return cleaned;
+}
+
+// Function to generate or get visitor ID
+function getOrCreateVisitorId() {
+    let visitorId = localStorage.getItem('visitorId');
+    if (!visitorId) {
+        visitorId = crypto.randomUUID();
+        localStorage.setItem('visitorId', visitorId);
+    }
+    return visitorId;
+}
+
+
+
+
+
   async function detectLocationAndGetBannerType(){
 
     try{
         
-        const sessionToken = SecurityUtils.getSecureToken();
+        const sessionToken =  localStorage.getItem('visitorSessionToken');
         const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/detect-location', {
             headers: {
                 'Authorization': `Bearer ${sessionToken}`,          
@@ -104,10 +144,8 @@ const SecurityUtils = {
 
  async function loadCategorizedScripts(){
     try{
-    const userinfo = localStorage.getItem("wf_hybrid_user");
-    const parsedUserInfo= JSON.parse(userinfo);
-    const sessionToken = parsedUserInfo.sessionToken;
-    const response = await fetch('https://cb-server.web-8fb.workers.dev/api/script-categories', {
+     const sessionToken =  localStorage.getItem('visitorSessionToken');
+     const response = await fetch('https://cb-server.web-8fb.workers.dev/api/script-categories', {
         headers: {
             'Authorization': `Bearer ${sessionToken}`,          
           'X-Request-ID': crypto.randomUUID()
@@ -247,6 +285,9 @@ const SecurityUtils = {
     }
   
     async function initialize() {
+         // Get visitor session token first
+         visitorSessionToken = await getVisitorSessionToken();
+
       scanExistingCookies();
       hideBanner(document.getElementById("consent-banner"));
       hideBanner(document.getElementById("initial-consent-banner"));
@@ -1120,7 +1161,7 @@ function blockAnalyticsRequests() {
       bannerType:currentBannerType,
     };
     try {
-        const token =  SecurityUtils.getSecureToken();
+        const sessionToken =  localStorage.getItem('visitorSessionToken');
         if (!token) {
             console.error("Failed to retrieve authentication token.");
             return;
@@ -1535,6 +1576,11 @@ function blockAnalyticsRequests() {
   window.restoreOriginalFunctions = restoreOriginalFunctions;
   window.loadCategorizedScripts =loadCategorizedScripts;
   window.detectLocationAndGetBannerType = detectLocationAndGetBannerType;
+  window.getVisitorSessionToken = getVisitorSessionToken;
+  window.isTokenExpired = isTokenExpired;
+    window.cleanHostname = cleanHostname;
+    window.getOrCreateVisitorId = getOrCreateVisitorId;
+
   
   function initializeAll() {
     if (isInitialized) {

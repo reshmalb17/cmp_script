@@ -145,7 +145,7 @@ function getOrCreateVisitorId() {
  async function loadCategorizedScripts(){
     try{
      const sessionToken =  localStorage.getItem('visitorSessionToken');
-     const response = await fetch('https://cb-server.web-8fb.workers.dev/api/script-categories', {
+     const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
         headers: {
             'Authorization': `Bearer ${sessionToken}`,          
           'X-Request-ID': crypto.randomUUID()

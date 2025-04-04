@@ -249,11 +249,10 @@ function getOrCreateVisitorId() {
     }
      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
         headers: {
-            'Authorization': `Bearer ${sessionToken}`,          
-          'X-Request-ID': crypto.randomUUID()
-        },
-        mode: 'cors', // Explicitly set CORS mode
-        credentials: 'include' //
+            'Authorization': `Bearer ${sessionToken}`        
+          
+        }
+      
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

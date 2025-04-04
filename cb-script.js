@@ -292,6 +292,59 @@ async function getOrCreateVisitorId() {
         return [];
     }
 }
+
+
+// Function to load categorized scripts
+async function loadCategorizedScripts() {
+  try {
+      const sessionToken = localStorage.getItem('visitorSessionToken');
+      if (!sessionToken) {
+          console.error('No session token found');
+          return [];
+      }
+
+      // Get or generate visitorId
+      let visitorId = localStorage.getItem('visitorId');
+      if (!visitorId) {
+          visitorId = crypto.randomUUID();
+          localStorage.setItem('visitorId', visitorId);
+      }
+
+      const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+      
+      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-category', {
+          method: 'POST',
+          headers: {
+              'Authorization': `Bearer ${sessionToken}`,
+              'X-Request-ID': crypto.randomUUID(),
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Origin': window.location.origin
+          },
+          body: JSON.stringify({
+              siteName: siteName,
+              visitorId: visitorId,
+              userAgent: navigator.userAgent
+          }),
+          mode: 'cors',
+          credentials: 'include'
+      });
+
+      if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Failed to load categorized scripts:', errorData);
+          return [];
+      }
+
+      const data = await response.json();
+      return data.scripts || [];
+  } catch (error) {
+      console.error('Error loading categorized scripts:', error);
+      return [];
+  }
+}
+
+
     async function loadConsentState() {
       if (isLoadingState) {
         

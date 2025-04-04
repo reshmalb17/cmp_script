@@ -217,12 +217,15 @@ async function getOrCreateVisitorId() {
             console.log("No visitor session token found in detect location")
             return;
         }
-        const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/detect-location', {
-            headers: {
-                'Authorization': `Bearer ${sessionToken}`,          
-              
-            }
-          });
+        const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+        const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`, {
+          method: 'GET',
+          headers: {
+              'Authorization': `Bearer ${sessionToken}`,
+              'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+      });
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error('Failed to load bannertype:', errorData);
@@ -244,7 +247,6 @@ async function getOrCreateVisitorId() {
   }
 
 
-
   async function loadCategorizedScripts() {
     try {
         const sessionToken = localStorage.getItem('visitorSessionToken');
@@ -253,14 +255,20 @@ async function getOrCreateVisitorId() {
             return [];
         }
 
-        const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-category', {
-            method: 'GET',
+        const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+        const encodedSiteName = encodeURIComponent(siteName);
+        const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/script-categories/${encodedSiteName}`, {
+            method: 'POST',
             headers: {
                 'Authorization': `Bearer ${sessionToken}`,
                 'X-Request-ID': crypto.randomUUID(),
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
+            body: JSON.stringify({
+                visitorId: visitorId,
+                userAgent: navigator.userAgent
+            }),
             mode: 'cors',
             credentials: 'include'
         });
@@ -278,7 +286,6 @@ async function getOrCreateVisitorId() {
         return [];
     }
 }
-
 
     async function loadConsentState() {
       if (isLoadingState) {

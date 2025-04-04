@@ -1,4 +1,3 @@
-
 (async function () {
   // Configuration object
 const CONFIG = {
@@ -235,84 +234,102 @@ async function getOrCreateVisitorId() {
 
 
 
+// Function to detect location and get banner type
+async function detectLocationAndGetBannerType() {
+  try {
+    console.log("Detecting location and getting banner type...");
+    const sessionToken = await getVisitorSessionToken();
+    if (!sessionToken) {
+      console.error('Failed to get valid session token');
+      return { bannerType: 'GDPR', country: null }; // Default fallback
+    }
 
-  async function detectLocationAndGetBannerType(){
-
-    try{
-      const sessionToken = await getVisitorSessionToken();
-        if (!sessionToken) {
-           console.error('Failed to get valid session token');
-             return { bannerType: 'GDPR', country: null }; // Default fallback
-          }
-
-        
-        const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/detect-location', {
-            headers: {
-               'Authorization': `Bearer ${sessionToken}`,
+    const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/detect-location', {
+      headers: {
+        'Authorization': `Bearer ${sessionToken}`,
         'Content-Type': 'application/json',
-        'Origin': window.location.origin       
-              
-            },
-             mode: 'cors',
-             credentials: 'include'
-          });
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('Failed to load banner type:', response.status, response.statusText, errorData);
-            return null;
-          }
-          const data = await response.json();
-          if (!data.scripts || !Array.isArray(data.scripts)) {
-            console.error('Invalid script data format');
-            return null;
-          }
-          // Validate and filter scripts
-          return data;
-        }catch(error){
-            console.error('Error loading categorized scripts:', error);
-            return null;
-        }
+        'Origin': window.location.origin
+      },
+      mode: 'cors',
+      credentials: 'include'
+    });
 
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Failed to load banner type:', response.status, response.statusText, errorData);
+      return { bannerType: 'GDPR', country: null }; // Default fallback
+    }
 
+    const data = await response.json();
+    console.log("Location data received:", data);
+    
+    if (!data.bannerType || !data.country) {
+      console.error('Invalid location data format:', data);
+      return { bannerType: 'GDPR', country: null }; // Default fallback
+    }
+
+    return {
+      bannerType: data.bannerType,
+      country: data.country
+    };
+  } catch (error) {
+    console.error('Error loading location data:', error);
+    return { bannerType: 'GDPR', country: null }; // Default fallback
   }
+}
 
 
 
- async function loadCategorizedScripts(){
-    try{
-      const sessionToken = await getVisitorSessionToken();
-     if (!sessionToken) {
+// Function to load categorized scripts
+async function loadCategorizedScripts() {
+  try {
+    console.log("Loading categorized scripts...");
+    const sessionToken = await getVisitorSessionToken();
+    if (!sessionToken) {
       console.warn("No session token available for loading categorized scripts");
       return null;
     }
-     const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
-        headers: {
-            'Authorization': `Bearer ${sessionToken}` ,
-            'Content-Type': 'application/json',
-            'Origin': window.location.origin      
-          
-        },
-        mode: 'cors',
-        credentials: 'include'
-      
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to load categorized scripts:', errorData);
-        return null;
-      }
-      const data = await response.json();
-      if (!data.scripts || !Array.isArray(data.scripts)) {
-        console.error('Invalid script data format');
-        return null;
-      }
-      return data.scripts;
-    }catch(error){
-        console.error('Error loading categorized scripts:', error);
-        return null;
+
+    const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
+      headers: {
+        'Authorization': `Bearer ${sessionToken}`,
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
+      },
+      mode: 'cors',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Failed to load categorized scripts:', errorData);
+      return null;
     }
 
- }
+    const data = await response.json();
+    console.log("Categorized scripts data received:", data);
+
+    if (!data.scripts || !Array.isArray(data.scripts)) {
+      console.error('Invalid script data format:', data);
+      return null;
+    }
+
+    // Validate and filter scripts
+    const validScripts = data.scripts.filter(script => {
+      if (!script.src || typeof script.src !== 'string') {
+        console.warn('Invalid script entry:', script);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`Loaded ${validScripts.length} valid scripts`);
+    return validScripts;
+  } catch (error) {
+    console.error('Error loading categorized scripts:', error);
+    return null;
+  }
+}
 
 
     async function loadConsentState() {
@@ -427,52 +444,57 @@ async function getOrCreateVisitorId() {
         hideBanner(ccpaBanner);
       }
     }
-  
-    async function initialize() {
+// Function to initialize the CMP
+async function initialize() {
+  try {
+    console.log("Initializing CMP...");
 
-      try{
-        console.log("Initializing CMP...");
+    // Initialize cookie metadata storage
+    cookieMetadata = new Map();
     
-        // Initialize cookie metadata storage
-        cookieMetadata = new Map();
-        
-        // First, ensure we have a valid session token
-        const sessionToken = await getVisitorSessionToken();
-        if (!sessionToken) {
-          console.error('Failed to initialize: Could not get valid session token');
-          return;
-        }
-        console.log("Session token obtained successfully");
-    
-        await  scanExistingCookies();
-          hideBanner(document.getElementById("consent-banner"));
-          hideBanner(document.getElementById("initial-consent-banner"));
-          hideBanner(document.getElementById("main-banner"));
-          hideBanner(document.getElementById("main-consent-banner"));
-          hideBanner(document.getElementById("simple-consent-banner"));
-          await loadConsentState();
-          await initializeBannerVisibility();
-          const hasMainBanners = document.getElementById("consent-banner") ||document.getElementById("initial-consent-banner");
-      
-        if (!hasMainBanners) {
-          // If no main banners exist, initialize simple banner
-          //initializeSimpleBanner();
-        } else {
-          // Otherwise initialize main banners
-          await initializeBannerVisibility();
-        }
-        
-          attachBannerHandlers();
-          monitorCookieChanges();
-
-
-      }catch(error){
-
-        console.log("Error in inializing script")
-      }
-   
-      
+    // First, ensure we have a valid session token
+    const sessionToken = await getVisitorSessionToken();
+    if (!sessionToken) {
+      console.error('Failed to initialize: Could not get valid session token');
+      return;
     }
+    console.log("Session token obtained successfully");
+
+    // Scan existing cookies
+    await scanExistingCookies();
+    
+    // Hide all banners initially
+    hideBanner(document.getElementById("consent-banner"));
+    hideBanner(document.getElementById("initial-consent-banner"));
+    hideBanner(document.getElementById("main-banner"));
+    hideBanner(document.getElementById("main-consent-banner"));
+    hideBanner(document.getElementById("simple-consent-banner"));
+
+    // Load consent state and initialize banner visibility
+    await loadConsentState();
+    await initializeBannerVisibility();
+
+    // Check for main banners
+    const hasMainBanners = document.getElementById("consent-banner") || document.getElementById("initial-consent-banner");
+    
+    if (!hasMainBanners) {
+      console.log("No main banners found, initializing simple banner");
+      initializeSimpleBanner();
+    } else {
+      console.log("Main banners found, initializing banner visibility");
+      await initializeBannerVisibility();
+    }
+    
+    // Attach handlers and start monitoring
+    attachBannerHandlers();
+    monitorCookieChanges();
+    
+    console.log("CMP initialization completed successfully");
+  } catch (error) {
+    console.error("Error in initializing script:", error);
+  }
+}
+
       document.addEventListener('DOMContentLoaded', initialize);
   
     async function initializeBlocking() {

@@ -208,91 +208,44 @@ async function getOrCreateVisitorId() {
 
 
 
-  async function detectLocationAndGetBannerType(){
+async function detectLocationAndGetBannerType() {
+  try {
+      const sessionToken = localStorage.getItem('visitorSessionToken');
+      if (!sessionToken) {
+          console.log("No visitor session token found in detect location");
+          return null;
+      }
 
-    try{
-        
-        const sessionToken =   localStorage.getItem('visitorSessionToken');
-        if(!sessionToken){
-            console.log("No visitor session token found in detect location")
-            return;
-        }
-        const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-        const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`, {
+      const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+      const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`, {
           method: 'GET',
           headers: {
               'Authorization': `Bearer ${sessionToken}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
           },
           credentials: 'include'
       });
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('Failed to load bannertype:', errorData);
-            return null;
-          }
-          const data = await response.json();
-          if (!data.scripts || !Array.isArray(data.scripts)) {
-            console.error('Invalid script data format');
-            return null;
-          }
-          // Validate and filter scripts
-          return data;
-        }catch(error){
-            console.error('Error loading categorized scripts:', error);
-            return null;
-        }
 
+      if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Failed to load banner type:', errorData);
+          return null;
+      }
 
+      const data = await response.json();
+      // Changed to check for bannerType instead of scripts
+      if (!data.bannerType) {
+          console.error('Invalid banner type data format');
+          return null;
+      }
+
+      return data;
+  } catch (error) {
+      console.error('Error detecting location:', error);
+      return null;
   }
-
-  async function loadCategorizedScripts() {
-    try {
-        const sessionToken = localStorage.getItem('visitorSessionToken');
-        if (!sessionToken) {
-            console.error('No session token found');
-            return [];
-        }
-
-        // Get or generate visitorId
-        let visitorId = localStorage.getItem('visitorId');
-        if (!visitorId) {
-            visitorId = crypto.randomUUID();
-            localStorage.setItem('visitorId', visitorId);
-        }
-
-        const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-        const encodedSiteName = encodeURIComponent(siteName);
-        const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/script-category?siteName=${encodedSiteName}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${sessionToken}`,
-                'X-Request-ID': crypto.randomUUID(),
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                visitorId: visitorId,
-                userAgent: navigator.userAgent
-            }),
-            mode: 'cors',
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('Failed to load categorized scripts:', errorData);
-            return [];
-        }
-
-        const data = await response.json();
-        return data.scripts || [];
-    } catch (error) {
-        console.error('Error loading categorized scripts:', error);
-        return [];
-    }
 }
-
 
 // Function to load categorized scripts
 async function loadCategorizedScripts() {

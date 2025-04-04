@@ -253,7 +253,7 @@ async function getOrCreateVisitorId() {
             return [];
         }
 
-        const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
+        const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-category', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${sessionToken}`,

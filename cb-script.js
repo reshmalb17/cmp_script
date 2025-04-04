@@ -245,33 +245,39 @@ async function getOrCreateVisitorId() {
 
 
 
- async function loadCategorizedScripts(){
-    try{
-     const sessionToken =  localStorage.getItem('visitorSessionToken');
-     const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
-        headers: {
-            'Authorization': `Bearer ${sessionToken}`,          
-          'X-Request-ID': crypto.randomUUID()
+  async function loadCategorizedScripts() {
+    try {
+        const sessionToken = localStorage.getItem('visitorSessionToken');
+        if (!sessionToken) {
+            console.error('No session token found');
+            return [];
         }
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to load categorized scripts:', errorData);
-        return null;
-      }
-      const data = await response.json();
-      if (!data.scripts || !Array.isArray(data.scripts)) {
-        console.error('Invalid script data format');
-        return null;
-      }
-      // Validate and filter scripts
-      return data.scripts;
-    }catch(error){
-        console.error('Error loading categorized scripts:', error);
-        return null;
-    }
 
- }
+        const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${sessionToken}`,
+                'X-Request-ID': crypto.randomUUID(),
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Failed to load categorized scripts:', errorData);
+            return [];
+        }
+
+        const data = await response.json();
+        return data.scripts || [];
+    } catch (error) {
+        console.error('Error loading categorized scripts:', error);
+        return [];
+    }
+}
 
 
     async function loadConsentState() {

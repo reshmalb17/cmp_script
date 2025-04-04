@@ -263,7 +263,7 @@ async function getOrCreateVisitorId() {
 
         const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
         const encodedSiteName = encodeURIComponent(siteName);
-        const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/script-categories/${encodedSiteName}`, {
+        const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/script-category?siteName=${encodedSiteName}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${sessionToken}`,

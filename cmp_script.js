@@ -1,5 +1,11 @@
 
 (async function () {
+  // Configuration object
+const CONFIG = {
+  maxRetries: 5,
+  baseUrl: 'https://cb-server.web-8fb.workers.dev',
+  retryDelay: 2000
+};
     let isLoadingState = false;
     let consentState = {};
     let observer;
@@ -8,6 +14,7 @@
     let currentBannerType = null;
     let country =null;
     let visitorSessionToken = null;
+    let cookieMetadata = new Map();
     const cookiePatterns = {
       necessary: [
         /^PHPSESSID$/,
@@ -107,30 +114,37 @@
     };
     let initialBlockingEnabled = true;  
 
-    function blockAllScripts() {
-      
-    blockMetaFunctions();
-    blockAnalyticsRequests();
-    scanAndBlockScripts();
-    blockDynamicScripts();
-    createPlaceholderScripts();
-    if (!consentState.marketing) {
-      blockMarketingScripts();
-  }
-  if (!consentState.personalization) {
-      blockPersonalizationScripts();
-  }
-  if (!consentState.analytics) {
-      blockAnalyticsScripts();
-  }
-  }
-
+    async function blockAllScripts() {
+      try {
+        blockMetaFunctions();
+        blockAnalyticsRequests();
+        await scanAndBlockScripts();
+        blockDynamicScripts();
+        createPlaceholderScripts();
+        
+        if (!consentState.marketing) {
+          await blockMarketingScripts();
+        }
+        if (!consentState.personalization) {
+          await blockPersonalizationScripts();
+        }
+        if (!consentState.analytics) {
+          await blockAnalyticsScripts();
+        }
+      } catch (error) {
+        console.error("Error in blockAllScripts:", error);
+        // Fallback to basic blocking if advanced blocking fails
+        blockMetaFunctions();
+        blockAnalyticsRequests();
+      }
+    }
+    
 
  // Function to get visitor session token
     async function getVisitorSessionToken() {
         try {
             // Get or create visitor ID
-            const visitorId = getOrCreateVisitorId();
+            const visitorId = await getOrCreateVisitorId();
             
             // Get cleaned site name
             const siteName = cleanHostname(window.location.hostname);
@@ -147,7 +161,9 @@
             const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Origin': window.location.origin
                 },
                 body: JSON.stringify({
                     visitorId: visitorId,
@@ -161,13 +177,20 @@
             }
 
             const data = await response.json();
+            if (!data.token) {
+              console.error('Invalid token response:', data);
+              throw new Error('Invalid token response');
+            }
+            
             
             // Store the new token
             localStorage.setItem('visitorSessionToken', data.token);
             
             return data.token;
         } catch (error) {
-            console.error('Error getting visitor session token:', error);
+      
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Failed to get visitor session token:', errorData);
             return null;
         }
     }
@@ -188,13 +211,19 @@
 
 // Function to clean hostname
 function cleanHostname(hostname) {
+  try {
     let cleaned = hostname.replace(/^www\./, '');
     cleaned = cleaned.split('.')[0];
+    console.log("Cleaned hostname:", cleaned);
     return cleaned;
+  } catch (error) {
+    console.error("Error cleaning hostname:", error);
+    return hostname;
+  }
 }
 
 // Function to generate or get visitor ID
-function getOrCreateVisitorId() {
+async function getOrCreateVisitorId() {
     let visitorId = localStorage.getItem('visitorId');
     if (!visitorId) {
         visitorId = crypto.randomUUID();
@@ -210,17 +239,26 @@ function getOrCreateVisitorId() {
   async function detectLocationAndGetBannerType(){
 
     try{
+      const sessionToken = await getVisitorSessionToken();
+        if (!sessionToken) {
+           console.error('Failed to get valid session token');
+             return { bannerType: 'GDPR', country: null }; // Default fallback
+          }
+
         
-        const sessionToken =  localStorage.getItem('visitorSessionToken');
         const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/detect-location', {
             headers: {
-                'Authorization': `Bearer ${sessionToken}`,          
+               'Authorization': `Bearer ${sessionToken}`,
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin       
               
-            }
+            },
+             mode: 'cors',
+             credentials: 'include'
           });
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error('Failed to load bannertype:', errorData);
+            console.error('Failed to load banner type:', response.status, response.statusText, errorData);
             return null;
           }
           const data = await response.json();
@@ -242,16 +280,20 @@ function getOrCreateVisitorId() {
 
  async function loadCategorizedScripts(){
     try{
-     const sessionToken =  localStorage.getItem('visitorSessionToken');
+      const sessionToken = await getVisitorSessionToken();
      if (!sessionToken) {
       console.warn("No session token available for loading categorized scripts");
       return null;
     }
      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
         headers: {
-            'Authorization': `Bearer ${sessionToken}`        
+            'Authorization': `Bearer ${sessionToken}` ,
+            'Content-Type': 'application/json',
+            'Origin': window.location.origin      
           
-        }
+        },
+        mode: 'cors',
+        credentials: 'include'
       
       });
       if (!response.ok) {
@@ -264,7 +306,6 @@ function getOrCreateVisitorId() {
         console.error('Invalid script data format');
         return null;
       }
-      // Validate and filter scripts
       return data.scripts;
     }catch(error){
         console.error('Error loading categorized scripts:', error);
@@ -388,29 +429,48 @@ function getOrCreateVisitorId() {
     }
   
     async function initialize() {
-         // Get visitor session token first
-         visitorSessionToken = await getVisitorSessionToken();
 
-      scanExistingCookies();
-      hideBanner(document.getElementById("consent-banner"));
-      hideBanner(document.getElementById("initial-consent-banner"));
-      hideBanner(document.getElementById("main-banner"));
-      hideBanner(document.getElementById("main-consent-banner"));
-      hideBanner(document.getElementById("simple-consent-banner"));
-      await loadConsentState();
-      await initializeBannerVisibility();
-      const hasMainBanners = document.getElementById("consent-banner") ||document.getElementById("initial-consent-banner");
-  
-    if (!hasMainBanners) {
-      // If no main banners exist, initialize simple banner
-      initializeSimpleBanner();
-    } else {
-      // Otherwise initialize main banners
-      await initializeBannerVisibility();
-    }
+      try{
+        console.log("Initializing CMP...");
     
-      attachBannerHandlers();
-      monitorCookieChanges();
+        // Initialize cookie metadata storage
+        cookieMetadata = new Map();
+        
+        // First, ensure we have a valid session token
+        const sessionToken = await getVisitorSessionToken();
+        if (!sessionToken) {
+          console.error('Failed to initialize: Could not get valid session token');
+          return;
+        }
+        console.log("Session token obtained successfully");
+    
+        await  scanExistingCookies();
+          hideBanner(document.getElementById("consent-banner"));
+          hideBanner(document.getElementById("initial-consent-banner"));
+          hideBanner(document.getElementById("main-banner"));
+          hideBanner(document.getElementById("main-consent-banner"));
+          hideBanner(document.getElementById("simple-consent-banner"));
+          await loadConsentState();
+          await initializeBannerVisibility();
+          const hasMainBanners = document.getElementById("consent-banner") ||document.getElementById("initial-consent-banner");
+      
+        if (!hasMainBanners) {
+          // If no main banners exist, initialize simple banner
+          //initializeSimpleBanner();
+        } else {
+          // Otherwise initialize main banners
+          await initializeBannerVisibility();
+        }
+        
+          attachBannerHandlers();
+          monitorCookieChanges();
+
+
+      }catch(error){
+
+        console.log("Error in inializing script")
+      }
+   
       
     }
       document.addEventListener('DOMContentLoaded', initialize);
@@ -463,7 +523,7 @@ function getOrCreateVisitorId() {
   
   
     // Move createPlaceholder function outside of scanAndBlockScripts
-    function createPlaceholder(script, category) {
+    async function createPlaceholder(script, category) {
         const placeholder = document.createElement('script');
         placeholder.type = 'text/placeholder';
         placeholder.dataset.src = script.src;
@@ -480,7 +540,7 @@ function getOrCreateVisitorId() {
     }
     
   
-  function scanAndBlockScripts() {
+  async function scanAndBlockScripts() {
     const scripts = document.querySelectorAll("script[src]");
     const inlineScripts = document.querySelectorAll("script:not([src])");
     
@@ -509,7 +569,7 @@ function getOrCreateVisitorId() {
     });
   }
   
-  function isSuspiciousResource(url) {
+  async function isSuspiciousResource(url) {
     const suspiciousPatterns = /gtag|analytics|zoho|track|collect|googletagmanager|googleanalytics|metrics|pageview|stat|trackpageview|pixel|doubleclick|adservice|adwords|adsense|connect\.facebook\.net|fbevents\.js|facebook|meta|graph\.facebook\.com|business\.facebook\.com|pixel|quantserve|scorecardresearch|clarity\.ms|hotjar|mouseflow|fullstory|logrocket|mixpanel|segment|amplitude|heap|kissmetrics|matomo|piwik|woopra|crazyegg|clicktale|optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat|olark|purechat|snapengage|liveperson|boldchat|clickdesk|userlike|zopim|crisp|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|moat|integral-marketing|comscore|nielsen|quantcast|adobe|marketo|hubspot|salesforce|pardot|eloqua|act-on|mailchimp|constantcontact|sendgrid|klaviyo|braze|iterable|appsflyer|adjust|branch|kochava|singular|tune|attribution|chartbeat|parse\.ly|newrelic|datadog|sentry|rollbar|bugsnag|raygun|loggly|splunk|elastic|dynatrace|appoptics|pingdom|uptimerobot|statuscake|newrelic|datadoghq|sentry\.io|rollbar\.com|bugsnag\.com|raygun\.io|loggly\.com|splunk\.com|elastic\.co|dynatrace\.com|appoptics\.com|pingdom\.com|uptimerobot\.com|statuscake\.com|clarity|clickagy|yandex|baidu/;
     const isSuspicious = suspiciousPatterns.test(url);
      if (isSuspicious) {
@@ -639,7 +699,7 @@ async function blockPersonalizationScripts() {
 
 
   
-function unblockScripts(category) {
+async function unblockScripts(category) {
     blockedScripts.forEach((placeholder, index) => {
         if (placeholder.dataset.category === category) {
             if (placeholder.dataset.src) {
@@ -683,7 +743,7 @@ function unblockScripts(category) {
 
   
   // Add this new function to restore original functions
-  function restoreOriginalFunctions() {
+  async function restoreOriginalFunctions() {
       if (window.originalFetch) window.fetch = window.originalFetch;
       if (window.originalXHR) window.XMLHttpRequest = window.originalXHR;
       if (window.originalImage) window.Image = window.originalImage;
@@ -694,7 +754,7 @@ function unblockScripts(category) {
       }
   }
   
-function blockAnalyticsRequests() {
+async function blockAnalyticsRequests() {
     // Fetch Blocking (Improved)
     const originalFetch = window.fetch;
     window.fetch = function (...args) {
@@ -724,7 +784,7 @@ function blockAnalyticsRequests() {
   }
   
   
-  function blockMetaFunctions() {
+  async function blockMetaFunctions() {
     if (!consentState.analytics) {
       if (!window.fbqBlocked) {
         window.fbqBlocked = window.fbq || function () {
@@ -746,7 +806,7 @@ function blockAnalyticsRequests() {
       }
     }
   }
-  function initializeFbq() {
+  async function initializeFbq() {
     if (window.fbq && window.fbq.queue) {
       window.fbq.queue.forEach(args => window.fbq.apply(null, args));
     }
@@ -754,7 +814,7 @@ function blockAnalyticsRequests() {
   }
 // Flag to control initial blocking
   
-  function blockAllInitialRequests() {
+ async  function blockAllInitialRequests() {
   const originalFetch = window.fetch;
   window.fetch = function (...args) {
       const url = args[0];
@@ -795,7 +855,7 @@ function blockAnalyticsRequests() {
   };
   }   
   
-  function getClientIdentifier() {
+  async function getClientIdentifier() {
   return window.location.hostname; // Use hostname as the unique client identifier
   }
   
@@ -859,7 +919,7 @@ function blockAnalyticsRequests() {
       return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
     }
   
-    function getCookie(name) {
+  async  function getCookie(name) {
       const cookieString = document.cookie;
       if (!cookieString) return null;
       
@@ -870,7 +930,7 @@ function blockAnalyticsRequests() {
       return cookies[name] || null;
   }
   
-  function scanExistingCookies() {
+ async function scanExistingCookies() {
     console.log('Scanning existing cookies...');
     const cookies = document.cookie.split(';');
     
@@ -930,7 +990,7 @@ function blockAnalyticsRequests() {
     console.log('Current cookieMetadata:', window.cookieMetadata);
   }
   
-  function monitorCookieChanges() {
+  async function monitorCookieChanges() {
   
     const existingCookies = document.cookie.split(';');
     existingCookies.forEach(cookie => {
@@ -971,7 +1031,7 @@ function blockAnalyticsRequests() {
     });
   }
   
-  function parseCookieString(cookieStr) {
+ async function parseCookieString(cookieStr) {
     if (!cookieStr) return null;
     
     const parts = cookieStr.split(';');
@@ -1247,7 +1307,7 @@ function blockAnalyticsRequests() {
   
   headObserver.observe(document.head, { childList: true, subtree: true });
   
-  function blockDynamicScripts() {
+ async function blockDynamicScripts() {
     if (observer) observer.disconnect(); // Disconnect previous observer if it exists
     observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
@@ -1295,7 +1355,7 @@ function blockAnalyticsRequests() {
     }
   }
   
-  function updateConsentState(preferences) {
+ async function updateConsentState(preferences) {
     
     consentState = preferences;
     initialBlockingEnabled = !preferences.analytics;
@@ -1334,7 +1394,7 @@ function blockAnalyticsRequests() {
     saveConsentState(preferences, currentLocation.country);
   }
   
-  function loadScript(src, callback) {
+  async function loadScript(src, callback) {
     const script = document.createElement("script");
     script.src = src;
     script.async = true;
@@ -1343,7 +1403,7 @@ function blockAnalyticsRequests() {
     
   }
   
-  function initializeBanner() {
+ async function initializeBanner() {
     
     
     // Wait for DOM to be fully loaded
@@ -1371,7 +1431,7 @@ function blockAnalyticsRequests() {
     }
   }
   
-  function attachBannerHandlers() {
+  async function attachBannerHandlers() {
     const consentBanner = document.getElementById("consent-banner");
     const ccpaBanner = document.getElementById("initial-consent-banner");
     const mainBanner = document.getElementById("main-banner");

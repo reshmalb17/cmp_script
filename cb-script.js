@@ -246,13 +246,19 @@ async function getOrCreateVisitorId() {
 
   }
 
-
   async function loadCategorizedScripts() {
     try {
         const sessionToken = localStorage.getItem('visitorSessionToken');
         if (!sessionToken) {
             console.error('No session token found');
             return [];
+        }
+
+        // Get or generate visitorId
+        let visitorId = localStorage.getItem('visitorId');
+        if (!visitorId) {
+            visitorId = crypto.randomUUID();
+            localStorage.setItem('visitorId', visitorId);
         }
 
         const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
@@ -286,7 +292,6 @@ async function getOrCreateVisitorId() {
         return [];
     }
 }
-
     async function loadConsentState() {
       if (isLoadingState) {
         

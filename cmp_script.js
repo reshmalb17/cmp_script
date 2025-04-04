@@ -8,6 +8,104 @@
     let currentBannerType = null;
     let country =null;
     let visitorSessionToken = null;
+    const cookiePatterns = {
+      necessary: [
+        /^PHPSESSID$/,
+        /^wordpress_logged_in/,
+        /^wp-settings/,
+        /^wp-settings-time/,
+        /^wordpress_test_cookie$/,
+        /^csrf_token$/,
+        /^session_id$/,
+        /^auth_token$/,
+        /^_cf_bm$/,
+        /^_cf_logged_in$/,
+        /^mbox$/,
+        /^_uetsid$/,
+        /^_uetvid$/,
+        /^sparrow_id$/,
+        /^_hjSessionUser_/,
+        /^kndctr_.*$/
+      ],
+      marketing: [
+        // Google Ads
+        /^_ga$/,
+        /^_gid$/,
+        /^_gcl_au$/,
+        /^_gcl_dc$/,
+        /^_gcl_gb$/,
+        /^_gcl_hk$/,
+        /^_gcl_ie$/,
+        /^_gcl_sg$/,
+        // Facebook/Meta
+        /^_fbp$/,
+        /^_fbc$/,
+        /^fr$/,
+        /^tr$/,
+        // LinkedIn
+        /^li_oatml$/,
+        /^li_sugr$/,
+        /^bcookie$/,
+        // HubSpot
+        /^hubspotutk$/,
+        /^__hs_opt_out$/,
+        /^__hs_do_not_track$/,
+        // Zoho
+        /^zohocsrftoken$/,
+        /^zohosession$/,
+        // Webflow
+        /^wf_session$/,
+        /^wf_analytics$/,
+        // General marketing patterns
+        /^ads/,
+        /^advertising/,
+        /^marketing/,
+        /^tracking/,
+        /^campaign/,
+        /^cfz_facebook-pixel$/,
+        /^cfz_reddit$/,
+        /^_biz_flagsA$/,
+        /^_biz_nA$/,
+        /^_biz_pendingA$/,
+        /^_biz_uid$/,
+        /^_hp5_/,
+        /^_mkto_trk$/
+      ],
+      analytics: [
+        // Google Analytics
+        /^_ga$/,
+        /^_gid$/,
+        /^_gat$/,
+        /^_gat_/,
+        // HubSpot Analytics
+        /^__hs_initial_opt_in$/,
+        /^__hs_initial_opt_out$/,
+        // General analytics patterns
+        /^analytics/,
+        /^stats/,
+        /^metrics/,
+        /^AMCV_.*$/,
+        /^CF_VERIFIED_DEVICE.*$/
+      ],
+      personalization: [
+        /^user_preferences/,
+        /^theme_preference/,
+        /^language_preference/,
+        /^font_size/,
+        /^color_scheme/,
+        /^user_settings/,
+        /^preferences/,
+        /^OptanonConsent$/,
+        /^_hssc$/,
+        /^_hstc$/,
+        /^hubspotutk$/,
+        /^_pk_ses/,
+        /^_pk_id/,
+        /^_pk_ref/,
+        /^_cfuvid$/
+      ]
+    };
+    let initialBlockingEnabled = true;  
 
     function blockAllScripts() {
       
@@ -145,11 +243,17 @@ function getOrCreateVisitorId() {
  async function loadCategorizedScripts(){
     try{
      const sessionToken =  localStorage.getItem('visitorSessionToken');
+     if (!sessionToken) {
+      console.warn("No session token available for loading categorized scripts");
+      return null;
+    }
      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-categories', {
         headers: {
             'Authorization': `Bearer ${sessionToken}`,          
           'X-Request-ID': crypto.randomUUID()
-        }
+        },
+        mode: 'cors', // Explicitly set CORS mode
+        credentials: 'include' //
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -256,7 +360,7 @@ function getOrCreateVisitorId() {
     
     async function initializeBannerVisibility() {
       //const request = new Request(window.location.href);
-      const locationData = await detectLocationAndGetBannerType(request);  
+      const locationData = await detectLocationAndGetBannerType();  
       currentBannerType = locationData?.bannerType;
       country = locationData?.country;  
       const consentGiven = localStorage.getItem("consent-given");
@@ -416,31 +520,45 @@ function getOrCreateVisitorId() {
   }
   
 
-  async function  blockAnalyticsScripts() {
+  async function blockAnalyticsScripts() {
     const analyticsPatterns = /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i;
     const category = "Analytics";
-    const  categorizedScripts = await loadCategorizedScripts();
-    console.log("categorized script Analytics",categorizedScripts);
+    const categorizedScripts = await loadCategorizedScripts();
+    const blockedScripts = []; // Add this if not already defined globally
+    console.log("categorized script Analytics", categorizedScripts);
+  
     const scripts = document.querySelectorAll('script[src]');
+  
     scripts.forEach(script => {
-        const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
-
-        const isAnalyticsCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
-        const isDefaultAnalyticsScript = !matchingEntry && analyticsPatterns.test(script.src);
-        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
-
-        // Only block if it belongs to Analytics OR is an uncategorized default Analytics script
-        if (isAnalyticsCategory || isDefaultAnalyticsScript) {
-            if (!isInAnotherCategory) {
-                console.log("Blocking Analytics Script:", script.src);
-                const placeholder = createPlaceholder(script, category);
-                script.parentNode.replaceChild(placeholder, script);
-                blockedScripts.push(placeholder);
-            }
+      const src = script.src;
+  
+      if (!src) return;
+  
+      // If categorizedScripts is null, use default pattern
+      if (!categorizedScripts) {
+        if (analyticsPatterns.test(src)) {
+          console.log("Blocking Analytics Script:", src);
+          const placeholder = createPlaceholder(script, category);
+          script.parentNode.replaceChild(placeholder, script);
+          blockedScripts.push(placeholder);
         }
+        return;
+      }
+  
+      const matchingEntry = categorizedScripts.find(entry => entry.src === src);
+      const isAnalyticsCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
+      const isDefaultAnalyticsScript = !matchingEntry && analyticsPatterns.test(src);
+      const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
+  
+      if ((isAnalyticsCategory || isDefaultAnalyticsScript) && !isInAnotherCategory) {
+        console.log("Blocking Analytics Script:", src);
+        const placeholder = createPlaceholder(script, category);
+        script.parentNode.replaceChild(placeholder, script);
+        blockedScripts.push(placeholder);
+      }
     });
-}
-
+  }
+  
 
  async function blockMarketingScripts() {
     const marketingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i;
@@ -449,25 +567,37 @@ function getOrCreateVisitorId() {
     console.log("categorized script Marketing",categorizedScripts);
 
     const scripts = document.querySelectorAll('script[src]');
+
     scripts.forEach(script => {
-        const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
-
-        const isMarketingCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
-        const isDefaultMarketingScript = !matchingEntry && marketingPatterns.test(script.src);
-        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
-
-        // Only block if it belongs to Marketing OR is an uncategorized default Marketing script
-        if (isMarketingCategory || isDefaultMarketingScript) {
-            if (!isInAnotherCategory) {
-                console.log("Blocking Marketing Script:", script.src);
-                const placeholder = createPlaceholder(script, category);
-                script.parentNode.replaceChild(placeholder, script);
-                blockedScripts.push(placeholder);
-            }
+      const src = script.src;
+  
+      if (!src) return;
+  
+      // If categorizedScripts is null, use default pattern
+      if (!categorizedScripts) {
+        if (marketingPatterns.test(src)) {
+          console.log("Blocking Analytics Script:", src);
+          const placeholder = createPlaceholder(script, category);
+          script.parentNode.replaceChild(placeholder, script);
+          blockedScripts.push(placeholder);
         }
+        return;
+      }
+  
+      const matchingEntry = categorizedScripts.find(entry => entry.src === src);
+      const isAnalyticsCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
+      const isDefaultAnalyticsScript = !matchingEntry && marketingPatterns.test(src);
+      const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
+  
+      if ((isAnalyticsCategory || isDefaultAnalyticsScript) && !isInAnotherCategory) {
+        console.log("Blocking Analytics Script:", src);
+        const placeholder = createPlaceholder(script, category);
+        script.parentNode.replaceChild(placeholder, script);
+        blockedScripts.push(placeholder);
+      }
     });
-}
-
+  }
+  
 async function blockPersonalizationScripts() {
     const personalizationPatterns = /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i;
     const category = "Personalization";
@@ -475,24 +605,37 @@ async function blockPersonalizationScripts() {
     console.log("categorized script Personalization",categorizedScripts);
 
     const scripts = document.querySelectorAll('script[src]');
+   
     scripts.forEach(script => {
-        const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
-
-        const isPersonalizationCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
-        const isDefaultPersonalizationScript = !matchingEntry && personalizationPatterns.test(script.src);
-        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
-
-        // Only block if it belongs to Personalization OR is an uncategorized default Personalization script
-        if (isPersonalizationCategory || isDefaultPersonalizationScript) {
-            if (!isInAnotherCategory) {
-                console.log("Blocking Personalization Script:", script.src);
-                const placeholder = createPlaceholder(script, category);
-                script.parentNode.replaceChild(placeholder, script);
-                blockedScripts.push(placeholder);
-            }
+      const src = script.src;
+  
+      if (!src) return;
+  
+      // If categorizedScripts is null, use default pattern
+      if (!categorizedScripts) {
+        if (personalizationPatterns.test(src)) {
+          console.log("Blocking Analytics Script:", src);
+          const placeholder = createPlaceholder(script, category);
+          script.parentNode.replaceChild(placeholder, script);
+          blockedScripts.push(placeholder);
         }
+        return;
+      }
+  
+      const matchingEntry = categorizedScripts.find(entry => entry.src === src);
+      const isAnalyticsCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
+      const isDefaultAnalyticsScript = !matchingEntry && personalizationPatterns.test(src);
+      const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
+  
+      if ((isAnalyticsCategory || isDefaultAnalyticsScript) && !isInAnotherCategory) {
+        console.log("Blocking Analytics Script:", src);
+        const placeholder = createPlaceholder(script, category);
+        script.parentNode.replaceChild(placeholder, script);
+        blockedScripts.push(placeholder);
+      }
     });
-}
+  }
+  
 
 
 
@@ -610,7 +753,7 @@ function blockAnalyticsRequests() {
     }
     
   }
-  let initialBlockingEnabled = true;  // Flag to control initial blocking
+// Flag to control initial blocking
   
   function blockAllInitialRequests() {
   const originalFetch = window.fetch;
@@ -737,6 +880,11 @@ function blockAnalyticsRequests() {
         const [name, value] = cookie.split('=').map(part => part.trim());
         if (name) {
           console.log('Processing cookie:', name);
+             // Check if cookiePatterns is defined
+      if (!cookiePatterns) {
+        console.warn("cookiePatterns is not defined, skipping cookie categorization");
+        return;
+      }
           
           // Determine category based on cookie name
           let category = 'other';
@@ -899,104 +1047,7 @@ function blockAnalyticsRequests() {
     const timestamp = new Date().toISOString();
     const ip = window.clientIp;
   
-    const cookiePatterns = {
-      necessary: [
-        /^PHPSESSID$/,
-        /^wordpress_logged_in/,
-        /^wp-settings/,
-        /^wp-settings-time/,
-        /^wordpress_test_cookie$/,
-        /^csrf_token$/,
-        /^session_id$/,
-        /^auth_token$/,
-        /^_cf_bm$/,
-        /^_cf_logged_in$/,
-        /^mbox$/,
-        /^_uetsid$/,
-        /^_uetvid$/,
-        /^sparrow_id$/,
-        /^_hjSessionUser_/,
-        /^kndctr_.*$/
-      ],
-      marketing: [
-        // Google Ads
-        /^_ga$/,
-        /^_gid$/,
-        /^_gcl_au$/,
-        /^_gcl_dc$/,
-        /^_gcl_gb$/,
-        /^_gcl_hk$/,
-        /^_gcl_ie$/,
-        /^_gcl_sg$/,
-        // Facebook/Meta
-        /^_fbp$/,
-        /^_fbc$/,
-        /^fr$/,
-        /^tr$/,
-        // LinkedIn
-        /^li_oatml$/,
-        /^li_sugr$/,
-        /^bcookie$/,
-        // HubSpot
-        /^hubspotutk$/,
-        /^__hs_opt_out$/,
-        /^__hs_do_not_track$/,
-        // Zoho
-        /^zohocsrftoken$/,
-        /^zohosession$/,
-        // Webflow
-        /^wf_session$/,
-        /^wf_analytics$/,
-        // General marketing patterns
-        /^ads/,
-        /^advertising/,
-        /^marketing/,
-        /^tracking/,
-        /^campaign/,
-        /^cfz_facebook-pixel$/,
-        /^cfz_reddit$/,
-        /^_biz_flagsA$/,
-        /^_biz_nA$/,
-        /^_biz_pendingA$/,
-        /^_biz_uid$/,
-        /^_hp5_/,
-        /^_mkto_trk$/
-      ],
-      analytics: [
-        // Google Analytics
-        /^_ga$/,
-        /^_gid$/,
-        /^_gat$/,
-        /^_gat_/,
-        // HubSpot Analytics
-        /^__hs_initial_opt_in$/,
-        /^__hs_initial_opt_out$/,
-        // General analytics patterns
-        /^analytics/,
-        /^stats/,
-        /^metrics/,
-        /^AMCV_.*$/,
-        /^CF_VERIFIED_DEVICE.*$/
-      ],
-      personalization: [
-        /^user_preferences/,
-        /^theme_preference/,
-        /^language_preference/,
-        /^font_size/,
-        /^color_scheme/,
-        /^user_settings/,
-        /^preferences/,
-        /^OptanonConsent$/,
-        /^_hssc$/,
-        /^_hstc$/,
-        /^hubspotutk$/,
-        /^_pk_ses/,
-        /^_pk_id/,
-        /^_pk_ref/,
-        /^_cfuvid$/
-      ]
-    };
-  
+
     // Initialize cookie data structure
     const cookieData = {
         necessary: [],

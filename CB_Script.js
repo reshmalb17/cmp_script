@@ -1063,6 +1063,8 @@ function blockAnalyticsRequests() {
       console.error("Failed to retrieve authentication token.");
       return;
     }
+    console.log("called function buildPayload ");
+
   
     const payload = buildPayload({
       clientId,
@@ -1074,7 +1076,7 @@ function blockAnalyticsRequests() {
       cookieData,
       country
     });
-    console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consen ");
+    console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consent ");
   
     try {
       const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
@@ -1186,7 +1188,6 @@ function blockAnalyticsRequests() {
         language: navigator.language,
         platform: navigator.platform,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        ip
       },
       policyVersion,
       timestamp,

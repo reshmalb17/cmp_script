@@ -1027,7 +1027,11 @@ function blockAnalyticsRequests() {
   }
   
   async function saveConsentState(preferences, country) {
+    console.log("inside saveConsentstate function");
+    console.log("called function scanexisting cookies");
+    
     scanExistingCookies();
+    console.log("called function clientId ");
   
     const clientId = getClientIdentifier();
     const visitorId = getCookie("visitorId") || crypto.randomUUID();
@@ -1037,14 +1041,20 @@ function blockAnalyticsRequests() {
     if (!window.cookieMetadata) {
       window.cookieMetadata = new Map();
     }
+    console.log("called function buildCookieData ");
   
     const cookieData = buildCookieData(window.cookieMetadata, timestamp);
+    console.log("called function buildConsentPreferences ");
+
   
     const consentPreferences = buildConsentPreferences(preferences, country, timestamp, cookieData);
+    console.log("called function generateKey ");
+
   
     const encryptionKey = await generateKey();
     const encryptedVisitorId = await encryptData(visitorId, encryptionKey.secretKey, encryptionKey.iv);
     const encryptedPreferences = await encryptData(JSON.stringify(consentPreferences), encryptionKey.secretKey, encryptionKey.iv);
+    console.log("called function storeEncryptedConsent ");
   
     storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp);
   
@@ -1064,6 +1074,7 @@ function blockAnalyticsRequests() {
       cookieData,
       country
     });
+    console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consen ");
   
     try {
       const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {

@@ -1138,8 +1138,7 @@ function blockAnalyticsRequests() {
       analytics: preferences.analytics || false,
       doNotShare: preferences.doNotShare || false,
       country,
-      timestamp,
-      ip, // Make sure ip is available in scope
+      timestamp,      
       cookies: cookieData,
       gdpr: {
         necessary: true,

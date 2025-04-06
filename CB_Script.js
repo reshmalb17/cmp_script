@@ -332,16 +332,19 @@ async function loadCategorizedScripts() {
   
                   
                   // Update checkbox states if they exist
-                  const necessaryCheckbox = document.getElementById("necessary-checkbox");
-                  const marketingCheckbox = document.getElementById("marketing-checkbox");
-                  const personalizationCheckbox = document.getElementById("personalization-checkbox");
-                  const analyticsCheckbox = document.getElementById("analytics-checkbox");
-                  const doNotShareCheckbox = document.getElementById("do-not-share-checkbox");
+                  const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]')
+    const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]')
+    const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
+    const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
+    const doNotShareCheckbox = document.getElementById("do-not-share-checkbox");
   
                   if (necessaryCheckbox) {
                     necessaryCheckbox.checked = true; // Always true
                     necessaryCheckbox.disabled = true; // Disable the necessary checkbox
                   }
+
+          
+  
     
                   if (necessaryCheckbox) necessaryCheckbox.checked = true; // Always true
                   if (marketingCheckbox) marketingCheckbox.checked = consentState.marketing || false;
@@ -414,7 +417,7 @@ async function loadCategorizedScripts() {
   
     async function initialize() {
          // Get visitor session token first
-         visitorSessionToken = await getVisitorSessionToken();
+       const  visitorSessionToken = await getVisitorSessionToken();
 
       scanExistingCookies();
       hideBanner(document.getElementById("consent-banner"));
@@ -448,9 +451,8 @@ async function loadCategorizedScripts() {
         
       
         if (consentGiven === "true") {
-          return; // Exit early if consent is already given
-        }
-      //  const locationData = await getLocationData();
+          return; 
+        }   
       
         if (consentGiven === "true") {
           try {
@@ -1034,7 +1036,7 @@ function blockAnalyticsRequests() {
     console.log("called function clientId ");
   
     const clientId = getClientIdentifier();
-    const visitorId = getCookie("visitorId") || crypto.randomUUID();
+    const visitorId = localStorage.getItem("visitorId");
     const policyVersion = "1.2";
     const timestamp = new Date().toISOString();
   
@@ -1308,13 +1310,18 @@ function blockAnalyticsRequests() {
       // Unblock scripts based on user preferences
       if (preferences.marketing) {
         category="Marketing";
+        console.log("unblocking marketing script based on user preference");
         unblockScripts(category); // Unblock marketing scripts if allowed
       }
       if (preferences.personalization) {
+        console.log("unblocking marketing script based on user preference");
+
         category="Personalization";        
         unblockScripts(category); // Unblock personalization scripts if allowed
       }
       if (preferences.analytics) {
+        console.log("unblocking marketing script based on user preference");
+
 
         category="Analytics";        
         unblockScripts(category); 
@@ -1393,10 +1400,10 @@ function blockAnalyticsRequests() {
     doNotShareLink? "true":"false";
   
     // Checkbox elements
-    const necessaryCheckbox = document.getElementById("necessary-checkbox");
-    const marketingCheckbox = document.getElementById("marketing-checkbox");
-    const personalizationCheckbox = document.getElementById("personalization-checkbox");
-    const analyticsCheckbox = document.getElementById("analytics-checkbox");
+    const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]')
+    const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]')
+    const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
+    const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
     const doNotShareCheckbox = document.getElementById("do-not-share-checkbox");
   
   

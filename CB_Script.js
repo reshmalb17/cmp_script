@@ -637,11 +637,11 @@ async function blockPersonalizationScripts() {
 
 
   
-function unblockScripts(category) {
+async function unblockScripts(category) {
     blockedScripts.forEach((placeholder, index) => {
         if (placeholder.dataset.category === category) {
             if (placeholder.dataset.src) {
-               console.log(`unblocking scrip under category ${category} and script is :`,placeholder.data.src);
+               console.log(`unblocking script under category ${category} and script is :`,placeholder.data.src);
                 const script = document.createElement('script');
                 script.src = placeholder.dataset.src;
                 script.async = placeholder.dataset.async === 'true';
@@ -1315,33 +1315,33 @@ function blockAnalyticsRequests() {
       if (preferences.marketing) {
         category="Marketing";
         console.log("unblocking marketing script based on user preference");
-        unblockScripts(category); // Unblock marketing scripts if allowed
+       await unblockScripts(category); // Unblock marketing scripts if allowed
       }
       if (preferences.personalization) {
-        console.log("unblocking marketing script based on user preference");
+        console.log("unblocking personalization script based on user preference");
 
         category="Personalization";        
-        unblockScripts(category); // Unblock personalization scripts if allowed
+       await unblockScripts(category); // Unblock personalization scripts if allowed
       }
       if (preferences.analytics) {
-        console.log("unblocking marketing script based on user preference");
+        console.log("unblocking analytics script based on user preference");
 
 
         category="Analytics";        
-        unblockScripts(category); 
+       await  unblockScripts(category); 
       }
     }
     
     if (preferences.analytics) {
         
         category="Analytics";        
-        unblockScripts(category); 
+      await  unblockScripts(category); 
     } else {
         
         blockAllScripts();
     }
     
-    saveConsentState(preferences, country);
+    await saveConsentState(preferences, country);
   }
   function loadConsentStyles() {
     try {

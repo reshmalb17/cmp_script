@@ -224,7 +224,7 @@ async function detectLocationAndGetBannerType() {
               'Content-Type': 'application/json',
               'Accept': 'application/json'
           },
-          credentials: 'include'
+          // credentials: 'include'
       });
 
       if (!response.ok) {
@@ -280,8 +280,8 @@ async function loadCategorizedScripts() {
               visitorId: visitorId,
               userAgent: navigator.userAgent
           }),
-          mode: 'cors',
-          credentials: 'include'
+          // mode: 'cors',
+          // credentials: 'include'
       });
 
       if (!response.ok) {

@@ -258,6 +258,7 @@ async function loadCategorizedScripts() {
 
       // Get or generate visitorId
       let visitorId = localStorage.getItem('visitorId');
+      console.log(" visitorId in loadCategorizedScripts ",visitorId)
       if (!visitorId) {
           visitorId = crypto.randomUUID();
           localStorage.setItem('visitorId', visitorId);
@@ -417,7 +418,8 @@ async function loadCategorizedScripts() {
   
     async function initialize() {
          // Get visitor session token first
-       const  visitorSessionToken = await getVisitorSessionToken();
+       await getVisitorSessionToken();
+       loadConsentStyles();
 
       scanExistingCookies();
       hideBanner(document.getElementById("consent-banner"));
@@ -639,6 +641,7 @@ function unblockScripts(category) {
     blockedScripts.forEach((placeholder, index) => {
         if (placeholder.dataset.category === category) {
             if (placeholder.dataset.src) {
+               console.log(`unblocking scrip under category ${category} and script is :`,placeholder.data.src);
                 const script = document.createElement('script');
                 script.src = placeholder.dataset.src;
                 script.async = placeholder.dataset.async === 'true';
@@ -1037,6 +1040,7 @@ function blockAnalyticsRequests() {
   
     const clientId = getClientIdentifier();
     const visitorId = localStorage.getItem("visitorId");
+    console.log("Visitor id in saveConsentState",visitorId)
     const policyVersion = "1.2";
     const timestamp = new Date().toISOString();
   
@@ -1296,7 +1300,7 @@ function blockAnalyticsRequests() {
     }
   }
   
-  function updateConsentState(preferences) {
+  async function updateConsentState(preferences) {
     
     consentState = preferences;
     initialBlockingEnabled = !preferences.analytics;
@@ -1339,7 +1343,28 @@ function blockAnalyticsRequests() {
     
     saveConsentState(preferences, country);
   }
-  
+  function loadConsentStyles() {
+    try {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@d6b0288/consentbitstyle.css";
+        link.type = "text/css";
+        
+        // Add error handling
+        link.onerror = function() {
+            console.error('Failed to load consent styles');
+        };
+        
+        // Add load confirmation
+        link.onload = function() {
+            console.log('Consent styles loaded successfully');
+        };
+        
+        document.head.appendChild(link);
+    } catch (error) {
+        console.error('Error loading consent styles:', error);
+    }
+}
   function loadScript(src, callback) {
     const script = document.createElement("script");
     script.src = src;
@@ -1404,7 +1429,7 @@ function blockAnalyticsRequests() {
     const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]')
     const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
     const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
-    const doNotShareCheckbox = document.getElementById("do-not-share-checkbox");
+    const doNotShareCheckbox = document.getElementById('[data-consent-id="do-not-share-checkbox"]');
   
   
     // Initialize banner visibility based on user location
@@ -1640,7 +1665,7 @@ function blockAnalyticsRequests() {
     window.storeEncryptedConsent=storeEncryptedConsent;
     window.buildPayload = buildPayload;
     window.getCookieDescription =getCookieDescription;
-
+  window.loadConsentStyles = loadConsentStyles;
   
   function initializeAll() {
     if (isInitialized) {

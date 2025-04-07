@@ -380,7 +380,7 @@ async function loadCategorizedScripts() {
         
         // If analytics are accepted, unblock after initial scan
         if (!initialBlockingEnabled) {
-            unblockScripts();
+          unblockScripts({ analytics: true });
         }
         isLoadingState = false;
     }
@@ -656,71 +656,79 @@ async function blockPersonalizationScripts() {
 
 
   
-async function unblockScripts(categoryOfPreference) {
-  console.log(`Starting unblockScripts for category: ${categoryOfPreference}`);
+async function unblockScripts(categoryOfPreference = "all") {
+  console.log(`Starting unblockScripts with categoryOfPreference:`, categoryOfPreference);
   console.log(`Total blocked scripts: ${blockedScripts.length}`);
-  
-  blockedScripts.forEach((placeholder, index) => {
-      console.log(`Checking script ${index}:`, {
-          category: placeholder.dataset.category,
-          src: placeholder.dataset.src
-      });
-      
-      if (placeholder.dataset.category === categoryOfPreference) {
-          if (placeholder.dataset.src) {
-              console.log(`Unblocking script: ${placeholder.dataset.src}`);
-              
-              const script = document.createElement('script');
-              script.src = placeholder.dataset.src;
-              script.async = placeholder.dataset.async === 'true';
-              script.defer = placeholder.dataset.defer === 'true';
-              script.type = placeholder.dataset.type;
-              
-              if (placeholder.dataset.crossorigin) {
-                  script.crossOrigin = placeholder.dataset.crossorigin;
-              }
 
-              // Add load event listener
-              script.onload = () => {
-                  console.log(`Successfully loaded script: ${script.src}`);
-                  if (script.src.includes('fbevents.js')) {
-                      console.log('Reinitializing Facebook Pixel');
-                      initializeFbq();
-                  }
-              };
+  const scriptsToProcess = [...blockedScripts];
 
-              script.onerror = (error) => {
-                  console.error(`Error loading script ${script.src}:`, error);
-              };
+  scriptsToProcess.forEach((placeholder, index) => {
+    const category = placeholder.dataset.category;
+    const src = placeholder.dataset.src;
 
-              try {
-                  placeholder.parentNode.replaceChild(script, placeholder);
-                  console.log(`Successfully replaced placeholder with script: ${script.src}`);
-                  blockedScripts.splice(index, 1);
-              } catch (error) {
-                  console.error(`Error replacing placeholder:`, error);
-              }
-          }
+    const shouldUnblock =
+      categoryOfPreference === "all" ||
+      (typeof categoryOfPreference === "object" && categoryOfPreference[category]);
+
+    console.log(`Checking script ${index}:`, { category, src, shouldUnblock });
+
+    if (shouldUnblock && src) {
+      console.log(`Unblocking script: ${src}`);
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = placeholder.dataset.async === "true";
+      script.defer = placeholder.dataset.defer === "true";
+      script.type = placeholder.dataset.type;
+
+      if (placeholder.dataset.crossorigin) {
+        script.crossOrigin = placeholder.dataset.crossorigin;
       }
+
+      script.onload = () => {
+        console.log(`Successfully loaded script: ${script.src}`);
+        if (script.src.includes("fbevents.js")) {
+          console.log("Reinitializing Facebook Pixel");
+          initializeFbq();
+        }
+      };
+
+      script.onerror = (error) => {
+        console.error(`Error loading script ${script.src}:`, error);
+      };
+
+      try {
+        placeholder.parentNode.replaceChild(script, placeholder);
+        console.log(`Replaced placeholder with script: ${src}`);
+        const originalIndex = blockedScripts.indexOf(placeholder);
+        if (originalIndex !== -1) {
+          blockedScripts.splice(originalIndex, 1);
+        }
+      } catch (error) {
+        console.error("Error replacing script:", error);
+      }
+    }
   });
 
   console.log(`Remaining blocked scripts: ${blockedScripts.length}`);
 
-  // If all scripts of a category are unblocked, clean up observers
   if (blockedScripts.length === 0) {
-      console.log('No more blocked scripts, cleaning up observers');
-      if (observer) observer.disconnect();
-      headObserver.disconnect();
+    console.log("No more blocked scripts, cleaning up observers");
+    if (observer) observer.disconnect();
+    if (headObserver) headObserver.disconnect();
   }
 
-  // Restore original functions if needed
-  if (category === "Marketing" && window.fbqBlocked) {
-      console.log('Restoring Facebook Pixel functionality');
-      delete window.fbqBlocked;
-      loadScript("https://connect.facebook.net/en_US/fbevents.js", initializeFbq);
+  if (
+    (categoryOfPreference === "all" ||
+      (typeof categoryOfPreference === "object" && categoryOfPreference.marketing)) &&
+    window.fbqBlocked
+  ) {
+    console.log("Restoring Facebook Pixel functionality");
+    delete window.fbqBlocked;
+    loadScript("https://connect.facebook.net/en_US/fbevents.js", initializeFbq);
   }
 }
-  
+
   // Add this new function to restore original functions
   function restoreOriginalFunctions() {
       if (window.originalFetch) window.fetch = window.originalFetch;
@@ -1344,46 +1352,20 @@ function blockAnalyticsRequests() {
     
     consentState = preferences;
     initialBlockingEnabled = !preferences.analytics;
-    let category;
+
+
+
+    consentState = preferences;
+    initialBlockingEnabled = !preferences.analytics;
   
     if (preferences.doNotShare) {
-      blockMarketingScripts();
-      blockPersonalizationScripts();
-      blockAnalyticsScripts();
+      blockAllScripts(); // Just block everything
     } else {
-      // Unblock scripts based on user preferences
-      if (preferences.marketing) {
-        console.log("About to unblock marketing scripts");
-        await unblockScripts(category);
-        console.log("Finished unblocking marketing scripts");
-      }
-      if (preferences.personalization) {
-        console.log("unblocking personalization script based on user preference");
-
-        category="Personalization";        
-       await unblockScripts(category); // Unblock personalization scripts if allowed
-       console.log("Finished unblocking personalization scripts");
-
-      }
-      if (preferences.analytics) {
-        console.log("unblocking analytics script based on user preference");
-
-
-        category="Analytics";        
-       await  unblockScripts(category); 
-       console.log("Finished unblocking analytics scripts");
-
-      }
+      await unblockScripts(preferences); // Let the updated unblockScripts handle categories
     }
-    
-    if (preferences.analytics) {
-        
-        category="Analytics";        
-      await  unblockScripts(category); 
-    } else {
-        
-        blockAllScripts();
-    }
+  
+    await saveConsentState(preferences, country); 
+ 
     
     await saveConsentState(preferences, country);
   }
@@ -1599,7 +1581,7 @@ function blockAnalyticsRequests() {
           analytics: true
         };
         await updateConsentState(preferences);
-        unblockScripts();
+        await unblockScripts(preferences);
         hideBanner(consentBanner);
         hideBanner(mainBanner);
       });

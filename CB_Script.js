@@ -638,48 +638,69 @@ async function blockPersonalizationScripts() {
 
   
 async function unblockScripts(category) {
-    blockedScripts.forEach((placeholder, index) => {
-        if (placeholder.dataset.category === category) {
-            if (placeholder.dataset.src) {
-               console.log(`unblocking script under category ${category} and script is :`,placeholder.data.src);
-                const script = document.createElement('script');
-                script.src = placeholder.dataset.src;
-                script.async = placeholder.dataset.async === 'true';
-                script.defer = placeholder.dataset.defer === 'true';
-                script.type = placeholder.dataset.type;
-                if (placeholder.dataset.crossorigin) {
-                    script.crossOrigin = placeholder.dataset.crossorigin;
-                }
+  console.log(`Starting unblockScripts for category: ${category}`);
+  console.log(`Total blocked scripts: ${blockedScripts.length}`);
+  
+  blockedScripts.forEach((placeholder, index) => {
+      console.log(`Checking script ${index}:`, {
+          category: placeholder.dataset.category,
+          src: placeholder.dataset.src
+      });
+      
+      if (placeholder.dataset.category === category) {
+          if (placeholder.dataset.src) {
+              console.log(`Unblocking script: ${placeholder.dataset.src}`);
+              
+              const script = document.createElement('script');
+              script.src = placeholder.dataset.src;
+              script.async = placeholder.dataset.async === 'true';
+              script.defer = placeholder.dataset.defer === 'true';
+              script.type = placeholder.dataset.type;
+              
+              if (placeholder.dataset.crossorigin) {
+                  script.crossOrigin = placeholder.dataset.crossorigin;
+              }
 
-                // Add load event listener
-                script.onload = () => {
-                    console.log("Loaded script:", script.src);
-                    // Reinitialize specific analytics if needed
-                    if (script.src.includes('fbevents.js')) {
-                        initializeFbq();
-                    }
-                    // Add other analytics reinitializations as needed
-                };
+              // Add load event listener
+              script.onload = () => {
+                  console.log(`Successfully loaded script: ${script.src}`);
+                  if (script.src.includes('fbevents.js')) {
+                      console.log('Reinitializing Facebook Pixel');
+                      initializeFbq();
+                  }
+              };
 
-                placeholder.parentNode.replaceChild(script, placeholder);
-                blockedScripts.splice(index, 1); // Remove unblocked script from list
-            }
-        }
-    });
+              script.onerror = (error) => {
+                  console.error(`Error loading script ${script.src}:`, error);
+              };
 
-    // If all scripts of a category are unblocked, clean up observers
-    if (blockedScripts.length === 0) {
-        if (observer) observer.disconnect();
-        headObserver.disconnect();
-    }
+              try {
+                  placeholder.parentNode.replaceChild(script, placeholder);
+                  console.log(`Successfully replaced placeholder with script: ${script.src}`);
+                  blockedScripts.splice(index, 1);
+              } catch (error) {
+                  console.error(`Error replacing placeholder:`, error);
+              }
+          }
+      }
+  });
 
-    // Restore original functions if needed
-    if (category === "Marketing" && window.fbqBlocked) {
-        delete window.fbqBlocked;
-        loadScript("https://connect.facebook.net/en_US/fbevents.js", initializeFbq);
-    }
+  console.log(`Remaining blocked scripts: ${blockedScripts.length}`);
+
+  // If all scripts of a category are unblocked, clean up observers
+  if (blockedScripts.length === 0) {
+      console.log('No more blocked scripts, cleaning up observers');
+      if (observer) observer.disconnect();
+      headObserver.disconnect();
+  }
+
+  // Restore original functions if needed
+  if (category === "Marketing" && window.fbqBlocked) {
+      console.log('Restoring Facebook Pixel functionality');
+      delete window.fbqBlocked;
+      loadScript("https://connect.facebook.net/en_US/fbevents.js", initializeFbq);
+  }
 }
-
   
   // Add this new function to restore original functions
   function restoreOriginalFunctions() {
@@ -1313,15 +1334,17 @@ function blockAnalyticsRequests() {
     } else {
       // Unblock scripts based on user preferences
       if (preferences.marketing) {
-        category="Marketing";
-        console.log("unblocking marketing script based on user preference");
-       await unblockScripts(category); // Unblock marketing scripts if allowed
+        console.log("About to unblock marketing scripts");
+        await unblockScripts(category);
+        console.log("Finished unblocking marketing scripts");
       }
       if (preferences.personalization) {
         console.log("unblocking personalization script based on user preference");
 
         category="Personalization";        
        await unblockScripts(category); // Unblock personalization scripts if allowed
+       console.log("Finished unblocking personalization scripts");
+
       }
       if (preferences.analytics) {
         console.log("unblocking analytics script based on user preference");
@@ -1329,6 +1352,8 @@ function blockAnalyticsRequests() {
 
         category="Analytics";        
        await  unblockScripts(category); 
+       console.log("Finished unblocking analytics scripts");
+
       }
     }
     

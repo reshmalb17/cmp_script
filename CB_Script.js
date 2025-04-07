@@ -561,24 +561,24 @@ async function loadCategorizedScripts() {
     console.log("INSIDE BLOCK ANALYTICS SCRIPT");
     
     const analyticsPatterns = /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i;
-    const category = "Analytics";
+    const categoryOfPreference = "Analytics";
     const  categorizedScripts = await loadCategorizedScripts();
     console.log("categorized script Analytics",categorizedScripts);
     const scripts = document.querySelectorAll('script[src]');
     scripts.forEach(script => {
         const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
 
-        const isAnalyticsCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
+        const isAnalyticsCategory = matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
         const isDefaultAnalyticsScript = !matchingEntry && analyticsPatterns.test(script.src);
-        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
+        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
 
         // Only block if it belongs to Analytics OR is an uncategorized default Analytics script
         if (isAnalyticsCategory || isDefaultAnalyticsScript) {
             if (!isInAnotherCategory) {
                 console.log("Blocking Analytics Script:", script.src);
-             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",category);
+             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",categoryOfPreference);
 
-                const placeholder = createPlaceholder(script, category);
+                const placeholder = createPlaceholder(script, categoryOfPreference);
                 script.parentNode.replaceChild(placeholder, script);
                 blockedScripts.push(placeholder);
             console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
@@ -593,7 +593,7 @@ async function loadCategorizedScripts() {
   console.log("INSIDE BLOCK MARKETING SCRIPT");
 
     const marketingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i;
-    const category = "Marketing";
+    const categoryOfPreference = "Marketing";
     const  categorizedScripts = await loadCategorizedScripts();
     console.log("categorized script Marketing",categorizedScripts);
 
@@ -601,17 +601,17 @@ async function loadCategorizedScripts() {
     scripts.forEach(script => {
         const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
 
-        const isMarketingCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
+        const isMarketingCategory = matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
         const isDefaultMarketingScript = !matchingEntry && marketingPatterns.test(script.src);
-        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
+        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
 
         // Only block if it belongs to Marketing OR is an uncategorized default Marketing script
         if (isMarketingCategory || isDefaultMarketingScript) {
             if (!isInAnotherCategory) {
                 console.log("Blocking Marketing Script:", script.src);
-             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",category);
+             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",categoryOfPreference);
 
-                const placeholder = createPlaceholder(script, category);
+                const placeholder = createPlaceholder(script, categoryOfPreference);
                 script.parentNode.replaceChild(placeholder, script);
                 blockedScripts.push(placeholder);
             console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
@@ -625,7 +625,7 @@ async function blockPersonalizationScripts() {
   console.log("INSIDE BLOCK PERSONALIZATION SCRIPT");
 
     const personalizationPatterns = /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i;
-    const category = "Personalization";
+    const categoryOfPreference = "Personalization";
     const  categorizedScripts = await loadCategorizedScripts();
     console.log("categorized script Personalization",categorizedScripts);
 
@@ -633,7 +633,7 @@ async function blockPersonalizationScripts() {
     scripts.forEach(script => {
         const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
 
-        const isPersonalizationCategory = matchingEntry && matchingEntry.selectedCategories.includes(category);
+        const isPersonalizationCategory = matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
         const isDefaultPersonalizationScript = !matchingEntry && personalizationPatterns.test(script.src);
         const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
 
@@ -641,9 +641,9 @@ async function blockPersonalizationScripts() {
         if (isPersonalizationCategory || isDefaultPersonalizationScript) {
             if (!isInAnotherCategory) {
                 console.log("Blocking Personalization Script:", script.src);
-             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",category);
+             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",categoryOfPreference);
 
-                const placeholder = createPlaceholder(script, category);
+                const placeholder = createPlaceholder(script, categoryOfPreference);
                 script.parentNode.replaceChild(placeholder, script);
                 blockedScripts.push(placeholder);
             console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
@@ -656,8 +656,8 @@ async function blockPersonalizationScripts() {
 
 
   
-async function unblockScripts(category) {
-  console.log(`Starting unblockScripts for category: ${category}`);
+async function unblockScripts(categoryOfPreference) {
+  console.log(`Starting unblockScripts for category: ${categoryOfPreference}`);
   console.log(`Total blocked scripts: ${blockedScripts.length}`);
   
   blockedScripts.forEach((placeholder, index) => {
@@ -666,7 +666,7 @@ async function unblockScripts(category) {
           src: placeholder.dataset.src
       });
       
-      if (placeholder.dataset.category === category) {
+      if (placeholder.dataset.category === categoryOfPreference) {
           if (placeholder.dataset.src) {
               console.log(`Unblocking script: ${placeholder.dataset.src}`);
               

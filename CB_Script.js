@@ -556,101 +556,124 @@ async function loadCategorizedScripts() {
      return isSuspicious;
   }
   
-
-  async function  blockAnalyticsScripts() {
+  async function blockAnalyticsScripts() {
     console.log("INSIDE BLOCK ANALYTICS SCRIPT");
-    
+  
     const analyticsPatterns = /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i;
     const categoryOfPreference = "Analytics";
-    const  categorizedScripts = await loadCategorizedScripts();
-    console.log("categorized script Analytics",categorizedScripts);
-    const scripts = document.querySelectorAll('script[src]');
+    const categorizedScripts = await loadCategorizedScripts();
+  
+  
+    const scripts = document.querySelectorAll('script');
+  
     scripts.forEach(script => {
-        const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
-
-        const isAnalyticsCategory = matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-        const isDefaultAnalyticsScript = !matchingEntry && analyticsPatterns.test(script.src);
-        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
-
-        // Only block if it belongs to Analytics OR is an uncategorized default Analytics script
-        if (isAnalyticsCategory || isDefaultAnalyticsScript) {
-            if (!isInAnotherCategory) {
-                console.log("Blocking Analytics Script:", script.src);
-             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",categoryOfPreference);
-
-                const placeholder = createPlaceholder(script, categoryOfPreference);
-                script.parentNode.replaceChild(placeholder, script);
-                blockedScripts.push(placeholder);
-            console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
-
-            }
-        }
+      const src = script.src || null;
+      const content = script.innerText || script.textContent;
+  
+      const matchingEntry = categorizedScripts.find(entry => {
+        const srcMatch = entry.src && src && entry.src === src;
+        const contentMatch =
+          !entry.src && entry.content && content &&
+          content.trim().startsWith(entry.content.trim().substring(0, 30));
+        return srcMatch || contentMatch;
+      });
+  
+      const isAnalyticsCategory =
+        matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
+      const isDefaultAnalyticsScript =
+        !matchingEntry && src && analyticsPatterns.test(src);
+      const isInAnotherCategory =
+        matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
+  
+      if ((isAnalyticsCategory || isDefaultAnalyticsScript) && !isInAnotherCategory) {
+        console.log("Blocking Analytics Script:", src || "[inline]");
+        console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY", categoryOfPreference);
+  
+        const placeholder = createPlaceholder(script, categoryOfPreference);
+        script.parentNode.replaceChild(placeholder, script);
+        blockedScripts.push(placeholder);
+  
+        console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
+      }
     });
-}
+  }
+  
 
-
- async function blockMarketingScripts() {
+async function blockMarketingScripts() {
   console.log("INSIDE BLOCK MARKETING SCRIPT");
 
-    const marketingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i;
-    const categoryOfPreference = "Marketing";
-    const  categorizedScripts = await loadCategorizedScripts();
-    console.log("categorized script Marketing",categorizedScripts);
+  const marketingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i;
+  const categoryOfPreference = "Marketing";
+  const categorizedScripts = await loadCategorizedScripts();
 
-    const scripts = document.querySelectorAll('script[src]');
-    scripts.forEach(script => {
-        const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
+  const scripts = document.querySelectorAll('script');
 
-        const isMarketingCategory = matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-        const isDefaultMarketingScript = !matchingEntry && marketingPatterns.test(script.src);
-        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
+  scripts.forEach(script => {
+    const src = script.src || null;
+    const content = script.innerText || script.textContent;
 
-        // Only block if it belongs to Marketing OR is an uncategorized default Marketing script
-        if (isMarketingCategory || isDefaultMarketingScript) {
-            if (!isInAnotherCategory) {
-                console.log("Blocking Marketing Script:", script.src);
-             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",categoryOfPreference);
-
-                const placeholder = createPlaceholder(script, categoryOfPreference);
-                script.parentNode.replaceChild(placeholder, script);
-                blockedScripts.push(placeholder);
-            console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
-
-            }
-        }
+    // Normalize both for matching
+    const matchingEntry = categorizedScripts.find(entry => {
+      const entrySrcMatch = entry.src && src && entry.src === src;
+      const entryContentMatch = !entry.src && entry.content && content && entry.content.trim().startsWith(entry.content.trim().substring(0, 30));
+      return entrySrcMatch || entryContentMatch;
     });
+
+    const isMarketingCategory =
+      matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
+    const isDefaultMarketingScript = !matchingEntry && src && marketingPatterns.test(src);
+    const isInAnotherCategory =
+      matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
+
+    if ((isMarketingCategory || isDefaultMarketingScript) && !isInAnotherCategory) {
+      console.log("Blocking Marketing Script:", src || "[inline]");
+      const placeholder = createPlaceholder(script, categoryOfPreference);
+      script.parentNode.replaceChild(placeholder, script);
+      blockedScripts.push(placeholder);
+    }
+  });
 }
 
 async function blockPersonalizationScripts() {
   console.log("INSIDE BLOCK PERSONALIZATION SCRIPT");
 
-    const personalizationPatterns = /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i;
-    const categoryOfPreference = "Personalization";
-    const  categorizedScripts = await loadCategorizedScripts();
-    console.log("categorized script Personalization",categorizedScripts);
+  const personalizationPatterns = /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i;
+  const categoryOfPreference = "Personalization";
+  const categorizedScripts = await loadCategorizedScripts();
 
-    const scripts = document.querySelectorAll('script[src]');
-    scripts.forEach(script => {
-        const matchingEntry = categorizedScripts.find(entry => entry.src && entry.src === script.src);
+  const scripts = document.querySelectorAll('script');
 
-        const isPersonalizationCategory = matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-        const isDefaultPersonalizationScript = !matchingEntry && personalizationPatterns.test(script.src);
-        const isInAnotherCategory = matchingEntry && !matchingEntry.selectedCategories.includes(category);
+  scripts.forEach(script => {
+    const src = script.src || null;
+    const content = script.innerText || script.textContent;
 
-        // Only block if it belongs to Personalization OR is an uncategorized default Personalization script
-        if (isPersonalizationCategory || isDefaultPersonalizationScript) {
-            if (!isInAnotherCategory) {
-                console.log("Blocking Personalization Script:", script.src);
-             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",categoryOfPreference);
-
-                const placeholder = createPlaceholder(script, categoryOfPreference);
-                script.parentNode.replaceChild(placeholder, script);
-                blockedScripts.push(placeholder);
-            console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
-
-            }
-        }
+    // Try to match by src or content
+    const matchingEntry = categorizedScripts.find(entry => {
+      const srcMatch = entry.src && src && entry.src === src;
+      const contentMatch =
+        !entry.src && entry.content && content &&
+        content.trim().startsWith(entry.content.trim().substring(0, 30));
+      return srcMatch || contentMatch;
     });
+
+    const isPersonalizationCategory =
+      matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
+    const isDefaultPersonalizationScript =
+      !matchingEntry && src && personalizationPatterns.test(src);
+    const isInAnotherCategory =
+      matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
+
+    if ((isPersonalizationCategory || isDefaultPersonalizationScript) && !isInAnotherCategory) {
+      console.log("Blocking Personalization Script:", src || "[inline]");
+      console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY", categoryOfPreference);
+
+      const placeholder = createPlaceholder(script, categoryOfPreference);
+      script.parentNode.replaceChild(placeholder, script);
+      blockedScripts.push(placeholder);
+
+      console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
+    }
+  });
 }
 
 

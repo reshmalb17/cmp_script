@@ -493,6 +493,7 @@ async function loadCategorizedScripts() {
   
     // Move createPlaceholder function outside of scanAndBlockScripts
     function createPlaceholder(script, category) {
+      console.log("INSIDE CREATE PLACEHOLDER AND CATEGORY IS :",category)
         const placeholder = document.createElement('script');
         placeholder.type = 'text/placeholder';
         placeholder.dataset.src = script.src;
@@ -557,6 +558,8 @@ async function loadCategorizedScripts() {
   
 
   async function  blockAnalyticsScripts() {
+    console.log("INSIDE BLOCK ANALYTICS SCRIPT");
+    
     const analyticsPatterns = /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i;
     const category = "Analytics";
     const  categorizedScripts = await loadCategorizedScripts();
@@ -573,9 +576,13 @@ async function loadCategorizedScripts() {
         if (isAnalyticsCategory || isDefaultAnalyticsScript) {
             if (!isInAnotherCategory) {
                 console.log("Blocking Analytics Script:", script.src);
+             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",category);
+
                 const placeholder = createPlaceholder(script, category);
                 script.parentNode.replaceChild(placeholder, script);
                 blockedScripts.push(placeholder);
+            console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
+
             }
         }
     });
@@ -583,6 +590,8 @@ async function loadCategorizedScripts() {
 
 
  async function blockMarketingScripts() {
+  console.log("INSIDE BLOCK MARKETING SCRIPT");
+
     const marketingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i;
     const category = "Marketing";
     const  categorizedScripts = await loadCategorizedScripts();
@@ -600,15 +609,21 @@ async function loadCategorizedScripts() {
         if (isMarketingCategory || isDefaultMarketingScript) {
             if (!isInAnotherCategory) {
                 console.log("Blocking Marketing Script:", script.src);
+             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",category);
+
                 const placeholder = createPlaceholder(script, category);
                 script.parentNode.replaceChild(placeholder, script);
                 blockedScripts.push(placeholder);
+            console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
+
             }
         }
     });
 }
 
 async function blockPersonalizationScripts() {
+  console.log("INSIDE BLOCK PERSONALIZATION SCRIPT");
+
     const personalizationPatterns = /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i;
     const category = "Personalization";
     const  categorizedScripts = await loadCategorizedScripts();
@@ -626,9 +641,13 @@ async function blockPersonalizationScripts() {
         if (isPersonalizationCategory || isDefaultPersonalizationScript) {
             if (!isInAnotherCategory) {
                 console.log("Blocking Personalization Script:", script.src);
+             console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY",category);
+
                 const placeholder = createPlaceholder(script, category);
                 script.parentNode.replaceChild(placeholder, script);
                 blockedScripts.push(placeholder);
+            console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
+
             }
         }
     });

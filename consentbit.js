@@ -246,8 +246,81 @@ async function detectLocationAndGetBannerType() {
       return null;
   }
 }
+/**
+ * Encryption Utilities for Consent Management Platform
+ * Provides secure encryption and decryption functions using the Web Crypto API
+ */
+const EncryptionUtils = {
+  /**
+   * Generates a new encryption key and IV
+   * @returns {Promise<{key: CryptoKey, iv: Uint8Array}>}
+   */
+  async generateKey() {
+      const key = await crypto.subtle.generateKey(
+          { name: "AES-GCM", length: 256 },
+          true,
+          ["encrypt", "decrypt"]
+      );
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      return { key, iv };
+  },
 
-// Function to load categorized scripts
+  /**
+   * Imports a raw key for encryption/decryption
+   * @param {Uint8Array} rawKey - The raw key bytes
+   * @param {string[]} usages - Array of key usages ['encrypt', 'decrypt']
+   * @returns {Promise<CryptoKey>}
+   */
+  async importKey(rawKey, usages = ['encrypt', 'decrypt']) {
+      return await crypto.subtle.importKey(
+          'raw',
+          rawKey,
+          { name: 'AES-GCM' },
+          false,
+          usages
+      );
+  },
+
+  /**
+   * Encrypts data using AES-GCM
+   * @param {string} data - The data to encrypt
+   * @param {CryptoKey} key - The encryption key
+   * @param {Uint8Array} iv - The initialization vector
+   * @returns {Promise<string>} - Base64 encoded encrypted data
+   */
+  async encrypt(data, key, iv) {
+      const encoder = new TextEncoder();
+      const encodedData = encoder.encode(data);
+      const encrypted = await crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv },
+          key,
+          encodedData
+      );
+      return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+  },
+
+  /**
+   * Decrypts data using AES-GCM
+   * @param {string} encryptedData - Base64 encoded encrypted data
+   * @param {CryptoKey} key - The decryption key
+   * @param {Uint8Array} iv - The initialization vector
+   * @returns {Promise<string>} - Decrypted data
+   */
+  async decrypt(encryptedData, key, iv) {
+      const encryptedBytes = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+      const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          key,
+          encryptedBytes
+      );
+      return new TextDecoder().decode(decrypted);
+  }
+};
+
+/**
+* Loads categorized scripts from the server with encryption
+* @returns {Promise<Array>} Array of categorized scripts
+*/
 async function loadCategorizedScripts() {
   try {
       // Get session token from localStorage
@@ -333,7 +406,6 @@ async function loadCategorizedScripts() {
       return [];
   }
 } 
-
     async function loadConsentState() {
       if (isLoadingState) {
         

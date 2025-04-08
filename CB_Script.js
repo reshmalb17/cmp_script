@@ -1,4 +1,3 @@
-        
 
 (async function () {
     let isLoadingState = false;
@@ -292,7 +291,8 @@ async function loadCategorizedScripts() {
       }
 
       const data = await response.json();
-      return data.scripts || [];
+      const decryptedScripts =decryptResponse(data.scripts)
+      return decryptedScripts || [];
   } catch (error) {
       console.error('Error loading categorized scripts:', error);
       return [];
@@ -1418,7 +1418,7 @@ function blockAnalyticsRequests() {
         link.type = "text/css";
         const link2 = document.createElement("link");
         link2.rel = "stylesheet";
-        link2.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@fa18a25/consentbit.css";
+        link2.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@8c69a0b/consentbit.css";
         document.head.appendChild(link2);
 
         
@@ -1707,7 +1707,44 @@ function blockAnalyticsRequests() {
     
   }
   
+  function fromBase64KeyResponse(str){
+    return Uint8Array.from(atob(str), c => c.charCodeAt(0));
+  }
+  
+  async function importKeyResponse(keyBytes) {
+    return await crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'AES-GCM' },
+      false,
+      ['decrypt']
+    );
+  }
+  
+  async function decryptResponse(encryptedB64, keyB64, ivB64) {
+    const encrypted = fromBase64KeyResponse(encryptedB64);
+    const keyBytes = fromBase64KeyResponse(keyB64);
+    const iv = fromBase64KeyResponse(ivB64);
+  
+    const key = await importKeyResponse(keyBytes);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encrypted
+    );
+  
+    return new TextDecoder().decode(decrypted);
+  }
+
+
+
+
+
+
   // Window attachments
+  window.fromBase64KeyResponse =fromBase64KeyResponse;
+  window.importKeyResponse =importKeyResponse;
+  window.decryptResponse = decryptResponse;
   window.loadConsentState = loadConsentState;
   window.blockMetaFunctions = blockMetaFunctions;
   window.blockAllInitialRequests = blockAllInitialRequests;

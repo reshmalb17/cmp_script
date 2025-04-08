@@ -444,6 +444,29 @@ async function loadCategorizedScripts() {
       
     }
       document.addEventListener('DOMContentLoaded', initialize);
+      document.addEventListener("DOMContentLoaded", function () {
+
+         const scrollControl = document.querySelector('[scroll-control="true"]');
+        function toggleScrolling() {
+            const banner = document.querySelector(".consebit-banner-div");
+            if (banner) {
+                const observer = new MutationObserver(() => {
+                    if (window.getComputedStyle(banner).display !== "none") {
+                        document.body.style.overflow = "hidden"; // Disable scrolling
+                    } else {
+                        document.body.style.overflow = ""; // Enable scrolling
+                    }
+                });
+                observer.observe(banner, { attributes: true, attributeFilter: ["style", "class"] });
+            }
+        }
+        if(scrollControl){
+          toggleScrolling();
+        }
+       
+    });
+
+
   
     async function initializeBlocking() {
         blockAllScripts();
@@ -1104,7 +1127,6 @@ function blockAnalyticsRequests() {
   
   async function saveConsentState(preferences, country) {
     console.log("inside saveConsentstate function");
-    console.log("called function scanexisting cookies");
     
     scanExistingCookies();
     console.log("called function clientId ");
@@ -1374,12 +1396,7 @@ function blockAnalyticsRequests() {
   async function updateConsentState(preferences) {
     
     consentState = preferences;
-    initialBlockingEnabled = !preferences.analytics;
-
-
-
-    consentState = preferences;
-    initialBlockingEnabled = !preferences.analytics;
+    initialBlockingEnabled = !preferences.analytics;  
   
     if (preferences.doNotShare) {
       blockAllScripts(); // Just block everything
@@ -1398,6 +1415,7 @@ function blockAnalyticsRequests() {
         link.rel = "stylesheet";
         link.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@d6b0288/consentbitstyle.css";
         link.type = "text/css";
+
         
         // Add error handling
         link.onerror = function() {
@@ -1478,9 +1496,8 @@ function blockAnalyticsRequests() {
     const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]')
     const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
     const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
-    const doNotShareCheckbox = document.getElementById('[data-consent-id="do-not-share-checkbox"]');
-  
-  
+    const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+      
     // Initialize banner visibility based on user location
     initializeBannerVisibility();
   

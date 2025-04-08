@@ -1,3 +1,4 @@
+        
 
 (async function () {
     let isLoadingState = false;
@@ -1415,6 +1416,10 @@ function blockAnalyticsRequests() {
         link.rel = "stylesheet";
         link.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@d6b0288/consentbitstyle.css";
         link.type = "text/css";
+        const link2 = document.createElement("link");
+        link2.rel = "stylesheet";
+        link2.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@fa18a25/consentbit.css";
+        document.head.appendChild(link2);
 
         
         // Add error handling

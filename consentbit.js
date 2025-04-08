@@ -552,27 +552,23 @@ async function loadCategorizedScripts() {
     }
       document.addEventListener('DOMContentLoaded', initialize);
       document.addEventListener("DOMContentLoaded", function () {
-
-         const scrollControl = document.querySelector('[scroll-control="true"]');
+        const scrollControl = document.querySelector('[scroll-control="true"]');
         function toggleScrolling() {
-            const banner = document.querySelector(".consebit-banner-div");
-            if (banner) {
-                const observer = new MutationObserver(() => {
-                    if (window.getComputedStyle(banner).display !== "none") {
-                        document.body.style.overflow = "hidden"; // Disable scrolling
-                    } else {
-                        document.body.style.overflow = ""; // Enable scrolling
-                    }
-                });
-                observer.observe(banner, { attributes: true, attributeFilter: ["style", "class"] });
-            }
+          const banner = document.querySelector('[data-cookie-banner="true"]');
+          if (!banner) return;
+          const observer = new MutationObserver(() => {
+            const isVisible = window.getComputedStyle(banner).display !== "none";
+            document.body.style.overflow = isVisible ? "hidden" : "";
+          });
+          // Initial check on load
+          const isVisible = window.getComputedStyle(banner).display !== "none";
+          document.body.style.overflow = isVisible ? "hidden" : "";
+          observer.observe(banner, { attributes: true, attributeFilter: ["style", "class"] });
         }
-        if(scrollControl){
+        if (scrollControl) {
           toggleScrolling();
         }
-       
-    });
-
+      });
 
   
     async function initializeBlocking() {

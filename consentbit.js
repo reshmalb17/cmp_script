@@ -396,6 +396,7 @@ async function loadCategorizedScripts() {
           );
           
           const responseObj = JSON.parse(decryptedData);
+          console.log("decrypted Script category",responseObj.scripts)
           return responseObj.scripts || [];
       } else {
           console.error('Response does not contain encrypted data');

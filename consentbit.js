@@ -551,7 +551,7 @@ async function loadCategorizedScripts() {
       monitorCookieChanges();
       
     }
-      document.addEventListener('DOMContentLoaded', initialize);
+      document.addEventListener('DOMContentLoaded',  initialize);
       document.addEventListener("DOMContentLoaded", function () {
         const scrollControl = document.querySelector('[scroll-control="true"]');
         function toggleScrolling() {
@@ -996,14 +996,6 @@ function blockAnalyticsRequests() {
   return window.location.hostname; // Use hostname as the unique client identifier
   }
   
-    async function hashData(data) {
-      const encoder = new TextEncoder();
-      const dataBuffer = encoder.encode(data);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
-      return Array.from(new Uint8Array(hashBuffer))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-    }
   
     async function generateKey() {
       const key = await crypto.subtle.generateKey(
@@ -1056,16 +1048,7 @@ function blockAnalyticsRequests() {
       return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
     }
   
-    function getCookie(name) {
-      const cookieString = document.cookie;
-      if (!cookieString) return null;
-      
-      const cookies = Object.fromEntries(
-          cookieString.split("; ").map(c => c.split("="))
-      );
-      
-      return cookies[name] || null;
-  }
+ 
   
   function scanExistingCookies() {
     console.log('Scanning existing cookies...');
@@ -1199,36 +1182,7 @@ function blockAnalyticsRequests() {
   
     return { name, duration, attributes };
   }
-  
-  // Add these helper functions after the existing cookie-related functions
-  function calculateDuration(startDate, endDate) {
-    var diff = endDate - startDate;
-    
-    var seconds = Math.floor(diff / 1000);
-    var minutes = Math.floor(seconds / 60);
-    var hours = Math.floor(minutes / 60);
-    var days = Math.floor(hours / 24);
-    var months = Math.floor(days / 30.44); // Average month length
-    var years = Math.floor(days / 365.25); // Account for leap years
-  
-    if (seconds < 60) return seconds + ' seconds';
-    if (minutes < 60) return minutes + ' minutes';
-    if (hours < 24) return hours + ' hours';
-    if (days < 30) return days + ' days';
-    if (months < 12) return months + ' months';
-    return years + ' years';
-  }
-  
-  function convertMaxAgeToDuration(maxAge) {
-    if (maxAge <= 0) return 'Session';
-    if (maxAge < 60) return maxAge + ' seconds';
-    if (maxAge < 3600) return Math.round(maxAge/60) + ' minutes';
-    if (maxAge < 86400) return Math.round(maxAge/3600) + ' hours';
-    if (maxAge < 2592000) return Math.round(maxAge/86400) + ' days';
-    if (maxAge < 31536000) return Math.round(maxAge/2592000) + ' months';
-    return Math.round(maxAge/31536000) + ' years';
-  }
-  
+ 
   async function saveConsentState(preferences, country) {
     console.log("inside saveConsentstate function");
     
@@ -1491,7 +1445,7 @@ function blockAnalyticsRequests() {
   
   function revalidateBlockedScripts() {
     if (!consentState.analytics) {
-        
+      loadConsentStyles();        
         scanAndBlockScripts();
         blockDynamicScripts();
     }

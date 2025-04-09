@@ -12,7 +12,7 @@
     async function blockAllScripts() {
       try {
           console.log("----inside Block ALL SCRIPTS STARTED-----");
-          await hardenScriptBlocking();
+         // await hardenScriptBlocking();
           await scanAndBlockScripts();
           await blockDynamicScripts();
           await blockMetaFunctions();

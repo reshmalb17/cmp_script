@@ -9,48 +9,31 @@
     let country =null;
     const categorizedScripts=null;
 
-   async  function blockAllScripts() {
-
-      console.log("----inside Block ALL SCRIPTS STARTED-----")
-      console.log("INVOKE: BLOCK META FUNCTIONS")
-      console.log("INVOKE: BLOCK scanAndBlockScripts")
-      await hardenScriptBlocking();
-
-    await  scanAndBlockScripts();
-    console.log("INVOKE: BLOCK blockDynamicScripts")
-    await  blockDynamicScripts();
-
-    await blockMetaFunctions();
-    console.log("INVOKE: BLOCK blockAnalyticsRequests")
-
-    await blockAnalyticsRequests();
-   
-    
-    console.log("INVOKE: BLOCK createPlaceholderScripts")
-
-   await  createPlaceholderScripts();
-
-    if (!consentState.marketing) {
-      console.log("----inside Block ALL SCRIPTS :INVOKE blockMarketingScripts-----")
-
-     await  blockMarketingScripts();
+    async function blockAllScripts() {
+      try {
+          console.log("----inside Block ALL SCRIPTS STARTED-----");
+          await hardenScriptBlocking();
+          await scanAndBlockScripts();
+          await blockDynamicScripts();
+          await blockMetaFunctions();
+          await blockAnalyticsRequests();
+          await createPlaceholderScripts();
+  
+          if (!consentState.marketing) {
+              await blockMarketingScripts();
+          }
+          if (!consentState.personalization) {
+              await blockPersonalizationScripts();
+          }
+          if (!consentState.analytics) {
+              await blockAnalyticsScripts();
+          }
+  
+          console.log("----inside Block ALL SCRIPTS FINISHED-----");
+      } catch (error) {
+          console.error('Error in blockAllScripts:', error);
+      }
   }
-  if (!consentState.personalization) {
-    console.log("----inside Block ALL SCRIPTS :INVOKE blockPersonalizationScripts-----")
-
-    await   blockPersonalizationScripts();
-  }
-  if (!consentState.analytics) {
-    console.log("----inside Block ALL SCRIPTS :INVOKE blockAnalyticsScripts-----")
-
-    
-     await  blockAnalyticsScripts();
-  }
-
-  console.log("----inside Block ALL SCRIPTS FINISHED-----")
-
-  }
-
 
   async function hardenScriptBlocking() {
     try {
@@ -63,26 +46,18 @@
       const originalInsertBefore = Node.prototype.insertBefore;
   
       // Override createElement to trap <script>
-      document.createElement = function(tagName, ...args) {
-        const element = originalCreateElement.call(this, tagName, ...args);
+     // Instead of directly modifying script properties
+document.createElement = function(tagName, ...args) {
+  const element = originalCreateElement.call(this, tagName, ...args);
   
-        if (tagName.toLowerCase() === "script") {
-          setTimeout(() => {
-            element.type = "blocked/javascript";
-          }, 0);
+  if (tagName.toLowerCase() === "script") {
+      // Use a safer approach to store the src
+      element.setAttribute('data-blocked-src', element.src);
+      element.removeAttribute('src');
+  }
   
-          Object.defineProperty(element, 'src', {
-            set(value) {
-              element.setAttribute("data-blocked-src", value);
-            },
-            get() {
-              return element.getAttribute("data-blocked-src");
-            }
-          });
-        }
-  
-        return element;
-      };
+  return element;
+};
   
       // Block appendChild of <script>
       Node.prototype.appendChild = function(child, ...args) {
@@ -137,51 +112,38 @@
   }
 
  // Function to get visitor session token
-    async function getVisitorSessionToken() {
-        try {
-            // Get or create visitor ID
-            const visitorId = await getOrCreateVisitorId();
-            
-            // Get cleaned site name
-            const siteName = await  cleanHostname(window.location.hostname);
-            
-            // Check if we have a valid token in localStorage
-            let token = localStorage.getItem('visitorSessionToken');
-            
-            // If we have a token and it's not expired, return it
-            if (token && !isTokenExpired(token)) {
-                console.log("Token is in localstorage")
-                return token;
-            }
+ async function getVisitorSessionToken() {
+  try {
+      const visitorId = await getOrCreateVisitorId();
+      const siteName = await cleanHostname(window.location.hostname);
+      
+      let token = localStorage.getItem('visitorSessionToken');
+      if (token && !isTokenExpired(token)) {
+          return token;
+      }
 
-            // Request new token from server
-            const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    visitorId: visitorId,
-                    userAgent: navigator.userAgent,
-                    siteName: siteName
-                })
-            });
+      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              visitorId,
+              userAgent: navigator.userAgent,
+              siteName
+          })
+      });
 
-            if (!response.ok) {
-                throw new Error('Failed to get visitor session token');
-            }
+      if (!response.ok) {
+          throw new Error('Failed to get visitor session token');
+      }
 
-            const data = await response.json();
-            
-            // Store the new token
-            localStorage.setItem('visitorSessionToken', data.token);
-            
-            return data.token;
-        } catch (error) {
-            console.error('Error getting visitor session token:', error);
-            return null;
-        }
-    }
+      const data = await response.json();
+      localStorage.setItem('visitorSessionToken', data.token);
+      return data.token;
+  } catch (error) {
+      console.error('Error getting visitor session token:', error);
+      return null;
+  }
+}
  // Function to check if token is expired
  function isTokenExpired(token) {
     try {
@@ -534,33 +496,36 @@ async function initializeBannerVisibility() {
       }
     }
   
-async function initialize() {
-         // Get visitor session token first
-       await loadConsentState();
-       await getVisitorSessionToken();
-       loadConsentStyles();
-       await loadCategorizedScripts();      
-      hideBanner(document.getElementById("consent-banner"));
-      hideBanner(document.getElementById("initial-consent-banner"));
-      hideBanner(document.getElementById("main-banner"));
-      hideBanner(document.getElementById("main-consent-banner"));
-      hideBanner(document.getElementById("simple-consent-banner"));
-     
-      await initializeBannerVisibility();
-      const hasMainBanners = document.getElementById("consent-banner") ||document.getElementById("initial-consent-banner");
-  
-    // if (!hasMainBanners) {
-    //   // If no main banners exist, initialize simple banner
-    //   initializeSimpleBanner();
-    // } else {
-    //   // Otherwise initialize main banners
-    //   await initializeBannerVisibility();
-    // }
-    
-      attachBannerHandlers();
-  
-      
-    }
+    async function initialize() {
+      try {
+          await loadConsentState();
+          const token = await getVisitorSessionToken();
+          if (!token) {
+              console.error('Failed to get visitor session token');
+              return;
+          }
+          
+          loadConsentStyles();
+          await loadCategorizedScripts();
+          
+          // Hide all banners initially
+          const banners = [
+              "consent-banner",
+              "initial-consent-banner",
+              "main-banner",
+              "main-consent-banner",
+              "simple-consent-banner"
+          ].forEach(id => {
+              const banner = document.getElementById(id);
+              if (banner) hideBanner(banner);
+          });
+          
+          await initializeBannerVisibility();
+          attachBannerHandlers();
+      } catch (error) {
+          console.error('Error during initialization:', error);
+      }
+  }
       document.addEventListener('DOMContentLoaded',  initialize);
       document.addEventListener("DOMContentLoaded", function () {
         const scrollControl = document.querySelector('[scroll-control="true"]');
@@ -677,7 +642,7 @@ async function initialize() {
   }
   
   async function isSuspiciousResource(url) {
-    const suspiciousPatterns = /gtag|analytics|zoho|track|collect|googletagmanager|googleanalytics|metrics|pageview|stat|trackpageview|pixel|doubleclick|adservice|adwords|adsense|connect\.facebook\.net|fbevents\.js|facebook|meta|graph\.facebook\.com|business\.facebook\.com|pixel|quantserve|scorecardresearch|clarity\.ms|hotjar|mouseflow|fullstory|logrocket|mixpanel|segment|amplitude|heap|kissmetrics|matomo|piwik|woopra|crazyegg|clicktale|optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat|olark|purechat|snapengage|liveperson|boldchat|clickdesk|userlike|zopim|crisp|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|moat|integral-marketing|comscore|nielsen|quantcast|adobe|marketo|hubspot|salesforce|pardot|eloqua|act-on|mailchimp|constantcontact|sendgrid|klaviyo|braze|iterable|appsflyer|adjust|branch|kochava|singular|tune|attribution|chartbeat|parse\.ly|newrelic|datadog|sentry|rollbar|bugsnag|raygun|loggly|splunk|elastic|dynatrace|appoptics|pingdom|uptimerobot|statuscake|newrelic|datadoghq|sentry\.io|rollbar\.com|bugsnag\.com|raygun\.io|loggly\.com|splunk\.com|elastic\.co|dynatrace\.com|appoptics\.com|pingdom\.com|uptimerobot\.com|statuscake\.com|clarity|clickagy|yandex|baidu/;
+    const suspiciousPatterns = /gtag|analytics|zoho|track|collect|googletagmanager|googleanalytics|metrics|pageview|stat|trackpageview|pixel|doubleclick|adservice|adwords|adsense|connect\.facebook\.net|fbevents\.js|facebook|meta|graph\.facebook\.com|business\.facebook\.com|pixel|quantserve|scorecardresearch|clarity\.ms|hotjar|mouseflow|fullstory|logrocket|mixpanel|segment|amplitude|heap|kissmetrics|matomo|piwik|woopra|crazyegg|clicktale|optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat|olark|purechat|snapengage|liveperson|boldchat|clickdesk|userlike|zopim|crisp|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|moat|integral-marketing|comscore|nielsen|quantcast|adobe|marketo|hubspot|salesforce|pardot|eloqua|act-on|mailchimp|constantcontact|sendgrid|klaviyo|braze|iterable|appsflyer|adjust|branch|kochava|singular|tune|attribution|chartbeat|parse\.ly|newrelic|datadog|sentry|rollbar|bugsnag|raygun|loggly|splunk|elastic|dynatrace|appoptics|pingdom|uptimerobot|plausible|matomo|statuscake|newrelic|datadoghq|sentry\.io|rollbar\.com|bugsnag\.com|raygun\.io|loggly\.com|splunk\.com|elastic\.co|dynatrace\.com|appoptics\.com|pingdom\.com|uptimerobot\.com|statuscake\.com|clarity|clickagy|yandex|baidu/;
     const isSuspicious = suspiciousPatterns.test(url);
      if (isSuspicious) {
      console.log("Suspicious script detected:", url);

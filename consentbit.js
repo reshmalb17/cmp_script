@@ -720,47 +720,60 @@ async function loadCategorizedScripts() {
     });
   }
   
-
-async function blockMarketingScripts() {
-  console.log("INSIDE BLOCK MARKETING SCRIPT");
-
-  const marketingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i;
-  const categoryOfPreference = "Marketing";
-  const categorizedScripts = await loadCategorizedScripts();
-
-
-  const scripts = document.querySelectorAll('script');
-
-  scripts.forEach(script => {
-    const src = script.src || null;
-    const content = script.innerText || script.textContent;
-
-    const matchingEntry = categorizedScripts.find(entry => {
-      const entrySrcMatch = entry.src && src && entry.src === src;
-      const entryContentMatch = !entry.src && entry.content && content && entry.content.trim().startsWith(entry.content.trim().substring(0, 30));
-      return entrySrcMatch || entryContentMatch;
+  async function blockMarketingScripts() {
+    console.log("INSIDE BLOCK MARKETING SCRIPT");
+  
+    const marketingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i;
+    const categoryOfPreference = "Marketing";
+    const categorizedScripts = await loadCategorizedScripts();
+  
+    const scripts = document.querySelectorAll('script');
+  
+  
+    scripts.forEach(script => {
+      const src = script.src || null;
+      const content = script.innerText || script.textContent;
+  
+      const matchingEntry = categorizedScripts.find(entry => {
+        const entrySrcMatch = entry.src && src && entry.src === src;
+  
+        const entryContentMatch = !entry.src &&
+          entry.content &&
+          content &&
+          content.replace(/\s/g, '').includes(entry.content.replace(/\s/g, ''));
+  
+        return entrySrcMatch || entryContentMatch;
+      });
+  
+      const isMarketingCategory =
+        matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
+  
+      const isDefaultMarketingScript = !matchingEntry && (
+        (src && marketingPatterns.test(src)) ||
+        (content && marketingPatterns.test(content))
+      );
+  
+      const isInAnotherCategory =
+        matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
+  
+      // Debug logs
+      if (matchingEntry) {
+        console.log("Found Matching Entry:", matchingEntry);
+        console.log("Categories:", matchingEntry.selectedCategories);
+        console.log("Includes Marketing?", isMarketingCategory);
+      } else {
+        console.log("No matching entry found. Checking default marketing patterns.");
+      }
+  
+      if ((isMarketingCategory || isDefaultMarketingScript) && !isInAnotherCategory) {
+        console.log("Blocking Marketing Script:", src || "[inline]");
+        const placeholder = createPlaceholder(script, categoryOfPreference);
+        script.parentNode.replaceChild(placeholder, script);
+        blockedScripts.push(placeholder);
+      }
     });
-
-    const isMarketingCategory =
-      matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-
-      console.log("Marketing categories",isMarketingCategory);
-    const isDefaultMarketingScript = !matchingEntry && (
-      (src && marketingPatterns.test(src)) ||
-      (content && marketingPatterns.test(content))
-    );
-    
-    const isInAnotherCategory =
-      matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
-
-    if ((isMarketingCategory || isDefaultMarketingScript) && !isInAnotherCategory) {
-      console.log("Blocking Marketing Script:", src || "[inline]");
-      const placeholder = createPlaceholder(script, categoryOfPreference);
-      script.parentNode.replaceChild(placeholder, script);
-      blockedScripts.push(placeholder);
-    }
-  });
-}
+  }
+  
 
 async function blockPersonalizationScripts() {
   console.log("INSIDE BLOCK PERSONALIZATION SCRIPT");

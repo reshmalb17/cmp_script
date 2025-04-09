@@ -203,11 +203,6 @@ async function getOrCreateVisitorId() {
     }
     return visitorId;
 }
-
-
-
-
-
 async function detectLocationAndGetBannerType() {
   try {
       const sessionToken = localStorage.getItem('visitorSessionToken');
@@ -636,10 +631,6 @@ async function loadCategorizedScripts() {
         return placeholder;
     }
     
-  
-
-
-
     function scanAndBlockScripts() {
         const scripts = document.querySelectorAll("script[src]");
         const inlineScripts = document.querySelectorAll("script:not([src])");
@@ -707,8 +698,12 @@ async function loadCategorizedScripts() {
   
       const isAnalyticsCategory =
         matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-      const isDefaultAnalyticsScript =
-        !matchingEntry && src && analyticsPatterns.test(src);
+        console.log("Analytics categories",isAnalyticsCategory);
+        const isDefaultAnalyticsScript = !matchingEntry && (
+          (src && analyticsPatterns.test(src)) ||
+          (content && analyticsPatterns.test(content))
+        );
+        
       const isInAnotherCategory =
         matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
   
@@ -733,13 +728,13 @@ async function blockMarketingScripts() {
   const categoryOfPreference = "Marketing";
   const categorizedScripts = await loadCategorizedScripts();
 
+
   const scripts = document.querySelectorAll('script');
 
   scripts.forEach(script => {
     const src = script.src || null;
     const content = script.innerText || script.textContent;
 
-    // Normalize both for matching
     const matchingEntry = categorizedScripts.find(entry => {
       const entrySrcMatch = entry.src && src && entry.src === src;
       const entryContentMatch = !entry.src && entry.content && content && entry.content.trim().startsWith(entry.content.trim().substring(0, 30));
@@ -748,7 +743,13 @@ async function blockMarketingScripts() {
 
     const isMarketingCategory =
       matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-    const isDefaultMarketingScript = !matchingEntry && src && marketingPatterns.test(src);
+
+      console.log("Marketing categories",isMarketingCategory);
+    const isDefaultMarketingScript = !matchingEntry && (
+      (src && marketingPatterns.test(src)) ||
+      (content && marketingPatterns.test(content))
+    );
+    
     const isInAnotherCategory =
       matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
 
@@ -785,8 +786,16 @@ async function blockPersonalizationScripts() {
 
     const isPersonalizationCategory =
       matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-    const isDefaultPersonalizationScript =
-      !matchingEntry && src && personalizationPatterns.test(src);
+         !matchingEntry && src && personalizationPatterns.test(src);
+
+      
+         console.log("Personalization categories",isPersonalizationCategory);
+
+      const isDefaultPersonalizationScript = !matchingEntry && (
+        (src && personalizationPatterns.test(src)) ||
+        (content && personalizationPatterns.test(content))
+      );
+      
     const isInAnotherCategory =
       matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
 
@@ -802,10 +811,6 @@ async function blockPersonalizationScripts() {
     }
   });
 }
-
-
-
-  
 async function unblockScripts(categoryOfPreference = "all") {
   console.log(`Starting unblockScripts with categoryOfPreference:`, categoryOfPreference);
   console.log(`Total blocked scripts: ${blockedScripts.length}`);
@@ -878,7 +883,6 @@ async function unblockScripts(categoryOfPreference = "all") {
     loadScript("https://connect.facebook.net/en_US/fbevents.js", initializeFbq);
   }
 }
-
   // Add this new function to restore original functions
   function restoreOriginalFunctions() {
       if (window.originalFetch) window.fetch = window.originalFetch;
@@ -918,8 +922,7 @@ function blockAnalyticsRequests() {
       };
       return xhr;
     };
-  }
-  
+  } 
   
   function blockMetaFunctions() {
     if (!consentState.analytics) {
@@ -996,7 +999,6 @@ function blockAnalyticsRequests() {
   return window.location.hostname; // Use hostname as the unique client identifier
   }
   
-  
     async function generateKey() {
       const key = await crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
@@ -1006,8 +1008,7 @@ function blockAnalyticsRequests() {
       const iv = crypto.getRandomValues(new Uint8Array(12));
       const exportedKey = await crypto.subtle.exportKey("raw", key);
       return { secretKey: exportedKey, iv };
-    }
-  
+    } 
   
     // Add these two functions here
   async function importKey(rawKey) {
@@ -1047,8 +1048,6 @@ function blockAnalyticsRequests() {
       );
       return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
     }
-  
- 
   
   function scanExistingCookies() {
     console.log('Scanning existing cookies...');
@@ -1250,8 +1249,7 @@ function blockAnalyticsRequests() {
     } catch (error) {
       console.error("Error sending consent data:", error);
     }
-  }
-  
+  }  
   // ---------------- Helper Functions ----------------
   
   function buildCookieData(cookieMetadata, timestamp) {
@@ -1386,8 +1384,7 @@ function blockAnalyticsRequests() {
       'kndctr_': 'Kendo UI tracking.'
     };
     return descriptions[name] || 'No description available';
-  }
-  
+  }  
   
   const headObserver = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
@@ -1512,8 +1509,7 @@ function blockAnalyticsRequests() {
     } else {
         attachBannerHandlers();
     }
-  }
-  
+  }  
   
   function showBanner(banner) {
     if (banner) {

@@ -7,6 +7,7 @@
     const blockedScripts = [];
     let currentBannerType = null;
     let country =null;
+    const categorizedScripts=null;
       
     const cookiePatterns = {
         necessary: [
@@ -108,21 +109,42 @@
     
 
     function blockAllScripts() {
-      
+      console.log("----inside Block ALL SCRIPTS STARTED-----")
+      console.log("INVOKE: BLOCK META FUNCTIONS")
+
     blockMetaFunctions();
+    console.log("INVOKE: BLOCK blockAnalyticsRequests")
+
     blockAnalyticsRequests();
+    console.log("INVOKE: BLOCK scanAndBlockScripts")
+
     scanAndBlockScripts();
+    console.log("INVOKE: BLOCK blockDynamicScripts")
+
     blockDynamicScripts();
+    console.log("INVOKE: BLOCK createPlaceholderScripts")
+
     createPlaceholderScripts();
+
     if (!consentState.marketing) {
+      console.log("----inside Block ALL SCRIPTS :INVOKE blockMarketingScripts-----")
+
       blockMarketingScripts();
   }
   if (!consentState.personalization) {
+    console.log("----inside Block ALL SCRIPTS :INVOKE blockPersonalizationScripts-----")
+
       blockPersonalizationScripts();
   }
   if (!consentState.analytics) {
+    console.log("----inside Block ALL SCRIPTS :INVOKE blockAnalyticsScripts-----")
+
+    
       blockAnalyticsScripts();
   }
+
+  console.log("----inside Block ALL SCRIPTS FINISHED-----")
+
   }
 
 
@@ -392,6 +414,8 @@ async function loadCategorizedScripts() {
           
           const responseObj = JSON.parse(decryptedData);
           console.log("decrypted Script category",responseObj.scripts)
+          categorizedScripts =responseObj.scripts || [];
+          console.log("initial categorized script",categorizedScripts);
           return responseObj.scripts || [];
       } else {
           console.error('Response does not contain encrypted data');
@@ -436,11 +460,14 @@ async function loadCategorizedScripts() {
   
                   
                   // Update checkbox states if they exist
-                  const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]')
-    const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]')
-    const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
-    const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
-    const doNotShareCheckbox = document.getElementById("do-not-share-checkbox");
+           const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]')
+           const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]')
+           const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
+           const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
+           const doNotShareCheckbox = document.getElementById("do-not-share-checkbox");
+
+
+
   
                   if (necessaryCheckbox) {
                     necessaryCheckbox.checked = true; // Always true
@@ -521,8 +548,10 @@ async function loadCategorizedScripts() {
   
     async function initialize() {
          // Get visitor session token first
+       await loadConsentState();
        await getVisitorSessionToken();
        loadConsentStyles();
+       await loadCategorizedScripts();
 
       scanExistingCookies();
       hideBanner(document.getElementById("consent-banner"));
@@ -530,20 +559,20 @@ async function loadCategorizedScripts() {
       hideBanner(document.getElementById("main-banner"));
       hideBanner(document.getElementById("main-consent-banner"));
       hideBanner(document.getElementById("simple-consent-banner"));
-      await loadConsentState();
+     
       await initializeBannerVisibility();
       const hasMainBanners = document.getElementById("consent-banner") ||document.getElementById("initial-consent-banner");
   
-    if (!hasMainBanners) {
-      // If no main banners exist, initialize simple banner
-      initializeSimpleBanner();
-    } else {
-      // Otherwise initialize main banners
-      await initializeBannerVisibility();
-    }
+    // if (!hasMainBanners) {
+    //   // If no main banners exist, initialize simple banner
+    //   initializeSimpleBanner();
+    // } else {
+    //   // Otherwise initialize main banners
+    //   await initializeBannerVisibility();
+    // }
     
       attachBannerHandlers();
-      monitorCookieChanges();
+   //   monitorCookieChanges();
       
     }
       document.addEventListener('DOMContentLoaded',  initialize);
@@ -635,12 +664,12 @@ async function loadCategorizedScripts() {
         const scripts = document.querySelectorAll("script[src]");
         const inlineScripts = document.querySelectorAll("script:not([src])");
       
-        
+        console.log("INSIDE SCAN AND BLOCK")
         // Handle external scripts
         scripts.forEach(script => {
             if (isSuspiciousResource(script.src)) {
-              console.log("Blocking script:", script.src);
-              const placeholder = createPlaceholder(script);
+              console.log("SCAN AND BLOCK:Blocking script:", script.src);
+              const placeholder = createPlaceholder(script,category="all");
               if (placeholder) {
                         script.parentNode.replaceChild(placeholder, script);
                          blockedScripts.push(placeholder);
@@ -679,8 +708,6 @@ async function loadCategorizedScripts() {
   
     const analyticsPatterns = /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i;
     const categoryOfPreference = "Analytics";
-    const categorizedScripts = await loadCategorizedScripts();
-  
   
     const scripts = document.querySelectorAll('script');
   
@@ -690,45 +717,36 @@ async function loadCategorizedScripts() {
   
       const matchingEntry = categorizedScripts.find(entry => {
         const srcMatch = entry.src && src && entry.src === src;
-        const contentMatch =
-          !entry.src && entry.content && content &&
-          content.trim().startsWith(entry.content.trim().substring(0, 30));
+        const contentMatch = !entry.src &&
+          entry.content &&
+          content &&
+          content.replace(/\s/g, '').includes(entry.content.replace(/\s/g, ''));
         return srcMatch || contentMatch;
       });
   
-      const isAnalyticsCategory =
-        matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-        console.log("Analytics categories",isAnalyticsCategory);
-        const isDefaultAnalyticsScript = !matchingEntry && (
-          (src && analyticsPatterns.test(src)) ||
-          (content && analyticsPatterns.test(content))
-        );
-        
-      const isInAnotherCategory =
-        matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
+      const isCategorizedAnalytics =
+        matchingEntry &&
+        matchingEntry.selectedCategories.includes(categoryOfPreference) &&
+        !(src && analyticsPatterns.test(src));
   
-      if ((isAnalyticsCategory || isDefaultAnalyticsScript) && !isInAnotherCategory) {
+      const isDefaultAnalyticsScript =
+        !matchingEntry &&
+        ((src && analyticsPatterns.test(src)) || (content && analyticsPatterns.test(content)));
+  
+      if (isCategorizedAnalytics || isDefaultAnalyticsScript) {
         console.log("Blocking Analytics Script:", src || "[inline]");
-        console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY", categoryOfPreference);
-  
         const placeholder = createPlaceholder(script, categoryOfPreference);
         script.parentNode.replaceChild(placeholder, script);
         blockedScripts.push(placeholder);
-  
-        console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
       }
     });
   }
   
-  async function blockMarketingScripts() {
-    console.log("INSIDE BLOCK MARKETING SCRIPT");
   
+  async function blockMarketingScripts() {
     const marketingPatterns = /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i;
     const categoryOfPreference = "Marketing";
-    const categorizedScripts = await loadCategorizedScripts();
-  
     const scripts = document.querySelectorAll('script');
-  
   
     scripts.forEach(script => {
       const src = script.src || null;
@@ -736,37 +754,23 @@ async function loadCategorizedScripts() {
   
       const matchingEntry = categorizedScripts.find(entry => {
         const entrySrcMatch = entry.src && src && entry.src === src;
-  
         const entryContentMatch = !entry.src &&
           entry.content &&
           content &&
           content.replace(/\s/g, '').includes(entry.content.replace(/\s/g, ''));
-  
         return entrySrcMatch || entryContentMatch;
       });
   
-      const isMarketingCategory =
-        matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
+      const isCategorizedMarketing =
+        matchingEntry &&
+        matchingEntry.selectedCategories.includes(categoryOfPreference) &&
+        !(src && marketingPatterns.test(src));
   
-      const isDefaultMarketingScript = !matchingEntry && (
-        (src && marketingPatterns.test(src)) ||
-        (content && marketingPatterns.test(content))
-      );
+      const isDefaultMarketingScript =
+        !matchingEntry &&
+        ((src && marketingPatterns.test(src)) || (content && marketingPatterns.test(content)));
   
-      const isInAnotherCategory =
-        matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
-  
-      // Debug logs
-      if (matchingEntry) {
-        console.log("Found Matching Entry:", matchingEntry);
-        console.log("Categories:", matchingEntry.selectedCategories);
-        console.log("Includes Marketing?", isMarketingCategory);
-      } else {
-        console.log("No matching entry found. Checking default marketing patterns.");
-      }
-  
-      if ((isMarketingCategory || isDefaultMarketingScript) && !isInAnotherCategory) {
-        console.log("Blocking Marketing Script:", src || "[inline]");
+      if (isCategorizedMarketing || isDefaultMarketingScript) {
         const placeholder = createPlaceholder(script, categoryOfPreference);
         script.parentNode.replaceChild(placeholder, script);
         blockedScripts.push(placeholder);
@@ -774,61 +778,52 @@ async function loadCategorizedScripts() {
     });
   }
   
-
-async function blockPersonalizationScripts() {
-  console.log("INSIDE BLOCK PERSONALIZATION SCRIPT");
-
-  const personalizationPatterns = /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i;
-  const categoryOfPreference = "Personalization";
-  const categorizedScripts = await loadCategorizedScripts();
-
-  const scripts = document.querySelectorAll('script');
-
-  scripts.forEach(script => {
-    const src = script.src || null;
-    const content = script.innerText || script.textContent;
-
-    // Try to match by src or content
-    const matchingEntry = categorizedScripts.find(entry => {
-      const srcMatch = entry.src && src && entry.src === src;
-      const contentMatch =
-        !entry.src && entry.content && content &&
-        content.trim().startsWith(entry.content.trim().substring(0, 30));
-      return srcMatch || contentMatch;
+  async function blockPersonalizationScripts() {
+    console.log("INSIDE BLOCK PERSONALIZATION SCRIPT");
+  
+    const personalizationPatterns = /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i;
+    const categoryOfPreference = "Personalization";
+  
+    const scripts = document.querySelectorAll('script');
+  
+    scripts.forEach(script => {
+      const src = script.src || null;
+      const content = script.innerText || script.textContent;
+  
+      const matchingEntry = categorizedScripts.find(entry => {
+        const srcMatch = entry.src && src && entry.src === src;
+        const contentMatch = !entry.src &&
+          entry.content &&
+          content &&
+          content.replace(/\s/g, '').includes(entry.content.replace(/\s/g, ''));
+        return srcMatch || contentMatch;
+      });
+  
+      const isCategorizedPersonalization =
+        matchingEntry &&
+        matchingEntry.selectedCategories.includes(categoryOfPreference) &&
+        !(src && personalizationPatterns.test(src));
+  
+      const isDefaultPersonalizationScript =
+        !matchingEntry &&
+        ((src && personalizationPatterns.test(src)) || (content && personalizationPatterns.test(content)));
+  
+      if (isCategorizedPersonalization || isDefaultPersonalizationScript) {
+        console.log("Blocking Personalization Script:", src || "[inline]");
+        const placeholder = createPlaceholder(script, categoryOfPreference);
+        script.parentNode.replaceChild(placeholder, script);
+        blockedScripts.push(placeholder);
+      }
     });
-
-    const isPersonalizationCategory =
-      matchingEntry && matchingEntry.selectedCategories.includes(categoryOfPreference);
-         !matchingEntry && src && personalizationPatterns.test(src);
-
-      
-         console.log("Personalization categories",isPersonalizationCategory);
-
-      const isDefaultPersonalizationScript = !matchingEntry && (
-        (src && personalizationPatterns.test(src)) ||
-        (content && personalizationPatterns.test(content))
-      );
-      
-    const isInAnotherCategory =
-      matchingEntry && !matchingEntry.selectedCategories.includes(categoryOfPreference);
-
-    if ((isPersonalizationCategory || isDefaultPersonalizationScript) && !isInAnotherCategory) {
-      console.log("Blocking Personalization Script:", src || "[inline]");
-      console.log("INVOKING CREATE PLACEHOLDER WITH CATEGORY", categoryOfPreference);
-
-      const placeholder = createPlaceholder(script, categoryOfPreference);
-      script.parentNode.replaceChild(placeholder, script);
-      blockedScripts.push(placeholder);
-
-      console.log("FINISHED INVOKING: CREATE PLACEHOLDER");
-    }
-  });
-}
+  }
+  
 async function unblockScripts(categoryOfPreference = "all") {
   console.log(`Starting unblockScripts with categoryOfPreference:`, categoryOfPreference);
   console.log(`Total blocked scripts: ${blockedScripts.length}`);
 
   const scriptsToProcess = [...blockedScripts];
+
+  console.log("Script to process",scriptsToProcess)
 
   scriptsToProcess.forEach((placeholder, index) => {
     const category = placeholder.dataset.category;

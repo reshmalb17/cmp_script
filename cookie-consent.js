@@ -125,7 +125,6 @@ async function encryptData(data, key, iv) {
     );
     return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
 }
-
     
      /**
   ENCRYPTION AND DECYPTION ENDS

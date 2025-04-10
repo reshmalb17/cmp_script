@@ -528,20 +528,18 @@ async function saveConsentState(preferences) {
 
    try {
     const consentPreferences = buildConsentPreferences(preferences, country, timestamp);  
-  
-
-        const encryptionKey = await generateKey();    
-
-
-    const encryptedVisitorId = await encryptData(visitorId, encryptionKey.secretKey, encryptionKey.iv);
+       const { key, iv } = await EncryptionUtils.generateKey();
+    
+        
+    const encryptedVisitorId = await EncryptionUtils.encrypt(visitorId, key, iv);
     
 
 
-    const encryptedPreferences = await encryptData(JSON.stringify(consentPreferences), encryptionKey.key, encryptionKey.iv);
+    const encryptedPreferences = await EncryptionUtils.encrypt(JSON.stringify(consentPreferences),key, iv);
     
 
 
-    await storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp);
+    await storeEncryptedConsent(encryptedPreferences, key, timestamp);
   
     
   

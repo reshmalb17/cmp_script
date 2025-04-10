@@ -539,7 +539,7 @@ async function saveConsentState(preferences) {
     
 
 
-    await storeEncryptedConsent(encryptedPreferences, key, timestamp);
+    await storeEncryptedConsent(encryptedPreferences, key,iv, timestamp);
   
     
   
@@ -613,13 +613,13 @@ async function saveConsentState(preferences) {
     };
   }
   
- async function storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp) {
+ async function storeEncryptedConsent(encryptedPreferences, key,iv, timestamp) {
     console.log("inside store encrpted data",encryptedPreferences)
     localStorage.setItem("consent-given", "true");
     localStorage.setItem("consent-preferences", JSON.stringify({
       encryptedData: encryptedPreferences,
-      iv: Array.from(encryptionKey.iv),
-      key: Array.from(new Uint8Array(encryptionKey.secretKey))
+      iv: Array.from(iv),
+      key: Array.from(new Uint8Array(key))
     }));
    
     localStorage.setItem("consent-policy-version", "1.2");

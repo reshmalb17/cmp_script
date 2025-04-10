@@ -98,22 +98,28 @@ const EncryptionUtils = {
   } 
 
   async function encryptData(data, key, iv) {
+    console.log('encryptData called with data:', data);
     const encoder = new TextEncoder();
     const encodedData = encoder.encode(data);
+
+    // Ensure the key is a Uint8Array
+    const keyArray = new Uint8Array(key);
+
     const importedKey = await crypto.subtle.importKey(
-      "raw",
-      key,
-      { name: "AES-GCM" },
-      false,
-      ["encrypt"]
+        "raw",
+        keyArray, // Use the Uint8Array
+        { name: "AES-GCM" },
+        false,
+        ["encrypt"]
     );
+
     const encrypted = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: iv },
-      importedKey,
-      encodedData
+        { name: "AES-GCM", iv: iv },
+        importedKey,
+        encodedData
     );
     return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-  }
+}
   async function decryptData(encrypted, key, iv) {
     const encryptedBuffer = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
     const decrypted = await crypto.subtle.decrypt(

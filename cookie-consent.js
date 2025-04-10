@@ -71,14 +71,15 @@ const EncryptionUtils = {
   
   async function generateKey() {
     const key = await crypto.subtle.generateKey(
-      { name: "AES-GCM", length: 256 },
-      true,
-      ["encrypt", "decrypt"]
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
     );
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const exportedKey = await crypto.subtle.exportKey("raw", key);
-    return { secretKey: exportedKey, iv };
-  } 
+    console.log('Exported key length:', exportedKey.byteLength); // Log key length
+    return { secretKey: new Uint8Array(exportedKey), iv }; // Convert to Uint8Array
+}
 
   // Add these two functions here
 async function importKey(rawKey) {
@@ -101,25 +102,29 @@ async function decryptData(encrypted, key, iv) {
     return new TextDecoder().decode(decrypted);
 }
 
-  async function encryptData(data, key, iv) {
+async function encryptData(data, key, iv) {
     const encoder = new TextEncoder();
     const encodedData = encoder.encode(data);
+
+    // Ensure the key is a Uint8Array
+    const keyArray = new Uint8Array(key);
+    console.log('Key array length:', keyArray.length); // Log key array length
+
     const importedKey = await crypto.subtle.importKey(
-      "raw",
-      key,
-      { name: "AES-GCM" },
-      false,
-      ["encrypt"]
+        "raw",
+        keyArray, // Use the Uint8Array
+        { name: "AES-GCM" },
+        false,
+        ["encrypt"]
     );
-    console.log('Key array length:', importedKey.length); // Log key array length
 
     const encrypted = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: iv },
-      importedKey,
-      encodedData
+        { name: "AES-GCM", iv: iv },
+        importedKey,
+        encodedData
     );
     return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-  }
+}
 
     
      /**

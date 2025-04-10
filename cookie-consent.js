@@ -563,21 +563,21 @@ async function saveConsentState(preferences) {
     });
     console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consent ");
   
-    try {
-      const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${sessionToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
+    // try {
+    //   const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       "Authorization": `Bearer ${sessionToken}`,
+    //     },
+    //     body: JSON.stringify(payload),
+    //   });
   
-      const text = await response.text();
-      console.log("Consent section response:", text);
-    } catch (error) {
-      console.error("Error sending consent data:", error);
-    }
+    //   const text = await response.text();
+    //   console.log("Consent section response:", text);
+    // } catch (error) {
+    //   console.error("Error sending consent data:", error);
+    // }
       
    } catch (error) {
     console.log(error)

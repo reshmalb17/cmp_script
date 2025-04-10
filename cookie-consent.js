@@ -68,8 +68,7 @@ const EncryptionUtils = {
     }
   };
 
-  
-  async function generateKey() {
+async function generateKey() {
     const key = await crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
         true,
@@ -101,7 +100,6 @@ async function decryptData(encrypted, key, iv) {
     );
     return new TextDecoder().decode(decrypted);
 }
-
 async function encryptData(data, key, iv) {
     const encoder = new TextEncoder();
     const encodedData = encoder.encode(data);
@@ -125,7 +123,7 @@ async function encryptData(data, key, iv) {
     );
     return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
 }
-    
+
      /**
   ENCRYPTION AND DECYPTION ENDS
 
@@ -515,8 +513,7 @@ async function initializeBannerVisibility() {
 /*CONSENT  SAVING TO LOCALSTORAGE STARTS*/
 
 
-async function saveConsentState(preferences) {
-    
+async function saveConsentState(preferences) {    
   
     const clientId = getClientIdentifier();
     const visitorId = localStorage.getItem("visitorId");
@@ -532,7 +529,7 @@ async function saveConsentState(preferences) {
     const encryptedVisitorId = await encryptData(visitorId, encryptionKey.secretKey, encryptionKey.iv);
     const encryptedPreferences = await encryptData(JSON.stringify(consentPreferences), encryptionKey.key, encryptionKey.iv);
   
-     storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp);
+    await storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp);
   
     const sessionToken = localStorage.getItem('visitorSessionToken');
     if (!sessionToken) {

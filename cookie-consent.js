@@ -413,7 +413,7 @@ function attachBannerHandlers() {
         if (doNotShare) {
           checkAndBlockNewScripts(); 
         } else {
-          restoreAllowedScripts(); // Unblock scripts if checkbox is unchecked
+          restoreAllowedScripts(preferences); // Unblock scripts if checkbox is unchecked
         }
         await saveConsentState(preferences);
     
@@ -809,6 +809,7 @@ function getScriptKey(script) {
     
 
 async function scanAndBlockScripts() { 
+    console.log("inside scan and block");
           const scripts = document.querySelectorAll("script[src]");
           const inlineScripts = document.querySelectorAll("script:not([src])"); 
            const categorizedScripts = await loadCategorizedScripts();
@@ -825,6 +826,9 @@ async function scanAndBlockScripts() {
                 if (placeholder) {
                     script.parentNode.replaceChild(placeholder, script);
                     existing_Scripts.push(placeholder);
+            console.log("blocked script",script.src);
+
+
                   } else {
                     console.error("Could not create placeholder for:", script.src);
                   }
@@ -837,6 +841,8 @@ async function scanAndBlockScripts() {
                   if (placeholder) {
                     script.parentNode.replaceChild(placeholder, script);
                     existing_Scripts.push(placeholder);
+                  console.log("blocked script",script.src);
+
                   } else {
                     console.error("Could not create placeholder for:", script.src);
                   }
@@ -854,6 +860,8 @@ async function scanAndBlockScripts() {
                       const placeholder = createPlaceholder(script, patternCategory);
                       script.parentNode.replaceChild(placeholder, script);
                       existing_Scripts.push(placeholder);
+            console.log("blocked script",script.src);
+
                     }
                   }
                 });
@@ -945,7 +953,7 @@ async function scanAndBlockScripts() {
 
           }
                 
-  function restoreAllowedScripts(preferences) {
+  async function restoreAllowedScripts(preferences) {
     console.log(" RESTORE STARTS")
 
 

@@ -580,31 +580,32 @@ async function saveConsentState(preferences) {
   function buildConsentPreferences(preferences, country, timestamp) {
     return {
       Necessary: true,
-      Marketing: preferences.marketing || false,
-      Personalization: preferences.personalization || false,
-      Analytics: preferences.analytics || false,
-      DoNotShare: preferences.doNotShare || false,
+      Marketing: preferences.Marketing || false,
+      Personalization: preferences.Personalization || false,
+      Analytics: preferences.Analytics || false,
+      DoNotShare: preferences.DoNotShare || false,
       country,
       timestamp,      
     
       gdpr: {
         Necessary: true,
-        Marketing: preferences.marketing || false,
-        Personalization: preferences.personalization || false,
-        Analytics: preferences.analytics || false,
+        Marketing: preferences.Marketing || false,
+        Personalization: preferences.Personalization || false,
+        Analytics: preferences.Analytics || false,
         lastUpdated: timestamp,
         country
       },
       ccpa: {
         Necessary: true,
-        DoNotShare: preferences.doNotShare || false,
+        DoNotShare: preferences.DoNotShare || false,
         lastUpdated: timestamp,
         country
       }
     };
   }
   
-  function storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp) {
+ async function storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp) {
+    console.log("inside store encrpted data",encryptedPreferences)
     localStorage.setItem("consent-given", "true");
     localStorage.setItem("consent-preferences", JSON.stringify({
       encryptedData: encryptedPreferences,

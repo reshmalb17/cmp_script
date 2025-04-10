@@ -34,12 +34,7 @@ const EncryptionUtils = {
         return { key, iv };
     },
   
-    /**
-     * Imports a raw key for encryption/decryption
-     * @param {Uint8Array} rawKey - The raw key bytes
-     * @param {string[]} usages - Array of key usages ['encrypt', 'decrypt']
-     * @returns {Promise<CryptoKey>}
-     */
+ 
     async importKey(rawKey, usages = ['encrypt', 'decrypt']) {
         return await crypto.subtle.importKey(
             'raw',
@@ -50,13 +45,7 @@ const EncryptionUtils = {
         );
     },
   
-    /**
-     * Encrypts data using AES-GCM
-     * @param {string} data - The data to encrypt
-     * @param {CryptoKey} key - The encryption key
-     * @param {Uint8Array} iv - The initialization vector
-     * @returns {Promise<string>} - Base64 encoded encrypted data
-     */
+
     async encrypt(data, key, iv) {
         const encoder = new TextEncoder();
         const encodedData = encoder.encode(data);
@@ -68,13 +57,6 @@ const EncryptionUtils = {
         return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
     },
   
-    /**
-     * Decrypts data using AES-GCM
-     * @param {string} encryptedData - Base64 encoded encrypted data
-     * @param {CryptoKey} key - The decryption key
-     * @param {Uint8Array} iv - The initialization vector
-     * @returns {Promise<string>} - Decrypted data
-     */
     async decrypt(encryptedData, key, iv) {
         const encryptedBytes = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
         const decrypted = await crypto.subtle.decrypt(
@@ -86,40 +68,30 @@ const EncryptionUtils = {
     }
   };
 
+  
   async function generateKey() {
     const key = await crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 }, // Ensure length is 256 bits
-        true,
-        ["encrypt", "decrypt"]
+      { name: "AES-GCM", length: 256 },
+      true,
+      ["encrypt", "decrypt"]
     );
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const exportedKey = await crypto.subtle.exportKey("raw", key);
     return { secretKey: exportedKey, iv };
-}
-async function encryptData(data, key, iv) {
-    console.log('encryptData called with data:', data);
-    const encoder = new TextEncoder();
-    const encodedData = encoder.encode(data);
+  } 
 
-    // Ensure the key is a Uint8Array
-    const keyArray = new Uint8Array(key);
-
-    const importedKey = await crypto.subtle.importKey(
+  // Add these two functions here
+async function importKey(rawKey) {
+    return await crypto.subtle.importKey(
         "raw",
-        keyArray, // Use the Uint8Array
+        rawKey,
         { name: "AES-GCM" },
         false,
-        ["encrypt"]
+        ["decrypt"]
     );
-
-    const encrypted = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        importedKey,
-        encodedData
-    );
-    return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
 }
-  async function decryptData(encrypted, key, iv) {
+
+async function decryptData(encrypted, key, iv) {
     const encryptedBuffer = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
     const decrypted = await crypto.subtle.decrypt(
         { name: "AES-GCM", iv },
@@ -129,6 +101,23 @@ async function encryptData(data, key, iv) {
     return new TextDecoder().decode(decrypted);
 }
 
+  async function encryptData(data, key, iv) {
+    const encoder = new TextEncoder();
+    const encodedData = encoder.encode(data);
+    const importedKey = await crypto.subtle.importKey(
+      "raw",
+      key,
+      { name: "AES-GCM" },
+      false,
+      ["encrypt"]
+    );
+    const encrypted = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: iv },
+      importedKey,
+      encodedData
+    );
+    return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+  }
 
     
      /**

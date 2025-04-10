@@ -862,6 +862,8 @@ async function scanAndBlockScripts() {
         }
  
      async function loadConsentState() {
+    console.log(" LOAD CONSENT STATE STARTS")
+
             if (isLoadingState) {
               
               return;
@@ -939,12 +941,16 @@ async function scanAndBlockScripts() {
               
             
               isLoadingState = false;
+    console.log(" LOAD CONSENT STATE ENDS")
+
           }
                 
   function restoreAllowedScripts(preferences) {
+    console.log(" RESTORE STARTS")
 
 
-    existing_Scripts.forEach(placeholder => {
+
+    existing_Scripts?.forEach(placeholder => {
       const category = placeholder.getAttribute("data-category") ;
   
       if (preferences[category]== true) {
@@ -967,6 +973,8 @@ async function scanAndBlockScripts() {
         placeholder.parentNode?.replaceChild(script, placeholder);
       }
     });
+    console.log(" RESTORE ENDS")
+
   }   
 
 
@@ -1018,9 +1026,11 @@ async function scanAndBlockScripts() {
 }
 
  async function initialize() {
+
+    console.log(" INITIALIZATION STARTS")
       await scanAndBlockScripts();
       await getVisitorSessionToken();   
-
+      await detectLocationAndGetBannerType();
       await loadConsentState();   
       
      hideBanner(document.getElementById("consent-banner"));
@@ -1034,6 +1044,8 @@ async function scanAndBlockScripts() {
   
    
      attachBannerHandlers();
+    console.log(" INITIALIZATION STARTS ENDS")
+
 
      
    }
@@ -1046,7 +1058,6 @@ window.initializeBanner= initializeBanner;
 window.attachBannerHandlers = attachBannerHandlers;
 window.showBanner = showBanner;
 window.hideBanner = hideBanner;
-window.importKey = importKey;         
 window.decryptData = decryptData;   
 window.checkAndBlockNewScripts = checkAndBlockNewScripts;
 window.createPlaceholder = createPlaceholder;
@@ -1069,6 +1080,19 @@ window.isTokenExpired = isTokenExpired;
   window.normalizeUrl = normalizeUrl;
 
 document.addEventListener('DOMContentLoaded',  initialize);
+
+
+
+     
+         
+    
+    
+    
+    
+   
+
+
+
 })();
 
    

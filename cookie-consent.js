@@ -87,7 +87,6 @@ const EncryptionUtils = {
   };
 
   async function generateKey() {
-
     const key = await crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 }, // Ensure length is 256 bits
         true,
@@ -538,7 +537,7 @@ async function saveConsentState(preferences) {
     const encryptedVisitorId = await encryptData(visitorId, encryptionKey.secretKey, encryptionKey.iv);
     const encryptedPreferences = await encryptData(JSON.stringify(consentPreferences), encryptionKey.key, encryptionKey.iv);
   
-    storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp);
+     storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp);
   
     const sessionToken = localStorage.getItem('visitorSessionToken');
     if (!sessionToken) {

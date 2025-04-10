@@ -111,6 +111,8 @@ async function decryptData(encrypted, key, iv) {
       false,
       ["encrypt"]
     );
+    console.log('Key array length:', importedKey.length); // Log key array length
+
     const encrypted = await crypto.subtle.encrypt(
       { name: "AES-GCM", iv: iv },
       importedKey,

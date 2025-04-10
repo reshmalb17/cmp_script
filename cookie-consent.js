@@ -403,8 +403,13 @@ function attachBannerHandlers() {
           
         };
         console.log("Preference selected",preferences);
+        try{
+            await saveConsentState(preferences);
+        }catch(error){
+            console.log(error)
+        }
         
-        await saveConsentState(preferences);
+      
         hideBanner(consentBanner);
             hideBanner(mainBanner);
       });
@@ -521,15 +526,25 @@ async function saveConsentState(preferences) {
     const timestamp = new Date().toISOString();
 
 
+   try {
+    const consentPreferences = buildConsentPreferences(preferences, country, timestamp);  
   
-    const consentPreferences = buildConsentPreferences(preferences, country, timestamp);
 
-  
-    const encryptionKey = await generateKey();
+        const encryptionKey = await generateKey();    
+
+
     const encryptedVisitorId = await encryptData(visitorId, encryptionKey.secretKey, encryptionKey.iv);
+    
+
+
     const encryptedPreferences = await encryptData(JSON.stringify(consentPreferences), encryptionKey.key, encryptionKey.iv);
-  
+    
+
+
     await storeEncryptedConsent(encryptedPreferences, encryptionKey, timestamp);
+  
+    
+  
   
     const sessionToken = localStorage.getItem('visitorSessionToken');
     if (!sessionToken) {
@@ -565,6 +580,10 @@ async function saveConsentState(preferences) {
     } catch (error) {
       console.error("Error sending consent data:", error);
     }
+      
+   } catch (error) {
+    console.log(error)
+   }
   }  
   
 

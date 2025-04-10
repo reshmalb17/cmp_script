@@ -87,17 +87,17 @@ const EncryptionUtils = {
   };
 
   async function generateKey() {
+
     const key = await crypto.subtle.generateKey(
-      { name: "AES-GCM", length: 256 },
-      true,
-      ["encrypt", "decrypt"]
+        { name: "AES-GCM", length: 256 }, // Ensure length is 256 bits
+        true,
+        ["encrypt", "decrypt"]
     );
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const exportedKey = await crypto.subtle.exportKey("raw", key);
     return { secretKey: exportedKey, iv };
-  } 
-
-  async function encryptData(data, key, iv) {
+}
+async function encryptData(data, key, iv) {
     console.log('encryptData called with data:', data);
     const encoder = new TextEncoder();
     const encodedData = encoder.encode(data);
@@ -400,6 +400,7 @@ function attachBannerHandlers() {
     }
   
     if (savePreferencesButton) {
+       console.log(" inside save preference click")
       savePreferencesButton.addEventListener("click", async function(e) {
         e.preventDefault();
         const preferences = {
@@ -409,6 +410,8 @@ function attachBannerHandlers() {
           Analytics: analyticsCheckbox?.checked || false
           
         };
+        console.log("Preference selected",preferences);
+        
         await saveConsentState(preferences);
         hideBanner(consentBanner);
             hideBanner(mainBanner);

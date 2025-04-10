@@ -529,7 +529,7 @@ async function saveConsentState(preferences) {
    try {
     const consentPreferences = buildConsentPreferences(preferences, country, timestamp);  
        const { key, iv } = await EncryptionUtils.generateKey();
-    
+       const encryptionKey ={key: key, iv:iv}
         
     const encryptedVisitorId = await EncryptionUtils.encrypt(visitorId, key, iv);
     

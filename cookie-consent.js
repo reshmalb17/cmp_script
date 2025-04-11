@@ -566,7 +566,7 @@ async function saveConsentState(preferences) {
     });
     console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consent ");
     console.log("payload", payload);
-    console.lopg("SAVE CONSENT STATE FINISHES..")
+    console.log("SAVE CONSENT STATE FINISHES..");
     // try {
     //   const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
     //     method: "POST",
@@ -993,10 +993,7 @@ async function scanAndBlockScripts() {
               const categoryAttr = placeholder.getAttribute("data-category");
               console.log("category", categoryAttr);
           
-              // Normalize categories into array
-              const categories = categoryAttr?.split(",").map(c => c.trim()) || [];
-          
-              // Check if ANY of the categories are allowed
+              const categories = categoryAttr?.split(",").map(c => c.trim().toLowerCase()) || [];
               const isAllowed = categories.some(cat => preferences[cat] === true);
           
               if (isAllowed) {
@@ -1015,6 +1012,8 @@ async function scanAndBlockScripts() {
                 if (type) script.setAttribute("type", type);
           
                 placeholder.parentNode?.replaceChild(script, placeholder);
+              } else {
+                console.log("blocked script with category", categoryAttr);
               }
             });
           

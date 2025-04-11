@@ -850,10 +850,11 @@ async function scanAndBlockScripts() {
 
              scripts.forEach(script => {
              const normalizedSrc = normalizeUrl(script.src); 
-            const matched = normalizedCategorized?.find(s => s.normalizedSrc === normalizedSrc);
+               const matched = normalizedCategorized?.find(s => s.normalizedSrc === normalizedSrc);
               if (matched) {
-                const patternCategory = findCategoryByPattern(script.src);
-                script.setAttribute("data-category", matched.category);
+                const patternCategory = script.getAttribute("data-category");
+                console.log("in matched data category is",patternCategory)
+                
                 const placeholder = createPlaceholder(script, patternCategory);
                 if (placeholder) {
                     script.parentNode.replaceChild(placeholder, script);
@@ -1008,26 +1009,43 @@ async function scanAndBlockScripts() {
               const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
 
               console.log("isallowed",isAllowed)
-          
               if (isAllowed) {
                 console.log("unblocked script with category", categoryAttr);
-          
+              
                 const script = document.createElement("script");
                 const originalSrc = placeholder.getAttribute("data-original-src");
-          
+              
+                // Restore src or inline script
                 if (originalSrc) {
                   script.src = originalSrc;
                 } else {
                   script.textContent = placeholder.textContent || "";
                 }
-          
-                const type = placeholder.getAttribute("data-type");
+              
+                // Restore type attribute if available
+                const type = placeholder.getAttribute("type");
                 if (type) script.setAttribute("type", type);
-          
+              
+                // Restore async attribute
+                if (placeholder.hasAttribute("async")) {
+                  script.async = true;
+                }
+              
+                // Restore defer attribute
+                if (placeholder.hasAttribute("defer")) {
+                  script.defer = true;
+                }
+              
+                // Restore data-category attribute (use setAttribute)
+                const dataCategory = placeholder.getAttribute("data-category");
+                if (dataCategory) {
+                  script.setAttribute("data-category", dataCategory);
+                }
+              
+                // Replace placeholder with actual script
                 placeholder.parentNode?.replaceChild(script, placeholder);
-              } else {
-                console.log("blocked script with category", categoryAttr);
               }
+              
             });
           
             console.log("RESTORE ENDS");

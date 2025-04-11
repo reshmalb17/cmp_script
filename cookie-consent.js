@@ -992,21 +992,28 @@ async function scanAndBlockScripts() {
             const normalizedPrefs = Object.fromEntries(
               Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
             );
+            
           
             console.log("Existing Scripts", existing_Scripts);
             existing_Scripts?.forEach(placeholder => {
               const categoryAttr = placeholder.getAttribute("data-category");
+              if (!categoryAttr) {
+                console.log("Script missing data-category attribute, skipping...");
+                return;
+              }
               console.log("category", categoryAttr);
           
               const categories = categoryAttr?.split(",").map(c => c.trim().toLowerCase()) || [];
           
               const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
+
+              console.log("isallowed",isAllowed)
           
               if (isAllowed) {
                 console.log("unblocked script with category", categoryAttr);
           
                 const script = document.createElement("script");
-                const originalSrc = placeholder.getAttribute("data-src");
+                const originalSrc = placeholder.getAttribute("data-original-src");
           
                 if (originalSrc) {
                   script.src = originalSrc;

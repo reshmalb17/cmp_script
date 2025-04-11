@@ -405,6 +405,8 @@ function attachBannerHandlers() {
         console.log("Preference selected",preferences);
         try{
             await saveConsentState(preferences);
+            console.log("calling unblock script");
+            await restoreAllowedScripts(preferences);
         }catch(error){
             console.log(error)
         }
@@ -432,11 +434,10 @@ function attachBannerHandlers() {
           restoreAllowedScripts(preferences); // Unblock scripts if checkbox is unchecked
         }
         await saveConsentState(preferences);
-        console.log("calling restore AllowedScript")
-       await  restoreAllowedScripts(preferences);
-    
+      
         hideBanner(ccpaBanner);
         hideBanner(mainConsentBanner);
+        console.assertLOG
       });
     }
   
@@ -564,7 +565,8 @@ async function saveConsentState(preferences) {
       country
     });
     console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consent ");
-  
+    console.log("payload", payload);
+    console.lopg("SAVE CONSENT STATE FINISHES..")
     // try {
     //   const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
     //     method: "POST",

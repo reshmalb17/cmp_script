@@ -432,6 +432,8 @@ function attachBannerHandlers() {
           restoreAllowedScripts(preferences); // Unblock scripts if checkbox is unchecked
         }
         await saveConsentState(preferences);
+        console.log("calling restore AllowedScript")
+       await  restoreAllowedScripts(preferences);
     
         hideBanner(ccpaBanner);
         hideBanner(mainConsentBanner);

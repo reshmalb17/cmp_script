@@ -985,38 +985,42 @@ async function scanAndBlockScripts() {
 
           }
                 
-  async function restoreAllowedScripts(preferences) {
-    console.log(" RESTORE STARTS")
-
-
-
-    existing_Scripts?.forEach(placeholder => {
-      const category = placeholder.getAttribute("data-category") ;
-  
-      if (preferences[category]== true) {
-         console.log("unblocked script with category",category)
-        const script = document.createElement("script");
-        const originalSrc = placeholder.getAttribute("data-src");
-  
-        // External script
-        if (originalSrc) {
-          script.src = originalSrc;
-        } else {
-          // Inline script
-          script.textContent = placeholder.textContent || "";
-        }
-  
-        // Restore any relevant attributes if needed
-        const type = placeholder.getAttribute("data-type");
-        if (type) script.setAttribute("type", type);
-  
-        placeholder.parentNode?.replaceChild(script, placeholder);
-      }
-    });
-    console.log(" RESTORE ENDS")
-
-  }   
-
+          async function restoreAllowedScripts(preferences) {
+            console.log("RESTORE STARTS");
+          
+            console.log("Existing Scripts", existing_Scripts);
+            existing_Scripts?.forEach(placeholder => {
+              const categoryAttr = placeholder.getAttribute("data-category");
+              console.log("category", categoryAttr);
+          
+              // Normalize categories into array
+              const categories = categoryAttr?.split(",").map(c => c.trim()) || [];
+          
+              // Check if ANY of the categories are allowed
+              const isAllowed = categories.some(cat => preferences[cat] === true);
+          
+              if (isAllowed) {
+                console.log("unblocked script with category", categoryAttr);
+          
+                const script = document.createElement("script");
+                const originalSrc = placeholder.getAttribute("data-src");
+          
+                if (originalSrc) {
+                  script.src = originalSrc;
+                } else {
+                  script.textContent = placeholder.textContent || "";
+                }
+          
+                const type = placeholder.getAttribute("data-type");
+                if (type) script.setAttribute("type", type);
+          
+                placeholder.parentNode?.replaceChild(script, placeholder);
+              }
+            });
+          
+            console.log("RESTORE ENDS");
+          }
+          
 
   /* INITIALIZATION */
   async function getVisitorSessionToken() {

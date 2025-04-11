@@ -13,7 +13,7 @@
     let country =null;
     let categorizedScripts=null;  
 
-    const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough/i, category: "marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "personalization" } ];
+    const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
 
 
        /**
@@ -991,7 +991,7 @@ async function scanAndBlockScripts() {
           
             // Normalize preferences keys to lowercase
             const normalizedPrefs = Object.fromEntries(
-              Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
+              Object.entries(preferences).map(([key, value]) => [key, value])
             );
             
           
@@ -1004,7 +1004,7 @@ async function scanAndBlockScripts() {
               }
               console.log("category", categoryAttr);
           
-              const categories = categoryAttr?.split(",").map(c => c.trim().toLowerCase()) || [];
+              const categories = categoryAttr?.split(",").map(c => c) || [];
           
               const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
 
@@ -1103,9 +1103,11 @@ async function scanAndBlockScripts() {
 
     console.log(" INITIALIZATION STARTS")
       await scanAndBlockScripts();
+      await loadConsentStyles();
       await getVisitorSessionToken();   
       await detectLocationAndGetBannerType();
       await loadConsentState();   
+      await loadConsentStyles();
       
      hideBanner(document.getElementById("consent-banner"));
      hideBanner(document.getElementById("initial-consent-banner"));
@@ -1125,7 +1127,95 @@ async function scanAndBlockScripts() {
    }
    
 
+   function blockAllInitialRequests() {
+    const originalFetch = window.fetch;
+    window.fetch = function (...args) {
+        const url = args[0];
+        if (initialBlockingEnabled && isSuspiciousResource(url)) {
+            
+            return Promise.resolve(new Response(null, { status: 204 }));
+        }
+        return originalFetch.apply(this, args);
+    };
+    
+    const originalXHR = window.XMLHttpRequest;
+      window.XMLHttpRequest = function() {
+        const xhr = new originalXHR();
+        const originalOpen = xhr.open;
+        
+        xhr.open = function(method, url) {
+          if (initialBlockingEnabled && isSuspiciousResource(url)) {
+            
+            return;
+          }
+          return originalOpen.apply(xhr, arguments);
+        };
+        return xhr;
+      };
+    
+    const originalImage = window.Image;
+    const originalSetAttribute = Element.prototype.setAttribute;
+    window.Image = function(...args) {
+        const img = new originalImage(...args);
+        img.setAttribute = function(name, value) {
+            if (name === 'src' && initialBlockingEnabled && isSuspiciousResource(value)) {
+                
+                return;
+            }
+            return originalSetAttribute.apply(this, arguments);
+        };
+        return img;
+    };
+    }   
+  
+  
+  
+ async  function initializeAll() {
+    if (isInitialized) {
+      
+      return;
+    }
+    
+    
+    // Block everything first
+    blockAllInitialRequests();
+    
+    // Then load state and initialize banner
+    loadConsentState().then(() => {
+      initializeBanner();
+      
+      isInitialized = true;
+    });
+   }
+      
+  async  function loadConsentStyles() {
+    try {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@d6b0288/consentbitstyle.css";
+        link.type = "text/css";
+        const link2 = document.createElement("link");
+        link2.rel = "stylesheet";
+        link2.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@8c69a0b/consentbit.css";
+        document.head.appendChild(link2);
 
+        
+        // Add error handling
+        link.onerror = function() {
+            console.error('Failed to load consent styles');
+        };
+        
+        // Add load confirmation
+        link.onload = function() {
+            console.log('Consent styles loaded successfully');
+        };
+        
+        document.head.appendChild(link);
+    } catch (error) {
+        console.error('Error loading consent styles:', error);
+    }
+}
+window.loadConsentStyles =loadConsentStyles;
 window.loadConsentState = loadConsentState;
 window.scanAndBlockScripts = scanAndBlockScripts;
 window.initializeBanner= initializeBanner;
@@ -1152,12 +1242,75 @@ window.isTokenExpired = isTokenExpired;
   window.isScriptAlreadyBlocked = isScriptAlreadyBlocked;
   window.findCategoryByPattern =findCategoryByPattern;
   window.normalizeUrl = normalizeUrl;
+  window.initializeAll = initializeAll;
+  window.blockAllInitialRequests =blockAllInitialRequests;
 
 document.addEventListener('DOMContentLoaded',  initialize);
 
 
 
-     
+function blockAllInitialRequests() {
+  const originalFetch = window.fetch;
+  window.fetch = function (...args) {
+      const url = args[0];
+      if (initialBlockingEnabled && isSuspiciousResource(url)) {
+          
+          return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      return originalFetch.apply(this, args);
+  };
+  
+  const originalXHR = window.XMLHttpRequest;
+    window.XMLHttpRequest = function() {
+      const xhr = new originalXHR();
+      const originalOpen = xhr.open;
+      
+      xhr.open = function(method, url) {
+        if (initialBlockingEnabled && isSuspiciousResource(url)) {
+          
+          return;
+        }
+        return originalOpen.apply(xhr, arguments);
+      };
+      return xhr;
+    };
+  
+  const originalImage = window.Image;
+  const originalSetAttribute = Element.prototype.setAttribute;
+  window.Image = function(...args) {
+      const img = new originalImage(...args);
+      img.setAttribute = function(name, value) {
+          if (name === 'src' && initialBlockingEnabled && isSuspiciousResource(value)) {
+              
+              return;
+          }
+          return originalSetAttribute.apply(this, arguments);
+      };
+      return img;
+  };
+  }   
+
+
+
+function initializeAll() {
+  if (isInitialized) {
+    
+    return;
+  }
+  
+  
+  // Block everything first
+  blockAllInitialRequests();
+  blockAllScripts();
+  
+  // Then load state and initialize banner
+  loadConsentState().then(() => {
+    initializeBanner();
+    
+    isInitialized = true;
+  });
+ }
+    
          
     
     

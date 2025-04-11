@@ -988,13 +988,19 @@ async function scanAndBlockScripts() {
           async function restoreAllowedScripts(preferences) {
             console.log("RESTORE STARTS");
           
+            // Normalize preferences keys to lowercase
+            const normalizedPrefs = Object.fromEntries(
+              Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
+            );
+          
             console.log("Existing Scripts", existing_Scripts);
             existing_Scripts?.forEach(placeholder => {
               const categoryAttr = placeholder.getAttribute("data-category");
               console.log("category", categoryAttr);
           
               const categories = categoryAttr?.split(",").map(c => c.trim().toLowerCase()) || [];
-              const isAllowed = categories.some(cat => preferences[cat] === true);
+          
+              const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
           
               if (isAllowed) {
                 console.log("unblocked script with category", categoryAttr);

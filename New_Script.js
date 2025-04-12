@@ -620,7 +620,7 @@ async function saveConsentState(preferences) {
       key,
       encoder.encode(JSON.stringify(consentPreferences))
     );
-
+    await storeEncryptedConsent(encryptedPreferences, key,iv, timestamp);
     // 3. Encrypt visitor ID (optional but assumed here)
     const encryptedVisitorId = await crypto.subtle.encrypt(
       { name: "AES-GCM", iv },
@@ -657,7 +657,7 @@ async function saveConsentState(preferences) {
       policyVersion,
       timestamp,
       country,
-      bannerType: "GDPR", // or "CCPA" based on your requirements
+      bannerType: locationData.bannerType, 
       metadata: {
         userAgent: navigator.userAgent,
         language: navigator.language,
@@ -947,70 +947,102 @@ function getScriptKey(script) {
             return [];
         }
       } 
+      function extractCategories(content) {
+        if (!content) return [];
+        
+        // Extract data-category attribute value
+        const categoryMatch = content.match(/data-category=["']([^"']+)["']/);
+        if (categoryMatch && categoryMatch[1]) {
+            // Split by comma and clean up each category
+            return categoryMatch[1]
+                .split(',')
+                .map(cat => cat.trim())
+                .filter(Boolean); // Remove empty strings
+        }
     
-
-async function scanAndBlockScripts() { 
-    console.log("inside scan and block");
-          const scripts = document.querySelectorAll("script[src]");
-          const inlineScripts = document.querySelectorAll("script:not([src])"); 
-           const categorizedScripts = await loadCategorizedScripts();
-
-             const normalizedCategorized = categorizedScripts?.map(s => ({ ...s, normalizedSrc: normalizeUrl(s.src), normalizedContent: s.content?.trim() }));
-
-             scripts.forEach(script => {
-             const normalizedSrc = normalizeUrl(script.src); 
-               const matched = normalizedCategorized?.find(s => s.normalizedSrc === normalizedSrc);
-              if (matched) {
-                const patternCategory = script.getAttribute("data-category");
-                console.log("in matched data category is",patternCategory)
-                
-                const placeholder = createPlaceholder(script, patternCategory);
+        // If no data-category found in content
+        return [];
+    }
+    
+    async function scanAndBlockScripts() { 
+        console.log("inside scan and block");
+        const scripts = document.querySelectorAll("script[src]");
+        const inlineScripts = document.querySelectorAll("script:not([src])"); 
+        const categorizedScripts = await loadCategorizedScripts();
+    
+        // Normalize and extract categories
+        const normalizedCategorized = categorizedScripts?.map(s => {
+            // Get categories from data-category attribute
+            const scriptElement = document.createElement('div');
+            scriptElement.innerHTML = s.content;
+            const scriptTag = scriptElement.querySelector('script');
+            const categories = scriptTag ? scriptTag.getAttribute('data-category') : null;
+    
+            return {
+                ...s,
+                normalizedSrc: normalizeUrl(s.src),
+                normalizedContent: s.content?.trim(),
+                categories: categories ? categories.split(',').map(c => c.trim()) : []
+            };
+        });
+    
+        console.log("Normalized scripts with categories:", normalizedCategorized);
+    
+        scripts.forEach(script => {
+            const normalizedSrc = normalizeUrl(script.src);
+            const matched = normalizedCategorized?.find(s => s.normalizedSrc === normalizedSrc);
+    
+            if (matched) {
+                console.log("Matched script:", matched);
+                // Use the categories from the matched script
+                const scriptCategories = matched.categories.join(',');
+                console.log("Categories for script:", scriptCategories);
+    
+                const placeholder = createPlaceholder(script, scriptCategories);
                 if (placeholder) {
                     script.parentNode.replaceChild(placeholder, script);
                     existing_Scripts.push(placeholder);
-            console.log("blocked script",script.src);
-
-
-                  } else {
+                    console.log("Blocked script", script.src, "with categories:", scriptCategories);
+                } else {
                     console.error("Could not create placeholder for:", script.src);
-                  }
-                
-              } 
-              else {
+                }
+            } else {
+                // Rest of your existing code for pattern matching
                 const patternCategory = findCategoryByPattern(script.src);
                 if (patternCategory) {
-                  const placeholder = createPlaceholder(script, patternCategory);
-                  if (placeholder) {
-                    script.parentNode.replaceChild(placeholder, script);
-                    existing_Scripts.push(placeholder);
-                  console.log("blocked script",script.src);
-
-                  } else {
-                    console.error("Could not create placeholder for:", script.src);
-                  }
-                }
-              }
-            });
-
-              inlineScripts.forEach(script => { 
-                const content = script.textContent.trim().replace(/\s+/g, ''); const matched = normalizedCategorized.find(s => s.normalizedContent === content);
-                if (matched) {
-                    script.setAttribute("data-category", matched.category);
-                  } else {
-                    const patternCategory = findCategoryByPattern(content);
-                    if (patternCategory) {
-                      const placeholder = createPlaceholder(script, patternCategory);
-                      script.parentNode.replaceChild(placeholder, script);
-                      existing_Scripts.push(placeholder);
-            console.log("blocked script",script.src);
-
+                    const placeholder = createPlaceholder(script, patternCategory);
+                    if (placeholder) {
+                        script.parentNode.replaceChild(placeholder, script);
+                        existing_Scripts.push(placeholder);
+                        console.log("Blocked script", script.src);
+                    } else {
+                        console.error("Could not create placeholder for:", script.src);
                     }
-                  }
-                });
-                    
+                }
+            }
+        });
+    
+        inlineScripts.forEach(script => { 
+          const content = script.textContent.trim().replace(/\s+/g, ''); const matched = normalizedCategorized.find(s => s.normalizedContent === content);
+          if (matched) {
+              script.setAttribute("data-category", matched.category);
+            } else {
+              const patternCategory = findCategoryByPattern(content);
+              if (patternCategory) {
+                const placeholder = createPlaceholder(script, patternCategory);
+                script.parentNode.replaceChild(placeholder, script);
+                existing_Scripts.push(placeholder);
+      console.log("blocked script",script.src);
 
-        }
- 
+              }
+            }
+          });
+              
+
+  }
+
+
+
      async function loadConsentState() {
     console.log(" LOAD CONSENT STATE STARTS")
 

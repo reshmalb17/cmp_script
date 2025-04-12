@@ -640,15 +640,31 @@ async function saveConsentState(preferences) {
     // 6. Build final payload
     const payload = {
       clientId,
-      encryptedVisitorId: b64EncryptedVisitorId,
-      encryptedPreferences: b64EncryptedPreferences,
-      encryptionKey: b64Key,
-      iv: b64IV,
+      encryptedVisitorId: {
+        encryptedPreferences: b64EncryptedVisitorId,
+        encryptionKey: {
+          key: b64Key,
+          iv: b64IV
+        }
+      },
+      preferences: {
+        encryptedPreferences: b64EncryptedPreferences,
+        encryptionKey: {
+          key: b64Key,
+          iv: b64IV
+        }
+      },
       policyVersion,
       timestamp,
       country,
+      bannerType: "GDPR", // or "CCPA" based on your requirements
+      metadata: {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      }
     };
-
     console.log("called function buildPayload ");
     console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consent ");
     console.log("payload", payload);

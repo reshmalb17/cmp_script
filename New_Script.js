@@ -631,15 +631,19 @@ async function saveConsentState(preferences) {
     // 4. Export raw key
     const rawKey = await crypto.subtle.exportKey("raw", key);
 
-    // 5. Build payload
+    // 5. Convert everything to Base64
+    const b64Key = arrayBufferToBase64(rawKey);
+    const b64IV = arrayBufferToBase64(iv);
+    const b64EncryptedPreferences = arrayBufferToBase64(encryptedPreferences);
+    const b64EncryptedVisitorId = arrayBufferToBase64(encryptedVisitorId);
+
+    // 6. Build final payload
     const payload = {
       clientId,
-      encryptedVisitorId: arrayBufferToBase64(encryptedVisitorId),
-      encryptedPreferences: arrayBufferToBase64(encryptedPreferences),
-      encryptionKey: {
-        key: arrayBufferToBase64(rawKey),
-        iv: arrayBufferToBase64(iv),
-      },
+      encryptedVisitorId: b64EncryptedVisitorId,
+      encryptedPreferences: b64EncryptedPreferences,
+      encryptionKey: b64Key,
+      iv: b64IV,
       policyVersion,
       timestamp,
       country,
@@ -649,7 +653,7 @@ async function saveConsentState(preferences) {
     console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consent ");
     console.log("payload", payload);
 
-    // 6. Send payload to server
+    // 7. Send payload to server
     const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
       method: "POST",
       headers: {
@@ -1099,13 +1103,14 @@ async function scanAndBlockScripts() {
 
               console.log("isallowed",isAllowed)
               if (isAllowed) {
-                console.log("unblocked script with category", categoryAttr);
+                console.log("unblocked script with category", categoryAttr,placeholder.getAttribute("data-original-src"));
               
                 const script = document.createElement("script");
                 const originalSrc = placeholder.getAttribute("data-original-src");
               
                 // Restore src or inline script
                 if (originalSrc) {
+                  console.log("Script src",originalSrc)
                   script.src = originalSrc;
                 } else {
                   script.textContent = placeholder.textContent || "";

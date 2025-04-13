@@ -1339,12 +1339,15 @@ async function loadAndApplySavedPreferences() {
   console.log("Loading and applying saved preferences...");
   
   if (isLoadingState) {
+    console.log("loading consent stae",isLoadingState)
       return;
   }
   isLoadingState = true;
 
   try {
       const consentGiven = localStorage.getItem("consent-given");
+    console.log(" consent consent given",consentGiven)
+
       
       if (consentGiven === "true") {
           const savedPreferences = localStorage.getItem("consent-preferences");

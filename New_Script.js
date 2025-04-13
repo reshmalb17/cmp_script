@@ -68,61 +68,6 @@ const EncryptionUtils = {
     }
   };
 
-async function generateKey() {
-    const key = await crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 },
-        true,
-        ["encrypt", "decrypt"]
-    );
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const exportedKey = await crypto.subtle.exportKey("raw", key);
-    console.log('Exported key length:', exportedKey.byteLength); // Log key length
-    return { secretKey: new Uint8Array(exportedKey), iv }; // Convert to Uint8Array
-}
-
-  // Add these two functions here
-async function importKey(rawKey) {
-    return await crypto.subtle.importKey(
-        "raw",
-        rawKey,
-        { name: "AES-GCM" },
-        false,
-        ["decrypt"]
-    );
-}
-
-async function decryptData(encrypted, key, iv) {
-    const encryptedBuffer = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
-    const decrypted = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv },
-        key,
-        encryptedBuffer
-    );
-    return new TextDecoder().decode(decrypted);
-}
-async function encryptData(data, key, iv) {
-    const encoder = new TextEncoder();
-    const encodedData = encoder.encode(data);
-
-    // Ensure the key is a Uint8Array
-    const keyArray = new Uint8Array(key);
-    console.log('Key array length:', keyArray.length); // Log key array length
-
-    const importedKey = await crypto.subtle.importKey(
-        "raw",
-        keyArray, // Use the Uint8Array
-        { name: "AES-GCM" },
-        false,
-        ["encrypt"]
-    );
-
-    const encrypted = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        importedKey,
-        encodedData
-    );
-    return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-}
 
      /**
   ENCRYPTION AND DECYPTION ENDS
@@ -1127,7 +1072,7 @@ function getScriptKey(script) {
 
           }
                 
-          async function restoreAllowedScripts(preferences) {
+ async function restoreAllowedScripts(preferences) {
             console.log("RESTORE STARTS");
           
             // Normalize preferences keys to lowercase
@@ -1241,33 +1186,7 @@ function getScriptKey(script) {
     }
 }
 
- async function initialize() {
-
-    console.log(" INITIALIZATION STARTS")
-      await scanAndBlockScripts();
-      await loadConsentStyles();
-      await getVisitorSessionToken();   
-      await detectLocationAndGetBannerType();
-      await loadConsentState();   
-      await loadConsentStyles();
-      
-     hideBanner(document.getElementById("consent-banner"));
-     hideBanner(document.getElementById("initial-consent-banner"));
-     hideBanner(document.getElementById("main-banner"));
-     hideBanner(document.getElementById("main-consent-banner"));
-     hideBanner(document.getElementById("simple-consent-banner"));
-    
-     await initializeBannerVisibility();
  
-  
-   
-     attachBannerHandlers();
-    console.log(" INITIALIZATION STARTS ENDS")
-
-
-     
-   }
-   
 
    function blockAllInitialRequests() {
     const originalFetch = window.fetch;
@@ -1388,6 +1307,168 @@ window.isTokenExpired = isTokenExpired;
   window.blockAllInitialRequests =blockAllInitialRequests;
 
 document.addEventListener('DOMContentLoaded',  initialize);
+
+
+async function loadAndApplySavedPreferences() {
+  console.log("Loading and applying saved preferences...");
+  
+  if (isLoadingState) {
+      return;
+  }
+  isLoadingState = true;
+
+  try {
+      const consentGiven = localStorage.getItem("consent-given");
+      
+      if (consentGiven === "true") {
+          const savedPreferences = JSON.parse(localStorage.getItem("consent-preferences"));
+          
+          if (savedPreferences?.encryptedData) {
+              try {
+                  // Decrypt using EncryptionUtils
+                  const key = await EncryptionUtils.importKey(
+                      Uint8Array.from(savedPreferences.key),
+                      ['decrypt']
+                  );
+                  
+                  const decryptedData = await EncryptionUtils.decrypt(
+                      savedPreferences.encryptedData,
+                      key,
+                      Uint8Array.from(savedPreferences.iv)
+                  );
+
+                  const preferences = JSON.parse(decryptedData);
+                  console.log("Decrypted preferences:", preferences);
+
+                  // Normalize preferences structure
+                  const normalizedPreferences = {
+                      Necessary: true, // Always true
+                      Marketing: preferences.Marketing || preferences.marketing || false,
+                      Personalization: preferences.Personalization || preferences.personalization || false,
+                      Analytics: preferences.Analytics || preferences.analytics || false,
+                      ccpa: {
+                          doNotShare: preferences.ccpa?.DoNotShare || preferences.ccpa?.doNotShare || false
+                      }
+                  };
+
+                  // Update form
+                  updatePreferenceForm(normalizedPreferences);
+                  
+                  // Unblock allowed scripts
+                  await restoreAllowedScripts(normalizedPreferences);
+
+                  return normalizedPreferences;
+              } catch (error) {
+                  console.error("Error decrypting preferences:", error);
+              }
+          }
+      }
+  } catch (error) {
+      console.error("Error loading preferences:", error);
+  } finally {
+      isLoadingState = false;
+  }
+
+  // Default preferences if nothing was loaded
+  return {
+      Necessary: true,
+      Marketing: false,
+      Personalization: false,
+      Analytics: false,
+      ccpa: { doNotShare: false }
+  };
+}
+
+function updatePreferenceForm(preferences) {
+  // Get checkbox elements
+  const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]');
+  const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
+  const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]');
+  const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]');
+  const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+
+  // Update necessary checkbox
+  if (necessaryCheckbox) {
+      necessaryCheckbox.checked = true;
+      necessaryCheckbox.disabled = true; // Always disabled
+  }
+
+  // Update other checkboxes
+  if (marketingCheckbox) {
+      marketingCheckbox.checked = Boolean(preferences.Marketing);
+  }
+
+  if (personalizationCheckbox) {
+      personalizationCheckbox.checked = Boolean(preferences.Personalization);
+  }
+
+  if (analyticsCheckbox) {
+      analyticsCheckbox.checked = Boolean(preferences.Analytics);
+  }
+
+  if (doNotShareCheckbox) {
+      doNotShareCheckbox.checked = Boolean(preferences.ccpa?.doNotShare);
+  }
+
+  console.log("Updated form with preferences:", {
+      necessary: true,
+      marketing: marketingCheckbox?.checked,
+      personalization: personalizationCheckbox?.checked,
+      analytics: analyticsCheckbox?.checked,
+      doNotShare: doNotShareCheckbox?.checked
+  });
+}
+
+// Modify initialize function
+async function initialize() {
+  console.log("INITIALIZATION STARTS");
+  
+  try {
+      // Load and apply saved preferences first
+      const preferences = await loadAndApplySavedPreferences();
+      
+      // Only proceed with normal initialization if no preferences
+      if (!preferences || !localStorage.getItem("consent-given")) {
+          await scanAndBlockScripts();
+          await initializeBannerVisibility();
+      }
+
+      // Always load these
+      await loadConsentStyles();
+      await getVisitorSessionToken();
+      await detectLocationAndGetBannerType();
+
+      // Hide banners if consent was given
+      if (localStorage.getItem("consent-given") === "true") {
+          hideBanner(document.getElementById("consent-banner"));
+          hideBanner(document.getElementById("initial-consent-banner"));
+          hideBanner(document.getElementById("main-banner"));
+          hideBanner(document.getElementById("main-consent-banner"));
+          hideBanner(document.getElementById("simple-consent-banner"));
+      }
+
+      attachBannerHandlers();
+  } catch (error) {
+      console.error("Error during initialization:", error);
+  }
+  
+  console.log("INITIALIZATION ENDS");
+}
+// Add to your window exports
+window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
+window.updatePreferenceForm = updatePreferenceForm;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

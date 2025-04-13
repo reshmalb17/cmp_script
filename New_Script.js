@@ -1052,7 +1052,7 @@ async function scanAndBlockScripts() {
                         Personalization: preferences.Personalization || false,
                         Analytics: preferences.Analytics || false,
                         ccpa: {
-                            doNotShare: preferences.ccpa?.DoNotShare || false
+                            DoNotShare: preferences.ccpa?.DoNotShare || false
                         }
                     };
 
@@ -1069,7 +1069,7 @@ async function scanAndBlockScripts() {
                     Marketing: false,
                     Personalization: false,
                     Analytics: false,
-                    ccpa: { doNotShare: false }
+                    ccpa: { DoNotShare: false }
                 };
                 await updatePreferenceForm(consentState);
             }
@@ -1079,7 +1079,7 @@ async function scanAndBlockScripts() {
                 Marketing: false,
                 Personalization: false,
                 Analytics: false,
-                ccpa: { doNotShare: false }
+                ccpa: { DoNotShare: false }
             };
             await updatePreferenceForm(consentState);
         }
@@ -1090,7 +1090,7 @@ async function scanAndBlockScripts() {
             Marketing: false,
             Personalization: false,
             Analytics: false,
-            ccpa: { doNotShare: false }
+            ccpa: { DoNotShare: false }
         };
         await updatePreferenceForm(consentState);
     } finally {
@@ -1397,7 +1397,7 @@ async function loadAndApplySavedPreferences() {
                       Personalization: preferences.Personalization || false,
                       Analytics: preferences.Analytics || false,
                       ccpa: {
-                          doNotShare: preferences.ccpa?.DoNotShare || false
+                          DoNotShare: preferences.ccpa?.DoNotShare || false
                       }
                   };
 
@@ -1426,7 +1426,7 @@ async function loadAndApplySavedPreferences() {
       Marketing: false,
       Personalization: false,
       Analytics: false,
-      ccpa: { doNotShare: false }
+      ccpa: { DoNotShare: false }
   };
 }
 
@@ -1450,10 +1450,7 @@ function arrayBufferToBase64(buffer) {
 }
 async function updatePreferenceForm(preferences) {
   console.log("___INSIDE UPDATE PREFERENCE___");
-  if (!document.body) {
-      console.log("Document body not ready, waiting...");
-      return;
-  }
+
 
   // Get checkbox elements
   const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]');
@@ -1467,15 +1464,43 @@ async function updatePreferenceForm(preferences) {
       console.log("No form elements found, form might not be loaded yet");
       return;
   }
-
-  // Rest of your existing code...
+// Update necessary checkbox
+if (necessaryCheckbox) {
+    necessaryCheckbox.checked = true;
+    necessaryCheckbox.disabled = true; // Always disabled
 }
+
+// Update other checkboxes
+if (marketingCheckbox) {
+    marketingCheckbox.checked = Boolean(preferences.Marketing);
+}
+
+if (personalizationCheckbox) {
+    personalizationCheckbox.checked = Boolean(preferences.Personalization);
+}
+
+if (analyticsCheckbox) {
+    analyticsCheckbox.checked = Boolean(preferences.Analytics);
+}
+
+if (doNotShareCheckbox) {
+    doNotShareCheckbox.checked = Boolean(preferences.ccpa?.DoNotShare);
+}
+
+console.log("Updated form with preferences:", {
+    necessary: true,
+    marketing: marketingCheckbox?.checked,
+    personalization: personalizationCheckbox?.checked,
+    analytics: analyticsCheckbox?.checked,
+    DoNotShare: doNotShareCheckbox?.checked
+});
+console.log(" UPDATE PREFERENCE  ENDS___")
+
+}
+
 // Modify initialize function
 async function initialize() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize);
-    return;
-}
+
 
 console.log("INITIALIZATION STARTS");
   

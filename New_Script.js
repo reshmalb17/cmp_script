@@ -804,7 +804,7 @@ function getScriptKey(script) {
     }
     
 
-      async function loadCategorizedScripts() {
+async function loadCategorizedScripts() {
         try {
             // Get session token from localStorage
             const sessionToken = localStorage.getItem('visitorSessionToken');
@@ -892,7 +892,7 @@ function getScriptKey(script) {
             return [];
         }
       } 
-      function extractCategories(content) {
+ function extractCategories(content) {
         if (!content) return [];
         
         // Extract data-category attribute value
@@ -909,7 +909,7 @@ function getScriptKey(script) {
         return [];
     }
     
-    async function scanAndBlockScripts() { 
+async function scanAndBlockScripts() { 
         console.log("inside scan and block");
         const scripts = document.querySelectorAll("script[src]");
         const inlineScripts = document.querySelectorAll("script:not([src])"); 
@@ -986,9 +986,7 @@ function getScriptKey(script) {
 
   }
 
-
-
-     async function loadConsentState() {
+async function loadConsentState() {
     console.log(" LOAD CONSENT STATE STARTS")
 
             if (isLoadingState) {
@@ -1307,7 +1305,6 @@ window.isTokenExpired = isTokenExpired;
 
 document.addEventListener('DOMContentLoaded',  initialize);
 
-
 async function loadAndApplySavedPreferences() {
   console.log("Loading and applying saved preferences...");
   
@@ -1320,33 +1317,39 @@ async function loadAndApplySavedPreferences() {
       const consentGiven = localStorage.getItem("consent-given");
       
       if (consentGiven === "true") {
-          const savedPreferences = JSON.parse(localStorage.getItem("consent-preferences"));
+          const savedPreferences = localStorage.getItem("consent-preferences");
           
-          if (savedPreferences?.encryptedData) {
+          if (savedPreferences) {
               try {
-                  // Decrypt using EncryptionUtils
-                  const key = await EncryptionUtils.importKey(
-                      Uint8Array.from(savedPreferences.key),
+                  const parsedPrefs = JSON.parse(savedPreferences);
+                  
+                  // Create a key from the stored key data
+                  const key = await crypto.subtle.importKey(
+                      'raw',
+                      new Uint8Array(parsedPrefs.key),
+                      { name: 'AES-GCM' },
+                      false,
                       ['decrypt']
                   );
-                  
-                  const decryptedData = await EncryptionUtils.decrypt(
-                      savedPreferences.encryptedData,
+
+                  // Decrypt using the same format as encryption
+                  const decryptedData = await crypto.subtle.decrypt(
+                      { name: 'AES-GCM', iv: new Uint8Array(parsedPrefs.iv) },
                       key,
-                      Uint8Array.from(savedPreferences.iv)
+                      new Uint8Array(parsedPrefs.encryptedData)
                   );
 
-                  const preferences = JSON.parse(decryptedData);
+                  const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
                   console.log("Decrypted preferences:", preferences);
 
                   // Normalize preferences structure
                   const normalizedPreferences = {
                       Necessary: true, // Always true
-                      Marketing: preferences.Marketing || preferences.marketing || false,
-                      Personalization: preferences.Personalization || preferences.personalization || false,
-                      Analytics: preferences.Analytics || preferences.analytics || false,
+                      Marketing: preferences.Marketing || false,
+                      Personalization: preferences.Personalization || false,
+                      Analytics: preferences.Analytics || false,
                       ccpa: {
-                          doNotShare: preferences.ccpa?.DoNotShare || preferences.ccpa?.doNotShare || false
+                          doNotShare: preferences.ccpa?.DoNotShare || false
                       }
                   };
 
@@ -1359,6 +1362,8 @@ async function loadAndApplySavedPreferences() {
                   return normalizedPreferences;
               } catch (error) {
                   console.error("Error decrypting preferences:", error);
+                  // Clear invalid preferences if decryption fails
+                  localStorage.removeItem("consent-preferences");
               }
           }
       }
@@ -1377,7 +1382,6 @@ async function loadAndApplySavedPreferences() {
       ccpa: { doNotShare: false }
   };
 }
-
 function updatePreferenceForm(preferences) {
   // Get checkbox elements
   const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]');

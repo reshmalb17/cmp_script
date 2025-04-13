@@ -1003,7 +1003,7 @@ function getScriptKey(script) {
                 try {
                     const savedPreferences = JSON.parse(localStorage.getItem("consent-preferences"));
                     if (savedPreferences?.encryptedData) {
-                        const decryptedData = await decryptData(
+                        const decryptedData = await  EncryptionUtils.decryptData(
                             savedPreferences.encryptedData,
                             await importKey(Uint8Array.from(savedPreferences.key)),
                             Uint8Array.from(savedPreferences.iv)
@@ -1283,7 +1283,6 @@ window.initializeBanner= initializeBanner;
 window.attachBannerHandlers = attachBannerHandlers;
 window.showBanner = showBanner;
 window.hideBanner = hideBanner;
-window.decryptData = decryptData;   
 window.checkAndBlockNewScripts = checkAndBlockNewScripts;
 window.createPlaceholder = createPlaceholder;
 window.restoreAllowedScripts = restoreAllowedScripts;

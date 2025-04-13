@@ -1339,22 +1339,26 @@ async function loadAndApplySavedPreferences() {
   console.log("Loading and applying saved preferences...");
   
   if (isLoadingState) {
-    console.log("loading consent stae",isLoadingState)
+  console.log("isloading state...",isLoadingState);
+
       return;
   }
   isLoadingState = true;
 
   try {
       const consentGiven = localStorage.getItem("consent-given");
-    console.log(" consent consent given",consentGiven)
+      console.log("consent given",consentGiven);
+      
 
       
       if (consentGiven === "true") {
           const savedPreferences = localStorage.getItem("consent-preferences");
+          console.log("saved preferences",savedPreferences);
           
           if (savedPreferences) {
               try {
                   const parsedPrefs = JSON.parse(savedPreferences);
+                  console.log("Parsed preferences",parsedPrefs)
                   
                   // Ensure we have a proper 256-bit key
                   const keyData = new Uint8Array(parsedPrefs.key);
@@ -1380,6 +1384,8 @@ async function loadAndApplySavedPreferences() {
                       key,
                       encryptedData
                   );
+                  console.log("decrypted saved preference",decryptedData);
+                  
 
                   const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
                   console.log("Decrypted preferences:", preferences);

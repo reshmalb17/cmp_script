@@ -986,90 +986,98 @@ async function scanAndBlockScripts() {
 
   }
 
-async function loadConsentState() {
-    console.log(" LOAD CONSENT STATE STARTS")
+  async function loadConsentState() {
+    console.log("LOAD CONSENT STATE STARTS");
 
-            if (isLoadingState) {
-              
-              return;
-           }
-              isLoadingState = true;
-          
-             const consentGiven = localStorage.getItem("consent-given");
-              
-              if (consentGiven === "true") {
-                try {
-                    const savedPreferences = JSON.parse(localStorage.getItem("consent-preferences"));
-                    if (savedPreferences?.encryptedData) {
-                        const decryptedData = await  EncryptionUtils.decryptData(
-                            savedPreferences.encryptedData,
-                            await importKey(Uint8Array.from(savedPreferences.key)),
-                            Uint8Array.from(savedPreferences.iv)
-                        );
-                        consentState = JSON.parse(decryptedData);
-                        consentState = {
-                          Necessary: consentState.Necessary || true,
-                          Marketing: consentState.Marketing || false,
-                          Personalization: consentState.Personalization || false,
-                          Analytics: consentState.Analytics || false,
-                          ccpa: {
-                              doNotShare: consentState.ccpa?.DoNotShare || false // Safely access doNotShare
-                          }
-                      };
+    if (isLoadingState) {
+        return;
+    }
+    isLoadingState = true;
+
+    try {
+        const consentGiven = localStorage.getItem("consent-given");
         
-                        
-              // Update checkbox states if they exist
-                 const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]')
-                 const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]')
-                 const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
-                 const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
-                 const doNotShareCheckbox = document.getElementById('[data-consent-id="do-not-share-checkbox"]');
-      
-      
-      
-        
-                        if (necessaryCheckbox) {
-                          necessaryCheckbox.checked = true; // Always true
-                          necessaryCheckbox.disabled = true; // Disable the necessary checkbox
-                        }
-      
+        if (consentGiven === "true") {
+            try {
+                const savedPreferences = localStorage.getItem("consent-preferences");
                 
-        
-          
-                        if (necessaryCheckbox) necessaryCheckbox.checked = true; // Always true
-                        if (marketingCheckbox) marketingCheckbox.checked = consentState.Marketing || false;
-                        if (personalizationCheckbox) personalizationCheckbox.checked = consentState.Personalization || false;
-                        if (analyticsCheckbox) analyticsCheckbox.checked = consentState.Analytics || false;
-                        if (doNotShareCheckbox) doNotShareCheckbox.checked = consentState.ccpa.DoNotShare || false;
-                    }
-                } catch (error) {
-                    console.error("Error loading consent state:", error);
-                    consentState = { 
+                if (savedPreferences) {
+                    const parsedPrefs = JSON.parse(savedPreferences);
+                    
+                    // Create a key from the stored key data
+                    const key = await crypto.subtle.importKey(
+                        'raw',
+                        new Uint8Array(parsedPrefs.key),
+                        { name: 'AES-GCM' },
+                        false,
+                        ['decrypt']
+                    );
+
+                    // Decrypt using the same format as encryption
+                    const decryptedData = await crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv: new Uint8Array(parsedPrefs.iv) },
+                        key,
+                        new Uint8Array(parsedPrefs.encryptedData)
+                    );
+
+                    const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
+                    console.log("Decrypted preferences:", preferences);
+
+                    // Update consentState
+                    consentState = {
                         Necessary: true,
-                        Marketing: false,
-                        Personalization: false,
-                        Analytics: false ,
-                        ccpa: { doNotShare: false } 
+                        Marketing: preferences.Marketing || false,
+                        Personalization: preferences.Personalization || false,
+                        Analytics: preferences.Analytics || false,
+                        ccpa: {
+                            doNotShare: preferences.ccpa?.DoNotShare || false
+                        }
                     };
-                }
-            } else {
-                  consentState = { 
-                     Necessary: true,
-                     Marketing: false,
-                     Personalization: false,
-                     Analytics: false ,
-                     ccpa: { doNotShare: false } 
-            };
-          }
-          
-            
-              
-            
-              isLoadingState = false;
-    console.log(" LOAD CONSENT STATE ENDS")
 
-          }
-                
+                    // Update form using updatePreferenceForm
+                    await updatePreferenceForm(consentState);
+
+                    // Restore allowed scripts based on preferences
+                    await restoreAllowedScripts(consentState);
+                }
+            } catch (error) {
+                console.error("Error decrypting preferences:", error);
+                consentState = {
+                    Necessary: true,
+                    Marketing: false,
+                    Personalization: false,
+                    Analytics: false,
+                    ccpa: { doNotShare: false }
+                };
+                await updatePreferenceForm(consentState);
+            }
+        } else {
+            consentState = {
+                Necessary: true,
+                Marketing: false,
+                Personalization: false,
+                Analytics: false,
+                ccpa: { doNotShare: false }
+            };
+            await updatePreferenceForm(consentState);
+        }
+    } catch (error) {
+        console.error("Error in loadConsentState:", error);
+        consentState = {
+            Necessary: true,
+            Marketing: false,
+            Personalization: false,
+            Analytics: false,
+            ccpa: { doNotShare: false }
+        };
+        await updatePreferenceForm(consentState);
+    } finally {
+        isLoadingState = false;
+    }
+
+    console.log("LOAD CONSENT STATE ENDS");
+    return consentState;
+}  
  async function restoreAllowedScripts(preferences) {
             console.log("RESTORE STARTS");
           
@@ -1341,6 +1349,7 @@ async function loadAndApplySavedPreferences() {
 
                   const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
                   console.log("Decrypted preferences:", preferences);
+                  console.log("Existing Prefernece",preferences)
 
                   // Normalize preferences structure
                   const normalizedPreferences = {
@@ -1352,9 +1361,11 @@ async function loadAndApplySavedPreferences() {
                           doNotShare: preferences.ccpa?.DoNotShare || false
                       }
                   };
+                  console.log("Normalized Prefernece",normalizedPreferences)
+
 
                   // Update form
-                  updatePreferenceForm(normalizedPreferences);
+                await  updatePreferenceForm(normalizedPreferences);
                   
                   // Unblock allowed scripts
                   await restoreAllowedScripts(normalizedPreferences);
@@ -1382,7 +1393,8 @@ async function loadAndApplySavedPreferences() {
       ccpa: { doNotShare: false }
   };
 }
-function updatePreferenceForm(preferences) {
+async function updatePreferenceForm(preferences) {
+  console.log("___INSIDE UPDATE PREFERENCE___")
   // Get checkbox elements
   const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]');
   const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
@@ -1420,6 +1432,8 @@ function updatePreferenceForm(preferences) {
       analytics: analyticsCheckbox?.checked,
       doNotShare: doNotShareCheckbox?.checked
   });
+  console.log("___INSIDE UPDATE PREFERENCE  ENDS___")
+
 }
 
 // Modify initialize function

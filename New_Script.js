@@ -12,6 +12,7 @@
     let currentBannerType = null;
     let country =null;
     let categorizedScripts=null;  
+    let initialBlockingEnabled = true;
 
     const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
 
@@ -602,7 +603,7 @@ async function saveConsentState(preferences) {
       policyVersion,
       timestamp,
       country,
-      bannerType: locationData.bannerType, 
+      bannerType: currentBannerType, 
       metadata: {
         userAgent: navigator.userAgent,
         language: navigator.language,
@@ -671,18 +672,39 @@ function arrayBufferToBase64(buffer) {
     };
   }
   
- async function storeEncryptedConsent(encryptedPreferences, key,iv, timestamp) {
-    console.log("inside store encrpted data",encryptedPreferences)
-    localStorage.setItem("consent-given", "true");
-    localStorage.setItem("consent-preferences", JSON.stringify({
-      encryptedData: encryptedPreferences,
-      iv: Array.from(iv),
-      key: Array.from(new Uint8Array(key))
-    }));
+//  async function storeEncryptedConsent(encryptedPreferences, key,iv, timestamp) {
+
+//     console.log("inside store encrpted data",encryptedPreferences)
+//     localStorage.setItem("consent-given", "true");
+//     localStorage.setItem("consent-preferences", JSON.stringify({
+//       encryptedData: encryptedPreferences,
+//       iv: Array.from(iv),
+//       key: Array.from(new Uint8Array(key))
+//     }));
    
-    localStorage.setItem("consent-policy-version", "1.2");
+//     localStorage.setItem("consent-policy-version", "1.2");
+//   }
+async function storeEncryptedConsent(encryptedPreferences, key, iv, timestamp) {
+  try {
+      // Export the key to raw format
+      const rawKey = await crypto.subtle.exportKey('raw', key);
+      
+      // Ensure the key is exactly 32 bytes
+      const keyArray = new Uint8Array(32);
+      keyArray.set(new Uint8Array(rawKey));
+      
+      localStorage.setItem("consent-given", "true");
+      localStorage.setItem("consent-preferences", JSON.stringify({
+          encryptedData: arrayBufferToBase64(encryptedPreferences),
+          iv: Array.from(iv),
+          key: Array.from(keyArray)
+      }));
+      
+      localStorage.setItem("consent-policy-version", "1.2");
+  } catch (error) {
+      console.error("Error storing encrypted consent:", error);
   }
-  
+}
   function buildPayload({ clientId, encryptedVisitorId, encryptedPreferences, encryptionKey, policyVersion, timestamp, country }) {
     return {
       clientId,
@@ -1331,29 +1353,37 @@ async function loadAndApplySavedPreferences() {
               try {
                   const parsedPrefs = JSON.parse(savedPreferences);
                   
-                  // Create a key from the stored key data
+                  // Ensure we have a proper 256-bit key
+                  const keyData = new Uint8Array(parsedPrefs.key);
+                  if (keyData.length !== 32) { // 256 bits = 32 bytes
+                      throw new Error("Invalid key length");
+                  }
+
+                  // Import the key
                   const key = await crypto.subtle.importKey(
                       'raw',
-                      new Uint8Array(parsedPrefs.key),
-                      { name: 'AES-GCM' },
+                      keyData,
+                      { name: 'AES-GCM', length: 256 }, // Specify the key length
                       false,
                       ['decrypt']
                   );
 
+                  // Convert base64 encrypted data back to ArrayBuffer
+                  const encryptedData = base64ToArrayBuffer(parsedPrefs.encryptedData);
+                  
                   // Decrypt using the same format as encryption
                   const decryptedData = await crypto.subtle.decrypt(
                       { name: 'AES-GCM', iv: new Uint8Array(parsedPrefs.iv) },
                       key,
-                      new Uint8Array(parsedPrefs.encryptedData)
+                      encryptedData
                   );
 
                   const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
                   console.log("Decrypted preferences:", preferences);
-                  console.log("Existing Prefernece",preferences)
 
                   // Normalize preferences structure
                   const normalizedPreferences = {
-                      Necessary: true, // Always true
+                      Necessary: true,
                       Marketing: preferences.Marketing || false,
                       Personalization: preferences.Personalization || false,
                       Analytics: preferences.Analytics || false,
@@ -1361,11 +1391,9 @@ async function loadAndApplySavedPreferences() {
                           doNotShare: preferences.ccpa?.DoNotShare || false
                       }
                   };
-                  console.log("Normalized Prefernece",normalizedPreferences)
-
 
                   // Update form
-                await  updatePreferenceForm(normalizedPreferences);
+                  await updatePreferenceForm(normalizedPreferences);
                   
                   // Unblock allowed scripts
                   await restoreAllowedScripts(normalizedPreferences);
@@ -1373,7 +1401,6 @@ async function loadAndApplySavedPreferences() {
                   return normalizedPreferences;
               } catch (error) {
                   console.error("Error decrypting preferences:", error);
-                  // Clear invalid preferences if decryption fails
                   localStorage.removeItem("consent-preferences");
               }
           }
@@ -1393,8 +1420,32 @@ async function loadAndApplySavedPreferences() {
       ccpa: { doNotShare: false }
   };
 }
+
+// Helper functions for base64 conversion
+function base64ToArrayBuffer(base64) {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
 async function updatePreferenceForm(preferences) {
-  console.log("___INSIDE UPDATE PREFERENCE___")
+  console.log("___INSIDE UPDATE PREFERENCE___");
+  if (!document.body) {
+      console.log("Document body not ready, waiting...");
+      return;
+  }
+
   // Get checkbox elements
   const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]');
   const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
@@ -1402,43 +1453,22 @@ async function updatePreferenceForm(preferences) {
   const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]');
   const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
 
-  // Update necessary checkbox
-  if (necessaryCheckbox) {
-      necessaryCheckbox.checked = true;
-      necessaryCheckbox.disabled = true; // Always disabled
+  if (!necessaryCheckbox && !marketingCheckbox && !personalizationCheckbox && 
+      !analyticsCheckbox && !doNotShareCheckbox) {
+      console.log("No form elements found, form might not be loaded yet");
+      return;
   }
 
-  // Update other checkboxes
-  if (marketingCheckbox) {
-      marketingCheckbox.checked = Boolean(preferences.Marketing);
-  }
-
-  if (personalizationCheckbox) {
-      personalizationCheckbox.checked = Boolean(preferences.Personalization);
-  }
-
-  if (analyticsCheckbox) {
-      analyticsCheckbox.checked = Boolean(preferences.Analytics);
-  }
-
-  if (doNotShareCheckbox) {
-      doNotShareCheckbox.checked = Boolean(preferences.ccpa?.doNotShare);
-  }
-
-  console.log("Updated form with preferences:", {
-      necessary: true,
-      marketing: marketingCheckbox?.checked,
-      personalization: personalizationCheckbox?.checked,
-      analytics: analyticsCheckbox?.checked,
-      doNotShare: doNotShareCheckbox?.checked
-  });
-  console.log("___INSIDE UPDATE PREFERENCE  ENDS___")
-
+  // Rest of your existing code...
 }
-
 // Modify initialize function
 async function initialize() {
-  console.log("INITIALIZATION STARTS");
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+    return;
+}
+
+console.log("INITIALIZATION STARTS");
   
   try {
       // Load and apply saved preferences first

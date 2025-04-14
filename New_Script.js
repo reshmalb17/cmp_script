@@ -1100,10 +1100,12 @@ async function scanAndBlockScripts() {
     console.log("LOAD CONSENT STATE ENDS");
     return consentState;
 }  
+
+
 async function restoreAllowedScripts(preferences) {
   console.log("RESTORE STARTS");
 
-  // Normalize preferences keys
+  // Normalize preferences keys to lowercase
   const normalizedPrefs = Object.fromEntries(
     Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
   );
@@ -1128,19 +1130,19 @@ async function restoreAllowedScripts(preferences) {
       const script = document.createElement("script");
       const originalSrc = placeholder.getAttribute("data-original-src");
 
-      // If it's an external script
       if (originalSrc) {
         script.src = originalSrc;
         console.log("Script src", originalSrc);
 
-        // 🎯 Detect Google Analytics and wait for it to load
+        // 🎯 Detect Google Analytics (gtag.js) script using a regex pattern.
         const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
         if (gtagPattern.test(originalSrc)) {
-          console.log("Detected GA script, hooking into onload for consent update");
+          console.log("Detected GA script, hooking into consent update");
 
-          script.onload = () => {
+          // Define a helper function to update GA consent
+          function updateGAConsent() {
             if (typeof gtag === "function") {
-              console.log("GA script loaded, updating consent...");
+              console.log("Updating GA consent settings...");
               gtag('consent', 'update', {
                 'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
                 'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
@@ -1148,27 +1150,37 @@ async function restoreAllowedScripts(preferences) {
                 'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
               });
             } else {
-              console.warn("gtag is not defined yet after script load.");
+              console.warn("gtag is not defined even after GA script loaded.");
             }
+          }
+          
+          // If the GA script is still loading, update consent in the onload handler
+          script.onload = () => {
+            updateGAConsent();
           };
-        }
 
+          // Also try to update immediately if gtag is already available
+          if (typeof gtag === "function") {
+            updateGAConsent();
+          } else {
+            console.warn("gtag not defined at restoration time; will update on load.");
+          }
+        }
       } else {
-        // Inline script
+        // For inline scripts, simply copy the text content.
         script.textContent = placeholder.textContent || "";
       }
 
-      // Restore type, async, defer
+      // Restore attributes: type, async, defer, and data-category
       const type = placeholder.getAttribute("type");
       if (type) script.setAttribute("type", type);
       if (placeholder.hasAttribute("async")) script.async = true;
       if (placeholder.hasAttribute("defer")) script.defer = true;
-
-      // Restore data-category
+      
       const dataCategory = placeholder.getAttribute("data-category");
       if (dataCategory) script.setAttribute("data-category", dataCategory);
-
-      // Replace placeholder with restored script
+      
+      // Replace the placeholder with the restored script
       placeholder.parentNode?.replaceChild(script, placeholder);
     }
   });
@@ -1176,6 +1188,7 @@ async function restoreAllowedScripts(preferences) {
   console.log("RESTORE ENDS");
 }
 
+          
 
   /* INITIALIZATION */
   async function getVisitorSessionToken() {

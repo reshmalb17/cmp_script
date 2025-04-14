@@ -1141,8 +1141,10 @@ async function scanAndBlockScripts() {
                 }
 
 
+                console.log(" original sourece",originalSrc)
                // 🎯 Detect Google gtag script and set consent
-               if (originalSrc.includes("googletagmanager.com/gtag/js")) {
+               const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
+               if (gtagPattern.test(originalSrc)) {
                console.log("Detected Google Analytics script, updating gtag consent");
                    if (typeof gtag === "function") {
                    gtag('consent', 'update', {
@@ -1560,6 +1562,20 @@ console.log("INITIALIZATION STARTS");
 // Add to your window exports
 window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
 window.updatePreferenceForm = updatePreferenceForm;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function blockAllInitialRequests() {
   const originalFetch = window.fetch;

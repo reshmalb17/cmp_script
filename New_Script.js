@@ -1100,96 +1100,82 @@ async function scanAndBlockScripts() {
     console.log("LOAD CONSENT STATE ENDS");
     return consentState;
 }  
- async function restoreAllowedScripts(preferences) {
-            console.log("RESTORE STARTS");
-          
-            // Normalize preferences keys to lowercase
-            const normalizedPrefs = Object.fromEntries(
-              Object.entries(preferences).map(([key, value]) => [key, value])
-            );
-            
-          
-            console.log("Existing Scripts", existing_Scripts);
-            existing_Scripts?.forEach(placeholder => {
-              const categoryAttr = placeholder.getAttribute("data-category");
-              if (!categoryAttr) {
-                console.log("Script missing data-category attribute, skipping...");
-                return;
-              }
-              console.log("category", categoryAttr);
-          
-              const categories = categoryAttr?.split(",").map(c => c) || [];
-          
-              const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
-              console.log("normalized preference",normalizedPrefs)
+async function restoreAllowedScripts(preferences) {
+  console.log("RESTORE STARTS");
 
-              console.log("isallowed",isAllowed)
-              if (isAllowed) {
+  // Normalize preferences keys
+  const normalizedPrefs = Object.fromEntries(
+    Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
+  );
 
+  console.log("Existing Scripts", existing_Scripts);
 
-                console.log("unblocked script with category", categoryAttr,placeholder.getAttribute("data-original-src"));
-              
-                const script = document.createElement("script");
-                const originalSrc = placeholder.getAttribute("data-original-src");
-              
-                // Restore src or inline script
-                if (originalSrc) {
-                  console.log("Script src",originalSrc)
-                  script.src = originalSrc;
-                } else {
-                  script.textContent = placeholder.textContent || "";
-                }
+  existing_Scripts?.forEach(placeholder => {
+    const categoryAttr = placeholder.getAttribute("data-category");
+    if (!categoryAttr) {
+      console.log("Script missing data-category attribute, skipping...");
+      return;
+    }
 
+    const categories = categoryAttr.split(",").map(c => c.trim().toLowerCase());
+    const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
 
-                console.log(" original sourece",originalSrc)
-               // 🎯 Detect Google gtag script and set consent
-               const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
-               if (gtagPattern.test(originalSrc)) {
-               console.log("Detected Google Analytics script, updating gtag consent");
-                   if (typeof gtag === "function") {
-                   gtag('consent', 'update', {
-                              'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
-                              'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
-                             'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied',
-                            'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
-                       });
-                        } else {
-                  console.warn("gtag is not defined yet");
-                      }
-                      }
+    console.log("category", categoryAttr);
+    console.log("normalized preference", normalizedPrefs);
+    console.log("isAllowed", isAllowed);
 
+    if (isAllowed) {
+      const script = document.createElement("script");
+      const originalSrc = placeholder.getAttribute("data-original-src");
 
+      // If it's an external script
+      if (originalSrc) {
+        script.src = originalSrc;
+        console.log("Script src", originalSrc);
 
-              
-                // Restore type attribute if available
-                const type = placeholder.getAttribute("type");
-                if (type) script.setAttribute("type", type);
-              
-                // Restore async attribute
-                if (placeholder.hasAttribute("async")) {
-                  script.async = true;
-                }
-              
-                // Restore defer attribute
-                if (placeholder.hasAttribute("defer")) {
-                  script.defer = true;
-                }
-              
-                // Restore data-category attribute (use setAttribute)
-                const dataCategory = placeholder.getAttribute("data-category");
-                if (dataCategory) {
-                  script.setAttribute("data-category", dataCategory);
-                }
-              
-                // Replace placeholder with actual script
-                placeholder.parentNode?.replaceChild(script, placeholder);
-              }
-              
-            });
-          
-            console.log("RESTORE ENDS");
-          }
-          
+        // 🎯 Detect Google Analytics and wait for it to load
+        const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
+        if (gtagPattern.test(originalSrc)) {
+          console.log("Detected GA script, hooking into onload for consent update");
+
+          script.onload = () => {
+            if (typeof gtag === "function") {
+              console.log("GA script loaded, updating consent...");
+              gtag('consent', 'update', {
+                'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
+                'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
+                'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied',
+                'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
+              });
+            } else {
+              console.warn("gtag is not defined yet after script load.");
+            }
+          };
+        }
+
+      } else {
+        // Inline script
+        script.textContent = placeholder.textContent || "";
+      }
+
+      // Restore type, async, defer
+      const type = placeholder.getAttribute("type");
+      if (type) script.setAttribute("type", type);
+      if (placeholder.hasAttribute("async")) script.async = true;
+      if (placeholder.hasAttribute("defer")) script.defer = true;
+
+      // Restore data-category
+      const dataCategory = placeholder.getAttribute("data-category");
+      if (dataCategory) script.setAttribute("data-category", dataCategory);
+
+      // Replace placeholder with restored script
+      placeholder.parentNode?.replaceChild(script, placeholder);
+    }
+  });
+
+  console.log("RESTORE ENDS");
+}
+
 
   /* INITIALIZATION */
   async function getVisitorSessionToken() {

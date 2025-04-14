@@ -1121,9 +1121,12 @@ async function scanAndBlockScripts() {
               const categories = categoryAttr?.split(",").map(c => c) || [];
           
               const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
+              console.log("normalized preference",normalizedPrefs)
 
               console.log("isallowed",isAllowed)
               if (isAllowed) {
+
+
                 console.log("unblocked script with category", categoryAttr,placeholder.getAttribute("data-original-src"));
               
                 const script = document.createElement("script");
@@ -1136,6 +1139,25 @@ async function scanAndBlockScripts() {
                 } else {
                   script.textContent = placeholder.textContent || "";
                 }
+
+
+               // 🎯 Detect Google gtag script and set consent
+               if (originalSrc.includes("googletagmanager.com/gtag/js")) {
+               console.log("Detected Google Analytics script, updating gtag consent");
+                   if (typeof gtag === "function") {
+                   gtag('consent', 'update', {
+                              'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
+                              'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
+                             'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied',
+                            'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
+                       });
+                        } else {
+                  console.warn("gtag is not defined yet");
+                      }
+                      }
+
+
+
               
                 // Restore type attribute if available
                 const type = placeholder.getAttribute("type");
@@ -1538,20 +1560,6 @@ console.log("INITIALIZATION STARTS");
 // Add to your window exports
 window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
 window.updatePreferenceForm = updatePreferenceForm;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function blockAllInitialRequests() {
   const originalFetch = window.fetch;

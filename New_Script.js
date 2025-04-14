@@ -1102,13 +1102,16 @@ async function scanAndBlockScripts() {
 }  
 
 
+
+
+
 function updateGAConsent(normalizedPrefs) {
   if (typeof gtag === "function") {
     console.log("Updating GA consent settings...");
     gtag('consent', 'update', {
       'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
       'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
-      'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied',
+      'ad_personalization': normalizedPrefs.personalization ? 'granted' : 'denied',
       'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
     });
   } else {
@@ -1132,6 +1135,10 @@ function updateMetaPixelConsent(normalizedPrefs) {
       console.warn("fbq is not defined; cannot update Meta Pixel consent.");
     }
   }
+}
+window.updateMetaPixelConsent= updateMetaPixelConsent;
+window.updateClarityConsent =updateClarityConsent;
+window.updateHotjarConsent =updateHotjarConsent;
 
 function updateClarityConsent(normalizedPrefs) {
   const allowClarity = normalizedPrefs.analytics || normalizedPrefs.marketing;
@@ -1172,6 +1179,12 @@ function updateHotjarConsent(normalizedPrefs) {
     }
   }
 }
+
+window.updateMetaPixelConsent= updateMetaPixelConsent;
+window.updateClarityConsent =updateClarityConsent;
+window.updateHotjarConsent =updateHotjarConsent;
+
+
 
 async function restoreAllowedScripts(preferences) {
   console.log("RESTORE STARTS");
@@ -1220,14 +1233,7 @@ async function restoreAllowedScripts(preferences) {
             console.warn("gtag not defined; consent update will run on script load.");
           }
           script.onload = () => {
-            if (typeof gtag === "function") {
-              gtag('consent', 'update', {
-                'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
-                'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
-                'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied',
-                'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
-              });
-            }
+           updateGAConsent(normalizedPrefs);
           };
         }
 
@@ -1295,6 +1301,16 @@ script.onload = () => {
   }
 };
  }
+      // For Microsoft Clarity
+const clarityPattern = /clarity\.ms/i;
+if (clarityPattern.test(originalSrc)) {
+console.log("Detected Microsoft Clarity script, updating Clarity consent");
+updateClarityConsent(normalizedPrefs);
+script.onload = () => {
+  updateClarityConsent(normalizedPrefs);
+};
+}
+
 
       } else {
         // For inline scripts, copy the text content.
@@ -1328,16 +1344,7 @@ script.onload = () => {
           script.textContent = filteredCommands.join("\n");
         }
         
-  // For Microsoft Clarity
-const clarityPattern = /clarity\.ms/i;
-if (clarityPattern.test(originalSrc)) {
-console.log("Detected Microsoft Clarity script, updating Clarity consent");
-updateClarityConsent(normalizedPrefs);
-script.onload = () => {
-  updateClarityConsent(normalizedPrefs);
-};
-}
-
+ 
 
       }
 
@@ -1353,11 +1360,12 @@ script.onload = () => {
       placeholder.parentNode?.replaceChild(script, placeholder);
     }
   });
-}
+
 
   console.log("RESTORE ENDS");
 }
 
+          
 
   /* INITIALIZATION */
   async function getVisitorSessionToken() {

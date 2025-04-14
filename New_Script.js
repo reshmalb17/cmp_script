@@ -1102,15 +1102,87 @@ async function scanAndBlockScripts() {
 }  
 
 
+function updateGAConsent(normalizedPrefs) {
+  if (typeof gtag === "function") {
+    console.log("Updating GA consent settings...");
+    gtag('consent', 'update', {
+      'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
+      'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
+      'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied',
+      'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
+    });
+  } else {
+    console.warn("gtag is not defined when trying to update GA consent.");
+  }
+}
+
+
+function updateMetaPixelConsent(normalizedPrefs) {
+  if (normalizedPrefs.marketing) {
+    console.log("Meta Pixel: Marketing consent granted. fbq remains active.");
+    // Optionally, if desired, you could re-run initialization here.
+  } else {
+    console.log("Meta Pixel: Marketing consent denied. Disabling fbq calls.");
+    if (typeof fbq === "function") {
+      // Override fbq so that future calls do nothing.
+      window.fbq = function() {
+        console.log("fbq call blocked due to lack of marketing consent.");
+      };
+    } else {
+      console.warn("fbq is not defined; cannot update Meta Pixel consent.");
+    }
+  }
+
+function updateClarityConsent(normalizedPrefs) {
+  const allowClarity = normalizedPrefs.analytics || normalizedPrefs.marketing;
+
+  if (allowClarity) {
+    console.log("Clarity consent granted: Tracking remains enabled.");
+    // Optionally reinitialize Clarity here, but usually not needed.
+  } else {
+    console.log("Clarity consent denied: Disabling future Clarity tracking.");
+    if (typeof clarity === "function") {
+      window.clarity = function() {
+        console.log("Clarity call blocked due to lack of consent.");
+      };
+    } else {
+      console.warn("clarity is not defined; it might not have loaded yet.");
+    }
+  }
+}
+
+
+function updateHotjarConsent(normalizedPrefs) {
+  // In this example, we decide to allow Hotjar if analytics or marketing consent is provided.
+  const allowHotjar = normalizedPrefs.analytics || normalizedPrefs.marketing;
+  
+  if (allowHotjar) {
+    console.log("Hotjar consent granted: Tracking remains enabled.");
+    // Optionally reinitialize hj if necessary.
+    // Note: reinitializing Hotjar after it’s been loaded can be complex.
+  } else {
+    console.log("Hotjar consent denied: Disabling future Hotjar tracking.");
+    // Override hj so future calls do nothing.
+    if (typeof hj === "function") {
+      window.hj = function() {
+        console.log("Hotjar call blocked due to lack of consent.");
+      };
+    } else {
+      console.warn("Hotjar (hj) is not defined; Hotjar might not have loaded.");
+    }
+  }
+}
+
 async function restoreAllowedScripts(preferences) {
   console.log("RESTORE STARTS");
 
-  // Normalize preferences keys to lowercase
+  // Normalize preferences keys to lowercase.
   const normalizedPrefs = Object.fromEntries(
     Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
   );
 
-  console.log("Existing Scripts", existing_Scripts);
+  console.log("Normalized Preferences:", normalizedPrefs);
+  console.log("Existing Scripts:", existing_Scripts);
 
   existing_Scripts?.forEach(placeholder => {
     const categoryAttr = placeholder.getAttribute("data-category");
@@ -1122,9 +1194,8 @@ async function restoreAllowedScripts(preferences) {
     const categories = categoryAttr.split(",").map(c => c.trim().toLowerCase());
     const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
 
-    console.log("category", categoryAttr);
-    console.log("normalized preference", normalizedPrefs);
-    console.log("isAllowed", isAllowed);
+    console.log("Category:", categoryAttr);
+    console.log("isAllowed:", isAllowed);
 
     if (isAllowed) {
       const script = document.createElement("script");
@@ -1132,63 +1203,161 @@ async function restoreAllowedScripts(preferences) {
 
       if (originalSrc) {
         script.src = originalSrc;
-        console.log("Script src", originalSrc);
+        console.log("Script src:", originalSrc);
 
-        // 🎯 Detect Google Analytics (gtag.js) script using a regex pattern.
+        // For Google Analytics
         const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
         if (gtagPattern.test(originalSrc)) {
-          console.log("Detected GA script, hooking into consent update");
-
-          // Define a helper function to update GA consent
-          function updateGAConsent() {
+          console.log("Detected GA script, updating GA consent");
+          if (typeof gtag === "function") {
+            gtag('consent', 'update', {
+              'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
+              'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
+              'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied',
+              'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
+            });
+          } else {
+            console.warn("gtag not defined; consent update will run on script load.");
+          }
+          script.onload = () => {
             if (typeof gtag === "function") {
-              console.log("Updating GA consent settings...");
               gtag('consent', 'update', {
                 'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
                 'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
                 'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied',
                 'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'
               });
-            } else {
-              console.warn("gtag is not defined even after GA script loaded.");
+            }
+          };
+        }
+
+        // For Meta Pixel
+        const metaPattern = /connect\.facebook\.net\/en_US\/fbevents\.js/i;
+        if (metaPattern.test(originalSrc)) {
+          console.log("Detected Meta Pixel script, updating Meta consent");
+          if (normalizedPrefs.marketing) {
+            console.log("Meta Pixel: Consent granted.");
+          } else {
+            if (typeof fbq === "function") {
+              window.fbq = function() {
+                console.log("fbq call blocked due to lack of marketing consent.");
+              };
             }
           }
-          
-          // If the GA script is still loading, update consent in the onload handler
           script.onload = () => {
-            updateGAConsent();
+            if (normalizedPrefs.marketing) {
+              console.log("Meta Pixel loaded with consent granted.");
+            } else {
+              if (typeof fbq === "function") {
+                window.fbq = function() {
+                  console.log("fbq call blocked due to lack of marketing consent.");
+                };
+              }
+            }
           };
-
-          // Also try to update immediately if gtag is already available
-          if (typeof gtag === "function") {
-            updateGAConsent();
-          } else {
-            console.warn("gtag not defined at restoration time; will update on load.");
-          }
         }
+
+        // For Hotjar – update its consent state
+        const hotjarPattern = /static\.hotjar\.com\/c\/hotjar-/i;
+        if (hotjarPattern.test(originalSrc)) {
+          console.log("Detected Hotjar script, updating Hotjar consent");
+          updateHotjarConsent(normalizedPrefs);
+          script.onload = () => {
+            updateHotjarConsent(normalizedPrefs);
+          };
+        }
+
+
+        // For Matomo
+         const matomoPattern = /matomo(\.min)?\.js/i;
+          if (matomoPattern.test(originalSrc)) {
+          console.log("Detected Matomo script, applying category-based consent preferences.");
+
+script.onload = () => {
+  if (typeof _paq !== "undefined") {
+    // Example: You could optionally update Matomo config dynamically based on consent
+    if (!normalizedPrefs.analytics) {
+      _paq.push(['disableCookies']);
+      console.log("Matomo: Analytics disabled");
+    }
+
+    if (normalizedPrefs.personalization) {
+      _paq.push(['enableHeartBeatTimer']);
+      _paq.push(['enableJSErrorTracking']);
+      console.log("Matomo: Personalization enabled");
+    }
+
+    if (normalizedPrefs.marketing) {
+      _paq.push(['setCampaignNameKey', 'utm_campaign']);
+      _paq.push(['setCampaignKeywordKey', 'utm_term']);
+      console.log("Matomo: Marketing tracking enabled");
+    }
+  }
+};
+ }
+
       } else {
-        // For inline scripts, simply copy the text content.
+        // For inline scripts, copy the text content.
         script.textContent = placeholder.textContent || "";
+        const isMatomoInline = (script.textContent || "").includes("_paq.push");
+        if (isMatomoInline) {
+          console.log("Detected inline Matomo commands, applying category-based consent.");
+        
+          let filteredCommands = [];
+        
+          const lines = (placeholder.textContent || "").split("\n");
+        
+          for (const line of lines) {
+            if (line.includes("trackPageView") && normalizedPrefs.analytics) {
+              filteredCommands.push(line);
+            }
+            if (
+              (line.includes("setCampaignNameKey") || line.includes("setCampaignKeywordKey")) &&
+              normalizedPrefs.marketing
+            ) {
+              filteredCommands.push(line);
+            }
+            if (
+              (line.includes("enableHeartBeatTimer") || line.includes("enableJSErrorTracking")) &&
+              normalizedPrefs.personalization
+            ) {
+              filteredCommands.push(line);
+            }
+          }
+        
+          script.textContent = filteredCommands.join("\n");
+        }
+        
+  // For Microsoft Clarity
+const clarityPattern = /clarity\.ms/i;
+if (clarityPattern.test(originalSrc)) {
+console.log("Detected Microsoft Clarity script, updating Clarity consent");
+updateClarityConsent(normalizedPrefs);
+script.onload = () => {
+  updateClarityConsent(normalizedPrefs);
+};
+}
+
+
       }
 
-      // Restore attributes: type, async, defer, and data-category
+      // Restore type, async, defer, and data-category.
       const type = placeholder.getAttribute("type");
       if (type) script.setAttribute("type", type);
       if (placeholder.hasAttribute("async")) script.async = true;
       if (placeholder.hasAttribute("defer")) script.defer = true;
-      
       const dataCategory = placeholder.getAttribute("data-category");
       if (dataCategory) script.setAttribute("data-category", dataCategory);
-      
-      // Replace the placeholder with the restored script
+
+      // Replace the placeholder with the restored script.
       placeholder.parentNode?.replaceChild(script, placeholder);
     }
   });
+}
 
   console.log("RESTORE ENDS");
 }
 
-          
 
   /* INITIALIZATION */
   async function getVisitorSessionToken() {

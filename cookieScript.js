@@ -1,6 +1,8 @@
 
 (async function () {
 
+
+
     const existing_Scripts = [];
     let isLoadingState = false;
     let consentState = {};
@@ -13,6 +15,7 @@
     let initialBlockingEnabled = true;
 
     const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
+
 
        /**
 ENCRYPTION AND DECYPTION STARTS
@@ -178,6 +181,11 @@ function attachBannerHandlers() {
     const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
     const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
     const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+    // Update necessary checkbox
+if (necessaryCheckbox) {
+    necessaryCheckbox.checked = true;
+    necessaryCheckbox.disabled = true; // Always disabled
+}
       
     // Initialize banner visibility based on user location
     initializeBannerVisibility();
@@ -319,7 +327,7 @@ function attachBannerHandlers() {
           Analytics: false
         };
         await saveConsentState(preferences);
-        checkAndBlockNewScripts();
+        scanAndBlockScripts();
         hideBanner(consentBanner);
         hideBanner(mainBanner);
       });
@@ -1562,6 +1570,21 @@ console.log("INITIALIZATION STARTS");
 // Add to your window exports
 window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
 window.updatePreferenceForm = updatePreferenceForm;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function blockAllInitialRequests() {
   const originalFetch = window.fetch;
   window.fetch = function (...args) {
@@ -1622,7 +1645,17 @@ function initializeAll() {
     
     isInitialized = true;
   });
- }         
+ }
+    
+         
+    
+    
+    
+    
+   
+
+
+
 })();
 
    

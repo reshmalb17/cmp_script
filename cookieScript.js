@@ -14,7 +14,10 @@
     let categorizedScripts=null;  
     let initialBlockingEnabled = true;
 
-    const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
+    const suspiciousPatterns = [
+         { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" },
+         { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, 
+         { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
 
 
        /**
@@ -1105,7 +1108,29 @@ async function scanAndBlockScripts() {
     console.log("LOAD CONSENT STATE ENDS");
     return consentState;
 }  
-
+function reblockExistingScripts() {
+    existing_Scripts.forEach((placeholder, index) => {
+      const originalScriptSrc = placeholder.getAttribute('data-original-src');
+      const category = placeholder.getAttribute('data-category');
+  
+      // Check if the original script was accidentally reinserted
+      const reinsertedScript = Array.from(document.querySelectorAll('script[src]')).find(
+        s => normalizeUrl(s.src) === normalizeUrl(originalScriptSrc)
+      );
+  
+      if (reinsertedScript) {
+        const newPlaceholder = createPlaceholder(reinsertedScript, category);
+        if (newPlaceholder) {
+          reinsertedScript.parentNode.replaceChild(newPlaceholder, reinsertedScript);
+          existing_Scripts[index] = newPlaceholder;
+          console.log(`Re-blocked script: ${originalScriptSrc}`);
+        } else {
+          console.error("Could not recreate placeholder for:", originalScriptSrc);
+        }
+      }
+    });
+  }
+  
 
 async function restoreAllowedScripts(preferences) {
   console.log("RESTORE STARTS");
@@ -1336,6 +1361,7 @@ async function restoreAllowedScripts(preferences) {
         console.error('Error loading consent styles:', error);
     }
 }
+window.reblockExistingScripts = reblockExistingScripts;
 window.loadConsentStyles =loadConsentStyles;
 window.loadConsentState = loadConsentState;
 window.scanAndBlockScripts = scanAndBlockScripts;

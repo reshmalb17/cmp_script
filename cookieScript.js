@@ -330,7 +330,7 @@ if (necessaryCheckbox) {
           Analytics: false
         };
         await saveConsentState(preferences);
-        scanAndBlockScripts();
+        reblockExistingScripts();
         hideBanner(consentBanner);
         hideBanner(mainBanner);
       });
@@ -1109,9 +1109,11 @@ async function scanAndBlockScripts() {
     return consentState;
 }  
 function reblockExistingScripts() {
+    console.log("inside  blocking");
     existing_Scripts.forEach((placeholder, index) => {
       const originalScriptSrc = placeholder.getAttribute('data-original-src');
       const category = placeholder.getAttribute('data-category');
+
   
       // Check if the original script was accidentally reinserted
       const reinsertedScript = Array.from(document.querySelectorAll('script[src]')).find(

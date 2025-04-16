@@ -1,4 +1,35 @@
 (async function () {
+    // Banner Management Functions
+    function initializeBanner() {
+        // Wait for DOM to be fully loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attachBannerHandlers);
+        } else {
+            attachBannerHandlers();
+        }
+    }
+
+    function showBanner(banner) {
+        if (banner) {
+            banner.style.display = "block";
+            banner.classList.add("show-banner");
+            banner.classList.remove("hidden");
+        }
+    }
+
+    function hideBanner(banner) {
+        if (banner) {
+            banner.style.display = "none";
+            banner.classList.remove("show-banner");
+            banner.classList.add("hidden");
+        }
+    }
+
+    // Make banner functions globally available
+    window.showBanner = showBanner;
+    window.hideBanner = hideBanner;
+    window.initializeBanner = initializeBanner;
+
     // Core state management
     const state = {
         existing_Scripts: new Set(),
@@ -963,136 +994,134 @@
     // Update banner handlers
     function attachBannerHandlers() {
         const consentBanner = document.getElementById("consent-banner");
-        const ccpaBanner = document.getElementById("initial-consent-banner");
-        const mainConsentBanner = document.getElementById("main-consent-banner");
-        const simpleBanner = document.getElementById("simple-consent-banner");
-        const simpleAcceptButton = document.getElementById("simple-accept");
-        const simpleRejectButton = document.getElementById("simple-reject");
+    const ccpaBanner = document.getElementById("initial-consent-banner");
+    const mainBanner = document.getElementById("main-banner");
+    const mainConsentBanner = document.getElementById("main-consent-banner");
+    const simpleBanner = document.getElementById("simple-consent-banner");
+    const simpleAcceptButton = document.getElementById("simple-accept");
+    const simpleRejectButton = document.getElementById("simple-reject");
+  
+    // Button elements
+    const toggleConsentButton = document.getElementById("toggle-consent-btn");
+    const newToggleConsentButton = document.getElementById("new-toggle-consent-btn");
+    const closeConsentButton = document.getElementById("close-consent-banner");
+    const doNotShareLink = document.getElementById("do-not-share-link");
+    doNotShareLink? "true":"false";
+  
+  
       
-        // Button elements
-        const toggleConsentButton = document.getElementById("toggle-consent-btn");
-        const newToggleConsentButton = document.getElementById("new-toggle-consent-btn");
-        const preferencesButton = document.getElementById("preferences-btn");
-        const saveCCPAPreferencesButton = document.getElementById("save-btn");
-        const closeConsentButton = document.getElementById("close-consent-banner");
-        const doNotShareLink = document.getElementById("do-not-share-link");
-        doNotShareLink? "true":"false";
-      
-      
-          
-        // Initialize banner visibility based on user location
-        initializeBannerVisibility();
-      
-        if (simpleBanner) {
-          console.log('Simple banner found, initializing handlers'); // Debug log
-          showBanner(simpleBanner);
-      
-          if (simpleAcceptButton) {
-            simpleAcceptButton.addEventListener("click", async function(e) {
-              e.preventDefault();
-              console.log('Accept button clicked');
-              const preferences = {
-                Necessary: true,
-                Marketing: true,
-                Personalization: true,
-                Analytics: true,
-                DoNotShare: false
-              };
-              
-                await saveConsentState(preferences);
-                 restoreAllowedScripts(preferences);
-                 hideBanner(simpleBanner);
-                localStorage.setItem("consent-given", "true");
-              
-              });
-            }
-          
-      
-          if (simpleRejectButton) {
-            simpleRejectButton.addEventListener("click", async function(e) {
-              e.preventDefault();
-              console.log('Reject button clicked');
-              const preferences = {
-                Necessary: true,
-                Marketing: false,
-                Personalization: false,
-                Analytics: false,
-                DoNotShare: true
-              };
-              await saveConsentState(preferences);
-              checkAndBlockNewScripts();
-              hideBanner(simpleBanner);
-              localStorage.setItem("consent-given", "true");
-            });
-          }
-        }
-        
-      
-        if (toggleConsentButton) {
-          toggleConsentButton.addEventListener("click", async function(e) {
-              e.preventDefault();
-      
-              
-              const consentBanner = document.getElementById("consent-banner");
-              const ccpaBanner = document.getElementById("initial-consent-banner");
-              const simpleBanner = document.getElementById("simple-consent-banner");
-              //console.log('Location Data:', window.currentLocation); // Log the location data for debugging
-              //console.log('Banner Type:', window.currentBannerType);
-      
-              // Show the appropriate banner based on bannerType
-              if (currentBannerType === 'GDPR') {
-                  showBanner(consentBanner); // Show GDPR banner
-                  hideBanner(ccpaBanner); // Hide CCPA banner
-              } else if (currentBannerType === 'CCPA') {
-                  showBanner(ccpaBanner); // Show CCPA banner
-                  hideBanner(consentBanner); // Hide GDPR banner
-              } else {
-                  showBanner(consentBanner); // Default to showing GDPR banner
-                  hideBanner(ccpaBanner);
-              }
-          });
-      }
-      
-      if (newToggleConsentButton) {
-        newToggleConsentButton.addEventListener("click", async function(e) {
+    // Initialize banner visibility based on user location
+    initializeBannerVisibility();
+  
+    if (simpleBanner) {
+      console.log('Simple banner found, initializing handlers'); // Debug log
+      showBanner(simpleBanner);
+  
+      if (simpleAcceptButton) {
+        simpleAcceptButton.addEventListener("click", async function(e) {
           e.preventDefault();
-          //console.log('New Toggle Button Clicked'); // Log for debugging
+          console.log('Accept button clicked');
+          const preferences = {
+            Necessary: true,
+            Marketing: true,
+            Personalization: true,
+            Analytics: true,
+            DoNotShare: false
+          };
+          
+            await saveConsentState(preferences);
+             restoreAllowedScripts(preferences);
+             hideBanner(simpleBanner);
+            localStorage.setItem("consent-given", "true");
+          
+          });
+        }
       
-          const consentBanner = document.getElementById("consent-banner");
-          const ccpaBanner = document.getElementById("initial-consent-banner");
-      
-          // Show the appropriate banner based on bannerType
-          if (currentBannerType === 'GDPR') {
-            showBanner(consentBanner); // Show GDPR banner
-            hideBanner(ccpaBanner); // Hide CCPA banner
-          } else if (currentBannerType === 'CCPA') {
-            showBanner(ccpaBanner); // Show CCPA banner
-            hideBanner(consentBanner); // Hide GDPR banner
-          } else {
-            showBanner(consentBanner); // Default to showing GDPR banner
-            hideBanner(ccpaBanner);
-          }
+  
+      if (simpleRejectButton) {
+        simpleRejectButton.addEventListener("click", async function(e) {
+          e.preventDefault();
+          console.log('Reject button clicked');
+          const preferences = {
+            Necessary: true,
+            Marketing: false,
+            Personalization: false,
+            Analytics: false,
+            DoNotShare: true
+          };
+          await saveConsentState(preferences);
+          checkAndBlockNewScripts();
+          hideBanner(simpleBanner);
+          localStorage.setItem("consent-given", "true");
         });
       }
-      
-        if (doNotShareLink) {
+    }
+    
+  
+    if (toggleConsentButton) {
+      toggleConsentButton.addEventListener("click", async function(e) {
+          e.preventDefault();
+  
           
-          doNotShareLink.addEventListener("click", function(e) {
-            
-            e.preventDefault();
-            hideBanner(ccpaBanner); // Hide CCPA banner if it's open
-            showBanner(mainConsentBanner); // Show main consent banner
-          });
-        }
+          const consentBanner = document.getElementById("consent-banner");
+          const ccpaBanner = document.getElementById("initial-consent-banner");
+          const simpleBanner = document.getElementById("simple-consent-banner");
+          //console.log('Location Data:', window.currentLocation); // Log the location data for debugging
+          //console.log('Banner Type:', window.currentBannerType);
+  
+          // Show the appropriate banner based on bannerType
+          if (currentBannerType === 'GDPR') {
+              showBanner(consentBanner); // Show GDPR banner
+              hideBanner(ccpaBanner); // Hide CCPA banner
+          } else if (currentBannerType === 'CCPA') {
+              showBanner(ccpaBanner); // Show CCPA banner
+              hideBanner(consentBanner); // Hide GDPR banner
+          } else {
+              showBanner(consentBanner); // Default to showing GDPR banner
+              hideBanner(ccpaBanner);
+          }
+      });
+  }
+  
+  if (newToggleConsentButton) {
+    newToggleConsentButton.addEventListener("click", async function(e) {
+      e.preventDefault();
+      //console.log('New Toggle Button Clicked'); // Log for debugging
+  
+      const consentBanner = document.getElementById("consent-banner");
+      const ccpaBanner = document.getElementById("initial-consent-banner");
+  
+      // Show the appropriate banner based on bannerType
+      if (currentBannerType === 'GDPR') {
+        showBanner(consentBanner); // Show GDPR banner
+        hideBanner(ccpaBanner); // Hide CCPA banner
+      } else if (currentBannerType === 'CCPA') {
+        showBanner(ccpaBanner); // Show CCPA banner
+        hideBanner(consentBanner); // Hide GDPR banner
+      } else {
+        showBanner(consentBanner); // Default to showing GDPR banner
+        hideBanner(ccpaBanner);
+      }
+    });
+  }
+  
+    if (doNotShareLink) {
       
-      
-        if (closeConsentButton) {
-          closeConsentButton.addEventListener("click", function(e) {
-            e.preventDefault();
-            hideBanner(document.getElementById("main-consent-banner")); // Hide the main consent banner
-          });
-        }
-        // Accept button handler
+      doNotShareLink.addEventListener("click", function(e) {
+        
+        e.preventDefault();
+        hideBanner(ccpaBanner); // Hide CCPA banner if it's open
+        showBanner(mainConsentBanner); // Show main consent banner
+      });
+    }
+  
+  
+    if (closeConsentButton) {
+      closeConsentButton.addEventListener("click", function(e) {
+        e.preventDefault();
+        hideBanner(document.getElementById("main-consent-banner")); // Hide the main consent banner
+      });
+    }
         const acceptButton = document.getElementById("accept-btn");
         if (acceptButton) {
             acceptButton.addEventListener("click", async function(e) {

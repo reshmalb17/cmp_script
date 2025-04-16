@@ -803,7 +803,7 @@
     }
 
     // Initialize the system
-    async function initialize() {
+     async function initialize() {
         console.log("=== Starting System Initialization ===");
         
         try {
@@ -812,10 +812,14 @@
                 return;
             }
 
+            // Enable initial blocking
+            state.initialBlockingEnabled = true;
+            blockAllInitialRequests();
+
             // First, get visitor session token
             const token = await getVisitorSessionToken();
             if (!token) {
-                throw new Error("Failed to get visitor session token");
+                console.warn("Failed to get visitor session token, proceeding with limited functionality");
             }
 
             // Then initialize banner visibility based on location
@@ -824,8 +828,8 @@
             // Load consent styles
             await loadConsentStyles();
 
-            // Attach banner handlers
-            attachBannerHandlers();
+            // Initialize banner and attach handlers
+            initializeBanner();
 
             state.isInitialized = true;
             console.log("=== System Initialization Complete ===");
@@ -835,6 +839,16 @@
         } catch (error) {
             ScriptVerification.logError('initialize', error);
             console.error("Failed to initialize system:", error);
+            
+            // Fallback initialization
+            try {
+                state.initialBlockingEnabled = true;
+                blockAllInitialRequests();
+                await initializeBannerVisibility();
+                initializeBanner();
+            } catch (fallbackError) {
+                console.error("Critical: Fallback initialization failed:", fallbackError);
+            }
         }
     }
 
@@ -1331,6 +1345,87 @@
             };
         }
     };
+
+
+        // Initialization Utilities
+        async function getOrCreateVisitorId() {
+            let visitorId = localStorage.getItem('visitorId');
+            if (!visitorId) {
+                visitorId = generateUUID();
+                localStorage.setItem('visitorId', visitorId);
+            }
+            return visitorId;
+        }
+    
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+    
+        function cleanHostname(hostname) {
+            // Remove www. and get base domain
+            return hostname.replace(/^www\./, '').split('.').slice(-2).join('.');
+        }
+    
+        function isTokenExpired(token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload.exp * 1000 < Date.now();
+            } catch (error) {
+                console.error('Error checking token expiration:', error);
+                return true;
+            }
+        }
+    
+        async function getVisitorSessionToken() {
+            try {
+                // Get or create visitor ID
+                const visitorId = await getOrCreateVisitorId();
+                
+                // Get cleaned site name
+                const siteName = cleanHostname(window.location.hostname);
+                
+                // Check if we have a valid token in localStorage
+                let token = localStorage.getItem('visitorSessionToken');
+                
+                // If we have a token and it's not expired, return it
+                if (token && !isTokenExpired(token)) {
+                    console.log("Token is in localstorage");
+                    return token;
+                }
+    
+                // Request new token from server
+                const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        visitorId: visitorId,
+                        userAgent: navigator.userAgent,
+                        siteName: siteName
+                    })
+                });
+    
+                if (!response.ok) {
+                    throw new Error('Failed to get visitor session token');
+                }
+    
+                const data = await response.json();
+                
+                // Store the new token
+                localStorage.setItem('visitorSessionToken', data.token);
+                
+                return data.token;
+            } catch (error) {
+                console.error('Error getting visitor session token:', error);
+                return null;
+            }
+        }
+    
 })();
 
    

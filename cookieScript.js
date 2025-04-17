@@ -803,7 +803,7 @@
     }
 
     // Initialize the system
-     async function initialize() {
+    async function initialize() {
         console.log("=== Starting System Initialization ===");
         
         try {
@@ -1008,179 +1008,171 @@
     // Update banner handlers
     function attachBannerHandlers() {
         const consentBanner = document.getElementById("consent-banner");
-    const ccpaBanner = document.getElementById("initial-consent-banner");
-    const mainBanner = document.getElementById("main-banner");
-    const mainConsentBanner = document.getElementById("main-consent-banner");
-    const simpleBanner = document.getElementById("simple-consent-banner");
-    const simpleAcceptButton = document.getElementById("simple-accept");
-    const simpleRejectButton = document.getElementById("simple-reject");
-  
-    // Button elements
-    const toggleConsentButton = document.getElementById("toggle-consent-btn");
-    const newToggleConsentButton = document.getElementById("new-toggle-consent-btn");
-    const closeConsentButton = document.getElementById("close-consent-banner");
-    const doNotShareLink = document.getElementById("do-not-share-link");
-    doNotShareLink? "true":"false";
-  
-  
+        const ccpaBanner = document.getElementById("initial-consent-banner");
+        const mainBanner = document.getElementById("main-banner");
+        const mainConsentBanner = document.getElementById("main-consent-banner");
+        const simpleBanner = document.getElementById("simple-consent-banner");
+        const simpleAcceptButton = document.getElementById("simple-accept");
+        const simpleRejectButton = document.getElementById("simple-reject");
       
-    // Initialize banner visibility based on user location
-    initializeBannerVisibility();
-  
-    if (simpleBanner) {
-      console.log('Simple banner found, initializing handlers'); // Debug log
-      showBanner(simpleBanner);
-  
-      if (simpleAcceptButton) {
-        simpleAcceptButton.addEventListener("click", async function(e) {
-          e.preventDefault();
-          console.log('Accept button clicked');
-          const preferences = {
-            Necessary: true,
-            Marketing: true,
-            Personalization: true,
-            Analytics: true,
-            DoNotShare: false
-          };
-          
-            await saveConsentState(preferences);
-             restoreAllowedScripts(preferences);
-             hideBanner(simpleBanner);
-            localStorage.setItem("consent-given", "true");
-          
-          });
-        }
+        // Button elements
+        const toggleConsentButton = document.getElementById("toggle-consent-btn");
+        const newToggleConsentButton = document.getElementById("new-toggle-consent-btn");
+        const closeConsentButton = document.getElementById("close-consent-banner");
+        const doNotShareLink = document.getElementById("do-not-share-link");
+        doNotShareLink.setAttribute("data-consent-given", localStorage.getItem("consent-given") === "true");
       
-  
-      if (simpleRejectButton) {
-        simpleRejectButton.addEventListener("click", async function(e) {
-          e.preventDefault();
-          console.log('Reject button clicked');
-          const preferences = {
-            Necessary: true,
-            Marketing: false,
-            Personalization: false,
-            Analytics: false,
-            DoNotShare: true
-          };
-          await saveConsentState(preferences);
-          checkAndBlockNewScripts();
-          hideBanner(simpleBanner);
-          localStorage.setItem("consent-given", "true");
-        });
-      }
-    }
-    
-  
-    if (toggleConsentButton) {
-      toggleConsentButton.addEventListener("click", async function(e) {
-          e.preventDefault();
-  
-          
-          const consentBanner = document.getElementById("consent-banner");
-          const ccpaBanner = document.getElementById("initial-consent-banner");
-          const simpleBanner = document.getElementById("simple-consent-banner");
-          //console.log('Location Data:', window.currentLocation); // Log the location data for debugging
-          //console.log('Banner Type:', window.currentBannerType);
-  
-          // Show the appropriate banner based on bannerType
-          if (currentBannerType === 'GDPR') {
-              showBanner(consentBanner); // Show GDPR banner
-              hideBanner(ccpaBanner); // Hide CCPA banner
-          } else if (currentBannerType === 'CCPA') {
-              showBanner(ccpaBanner); // Show CCPA banner
-              hideBanner(consentBanner); // Hide GDPR banner
-          } else {
-              showBanner(consentBanner); // Default to showing GDPR banner
-              hideBanner(ccpaBanner);
-          }
-      });
-  }
-  
-  if (newToggleConsentButton) {
-    newToggleConsentButton.addEventListener("click", async function(e) {
-      e.preventDefault();
-      //console.log('New Toggle Button Clicked'); // Log for debugging
-  
-      const consentBanner = document.getElementById("consent-banner");
-      const ccpaBanner = document.getElementById("initial-consent-banner");
-  
-      // Show the appropriate banner based on bannerType
-      if (currentBannerType === 'GDPR') {
-        showBanner(consentBanner); // Show GDPR banner
-        hideBanner(ccpaBanner); // Hide CCPA banner
-      } else if (currentBannerType === 'CCPA') {
-        showBanner(ccpaBanner); // Show CCPA banner
-        hideBanner(consentBanner); // Hide GDPR banner
-      } else {
-        showBanner(consentBanner); // Default to showing GDPR banner
-        hideBanner(ccpaBanner);
-      }
-    });
-  }
-  
-    if (doNotShareLink) {
       
-      doNotShareLink.addEventListener("click", function(e) {
+        // Initialize banner visibility based on user location
+        initializeBannerVisibility();
+      
+        if (simpleBanner) {
+            console.log('Simple banner found, initializing handlers'); // Debug log
+            showBanner(simpleBanner);
         
-        e.preventDefault();
-        hideBanner(ccpaBanner); // Hide CCPA banner if it's open
-        showBanner(mainConsentBanner); // Show main consent banner
-      });
-    }
-  
-  
-    if (closeConsentButton) {
-      closeConsentButton.addEventListener("click", function(e) {
-        e.preventDefault();
-        hideBanner(document.getElementById("main-consent-banner")); // Hide the main consent banner
-      });
-    }
-        const acceptButton = document.getElementById("accept-btn");
-        if (acceptButton) {
-            acceptButton.addEventListener("click", async function(e) {
+            if (simpleAcceptButton) {
+                simpleAcceptButton.addEventListener("click", async function(e) {
+                    e.preventDefault();
+                    console.log('Accept button clicked');
+                    const preferences = {
+                        Necessary: true,
+                        Marketing: true,
+                        Personalization: true,
+                        Analytics: true,
+                        DoNotShare: false
+                    };
+                    
+                    await saveConsentState(preferences);
+                    restoreAllowedScripts(preferences);
+                    hideBanner(simpleBanner);
+                    localStorage.setItem("consent-given", "true");
+                });
+            }
+        
+            if (simpleRejectButton) {
+                simpleRejectButton.addEventListener("click", async function(e) {
+                    e.preventDefault();
+                    console.log('Reject button clicked');
+                    const preferences = {
+                        Necessary: true,
+                        Marketing: false,
+                        Personalization: false,
+                        Analytics: false,
+                        DoNotShare: true
+                    };
+                    await saveConsentState(preferences);
+                    checkAndBlockNewScripts();
+                    hideBanner(simpleBanner);
+                    localStorage.setItem("consent-given", "true");
+                });
+            }
+        }
+        
+        if (toggleConsentButton) {
+            toggleConsentButton.addEventListener("click", async function(e) {
                 e.preventDefault();
-                await handleAcceptAllConsent();
+
+                const consentBanner = document.getElementById("consent-banner");
+                const ccpaBanner = document.getElementById("initial-consent-banner");
+                const simpleBanner = document.getElementById("simple-consent-banner");
+                //console.log('Location Data:', window.currentLocation); // Log the location data for debugging
+                //console.log('Banner Type:', window.currentBannerType);
+
+                // Show the appropriate banner based on bannerType
+                if (currentBannerType === 'GDPR') {
+                    showBanner(consentBanner); // Show GDPR banner
+                    hideBanner(ccpaBanner); // Hide CCPA banner
+                } else if (currentBannerType === 'CCPA') {
+                    showBanner(ccpaBanner); // Show CCPA banner
+                    hideBanner(consentBanner); // Hide GDPR banner
+                } else {
+                    showBanner(consentBanner); // Default to showing GDPR banner
+                    hideBanner(ccpaBanner);
+                }
             });
         }
-
-        // Decline button handler
-        const declineButton = document.getElementById("decline-btn");
-        if (declineButton) {
-            declineButton.addEventListener("click", async function(e) {
+        
+        if (newToggleConsentButton) {
+            newToggleConsentButton.addEventListener("click", async function(e) {
                 e.preventDefault();
-                await handleRejectAllConsent();
+                //console.log('New Toggle Button Clicked'); // Log for debugging
+            
+                const consentBanner = document.getElementById("consent-banner");
+                const ccpaBanner = document.getElementById("initial-consent-banner");
+            
+                // Show the appropriate banner based on bannerType
+                if (currentBannerType === 'GDPR') {
+                    showBanner(consentBanner); // Show GDPR banner
+                    hideBanner(ccpaBanner); // Hide CCPA banner
+                } else if (currentBannerType === 'CCPA') {
+                    showBanner(ccpaBanner); // Show CCPA banner
+                    hideBanner(consentBanner); // Hide GDPR banner
+                } else {
+                    showBanner(consentBanner); // Default to showing GDPR banner
+                    hideBanner(ccpaBanner);
+                }
             });
         }
-
-        // Save preferences button handler
-        const savePreferencesButton = document.getElementById("save-preferences-btn");
-        if (savePreferencesButton) {
-            savePreferencesButton.addEventListener("click", async function(e) {
+        
+        if (doNotShareLink) {
+            doNotShareLink.addEventListener("click", function(e) {
                 e.preventDefault();
-                const form = document.getElementById("main-banner") || 
-                            document.getElementById("main-consent-banner");
-                await handlePreferencesSave(form);
+                hideBanner(ccpaBanner); // Hide CCPA banner if it's open
+                showBanner(mainConsentBanner); // Show main consent banner
             });
         }
-
-        // CCPA checkbox handler
-        const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
-        if (doNotShareCheckbox) {
-            doNotShareCheckbox.addEventListener("change", async function(e) {
-                await handleCCPAToggle(e.target.checked);
-            });
-        }
-
-        // Cancel button in preferences
-        const cancelButton = document.getElementById("cancel-btn");
-        if (cancelButton) {
-            cancelButton.addEventListener("click", async function(e) {
+        
+        if (closeConsentButton) {
+            closeConsentButton.addEventListener("click", function(e) {
                 e.preventDefault();
-                await handleRejectAllConsent();
+                hideBanner(document.getElementById("main-consent-banner")); // Hide the main consent banner
             });
         }
-    }
+            const acceptButton = document.getElementById("accept-btn");
+            if (acceptButton) {
+                acceptButton.addEventListener("click", async function(e) {
+                    e.preventDefault();
+                    await handleAcceptAllConsent();
+                });
+            }
+
+            // Decline button handler
+            const declineButton = document.getElementById("decline-btn");
+            if (declineButton) {
+                declineButton.addEventListener("click", async function(e) {
+                    e.preventDefault();
+                    await handleRejectAllConsent();
+                });
+            }
+
+            // Save preferences button handler
+            const savePreferencesButton = document.getElementById("save-preferences-btn");
+            if (savePreferencesButton) {
+                savePreferencesButton.addEventListener("click", async function(e) {
+                    e.preventDefault();
+                    const form = document.getElementById("main-banner") || 
+                                document.getElementById("main-consent-banner");
+                    await handlePreferencesSave(form);
+                });
+            }
+
+            // CCPA checkbox handler
+            const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+            if (doNotShareCheckbox) {
+                doNotShareCheckbox.addEventListener("change", async function(e) {
+                    await handleCCPAToggle(e.target.checked);
+                });
+            }
+
+            // Cancel button in preferences
+            const cancelButton = document.getElementById("cancel-btn");
+            if (cancelButton) {
+                cancelButton.addEventListener("click", async function(e) {
+                    e.preventDefault();
+                    await handleRejectAllConsent();
+                });
+            }
+        }
 
     // Enhanced initialization for different banner types
     async function initializeBannerVisibility() {
@@ -1346,86 +1338,121 @@
         }
     };
 
+    // Initialization Utilities
+    async function getOrCreateVisitorId() {
+        let visitorId = localStorage.getItem('visitorId');
+        if (!visitorId) {
+            visitorId = generateUUID();
+            localStorage.setItem('visitorId', visitorId);
+        }
+        return visitorId;
+    }
 
-        // Initialization Utilities
-        async function getOrCreateVisitorId() {
-            let visitorId = localStorage.getItem('visitorId');
-            if (!visitorId) {
-                visitorId = generateUUID();
-                localStorage.setItem('visitorId', visitorId);
-            }
-            return visitorId;
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function cleanHostname(hostname) {
+        return hostname.replace(/^www\./, '').split('.').slice(-2).join('.');
+    }
+
+    function isTokenExpired(token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.exp * 1000 < Date.now();
+        } catch (error) {
+            console.error('Error checking token expiration:', error);
+            return true;
         }
-    
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0;
-                const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
+    }
+
+    async function getVisitorSessionToken() {
+        try {
+            // Get or create visitor ID
+            const visitorId = await getOrCreateVisitorId();
+            
+            // Get cleaned site name
+            const siteName = cleanHostname(window.location.hostname);
+            
+            // Check if we have a valid token in localStorage
+            let token = localStorage.getItem('visitorSessionToken');
+            
+            // If we have a token and it's not expired, return it
+            if (token && !isTokenExpired(token)) {
+                console.log("Token is in localstorage");
+                return token;
+            }
+
+            // Request new token from server
+            const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    visitorId: visitorId,
+                    userAgent: navigator.userAgent,
+                    siteName: siteName
+                })
             });
-        }
-    
-        function cleanHostname(hostname) {
-            // Remove www. and get base domain
-            return hostname.replace(/^www\./, '').split('.').slice(-2).join('.');
-        }
-    
-        function isTokenExpired(token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                return payload.exp * 1000 < Date.now();
-            } catch (error) {
-                console.error('Error checking token expiration:', error);
-                return true;
+
+            if (!response.ok) {
+                throw new Error('Failed to get visitor session token');
             }
+
+            const data = await response.json();
+            
+            // Store the new token
+            localStorage.setItem('visitorSessionToken', data.token);
+            
+            return data.token;
+        } catch (error) {
+            console.error('Error getting visitor session token:', error);
+            return null;
         }
-    
-        async function getVisitorSessionToken() {
-            try {
-                // Get or create visitor ID
-                const visitorId = await getOrCreateVisitorId();
-                
-                // Get cleaned site name
-                const siteName = cleanHostname(window.location.hostname);
-                
-                // Check if we have a valid token in localStorage
-                let token = localStorage.getItem('visitorSessionToken');
-                
-                // If we have a token and it's not expired, return it
-                if (token && !isTokenExpired(token)) {
-                    console.log("Token is in localstorage");
-                    return token;
-                }
-    
-                // Request new token from server
-                const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        visitorId: visitorId,
-                        userAgent: navigator.userAgent,
-                        siteName: siteName
-                    })
-                });
-    
-                if (!response.ok) {
-                    throw new Error('Failed to get visitor session token');
-                }
-    
-                const data = await response.json();
-                
-                // Store the new token
-                localStorage.setItem('visitorSessionToken', data.token);
-                
-                return data.token;
-            } catch (error) {
-                console.error('Error getting visitor session token:', error);
-                return null;
+    }
+
+    function blockAllInitialRequests() {
+        const originalFetch = window.fetch;
+        window.fetch = function (...args) {
+            const url = args[0];
+            if (state.initialBlockingEnabled && isSuspiciousResource(url)) {
+                return Promise.resolve(new Response(null, { status: 204 }));
             }
-        }
-    
+            return originalFetch.apply(this, args);
+        };
+        
+        const originalXHR = window.XMLHttpRequest;
+        window.XMLHttpRequest = function() {
+            const xhr = new originalXHR();
+            const originalOpen = xhr.open;
+            
+            xhr.open = function(method, url) {
+                if (state.initialBlockingEnabled && isSuspiciousResource(url)) {
+                    return;
+                }
+                return originalOpen.apply(xhr, arguments);
+            };
+            return xhr;
+        };
+        
+        const originalImage = window.Image;
+        const originalSetAttribute = Element.prototype.setAttribute;
+        window.Image = function(...args) {
+            const img = new originalImage(...args);
+            img.setAttribute = function(name, value) {
+                if (name === 'src' && state.initialBlockingEnabled && isSuspiciousResource(value)) {
+                    return;
+                }
+                return originalSetAttribute.apply(this, arguments);
+            };
+            return img;
+        };
+    }
 })();
 
    

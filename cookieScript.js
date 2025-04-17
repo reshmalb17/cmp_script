@@ -336,6 +336,7 @@ async function attachBannerHandlers() {
           e.preventDefault();
           const locationData = await detectLocationAndGetBannerType();
           const currentBannerType=locationData.bannerType;
+          console.log("toggle button clicked and current banner type is ",currentBannerType)
           
           const consentBanner = document.getElementById("consent-banner");
           const ccpaBanner = document.getElementById("initial-consent-banner");
@@ -345,6 +346,8 @@ async function attachBannerHandlers() {
   
           // Show the appropriate banner based on bannerType
           if (currentBannerType === 'GDPR') {
+            console.log("inside gdpr");
+            
               showBanner(consentBanner); // Show GDPR banner
               hideBanner(ccpaBanner); // Hide CCPA banner
           } else if (currentBannerType === 'CCPA') {
@@ -1025,46 +1028,50 @@ function getScriptKey(script) {
 }
 
 function createPlaceholder(originalScript, category = "uncategorized") {
+  // Create a document fragment to hold both comment and script
+  const fragment = document.createDocumentFragment();
+  
+  // Add the comment
+  const commentNode = document.createComment(" This script is handled by Consentbit ");
+  fragment.appendChild(commentNode);
+  
+  // Create the placeholder script
   const placeholder = document.createElement("script");
-  const uniqueId = `consentbit-script-${scriptIdCounter++}`; // Generate a unique ID
+  const uniqueId = `consentbit-script-${scriptIdCounter++}`;
 
-  placeholder.type = "text/plain"; // Keep it non-executable
-  placeholder.setAttribute("data-consentbit-id", uniqueId); // Store the unique ID
+  placeholder.type = "text/plain";
+  placeholder.setAttribute("data-consentbit-id", uniqueId);
   placeholder.setAttribute("data-category", category);
 
   const scriptInfo = {
       id: uniqueId,
-      category: category.split(',').map(c => c.trim().toLowerCase()), // Store categories as an array
+      category: category.split(',').map(c => c.trim().toLowerCase()),
       async: originalScript.async,
       defer: originalScript.defer,
-      type: originalScript.type || "text/javascript", // Default type if missing
-      originalAttributes: {}
+      type: originalScript.type || "text/javascript",
+      originalAttributes: {},
+      hasComment: true // Add this to track if script has comment
   };
 
-  // Store original src or content
   if (originalScript.src) {
       scriptInfo.src = originalScript.src;
-      placeholder.setAttribute("data-original-src", originalScript.src); // Also keep for reference if needed
+      placeholder.setAttribute("data-original-src", originalScript.src);
   } else {
       scriptInfo.content = originalScript.textContent || "";
-      // Storing large inline scripts might be memory intensive, consider alternatives if needed
-      // placeholder.textContent = originalScript.textContent; // Keep content if needed for inline restoration
   }
 
-  // Store other relevant attributes
   for (const attr of originalScript.attributes) {
       if (!['src', 'type', 'async', 'defer', 'data-category', 'data-consentbit-id'].includes(attr.name)) {
           scriptInfo.originalAttributes[attr.name] = attr.value;
-          placeholder.setAttribute(`data-original-${attr.name}`, attr.value); // Optional: keep original attrs on placeholder
+          placeholder.setAttribute(`data-original-${attr.name}`, attr.value);
       }
   }
 
-  // Add script info to our map
   existing_Scripts[uniqueId] = scriptInfo;
+  fragment.appendChild(placeholder);
 
-  return placeholder;
+  return fragment;
 }
-    
     function findCategoryByPattern(text) { 
         for (const { pattern, category } of suspiciousPatterns)
              { if (pattern.test(text)) {
@@ -1528,137 +1535,76 @@ window.acceptAllCookies=acceptAllCookies;
 async function restoreAllowedScripts(preferences) {
   console.log("RESTORE STARTS");
 
-  // Normalize preferences keys to lowercase for consistent checking
   const normalizedPrefs = Object.fromEntries(
       Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
   );
 
-  console.log("Scripts to potentially restore:", Object.keys(existing_Scripts).length);
-  console.log("Current preferences:", normalizedPrefs);
-
-  // Iterate over a copy of the keys, as we might modify the object during iteration
   const scriptIdsToRestore = Object.keys(existing_Scripts);
 
   for (const scriptId of scriptIdsToRestore) {
       const scriptInfo = existing_Scripts[scriptId];
-      if (!scriptInfo) continue; // Should not happen, but safety check
+      if (!scriptInfo) continue;
 
-      // Find the placeholder in the DOM
+      // Find the placeholder and its preceding comment
       const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
       if (!placeholder) {
-          console.warn(`Placeholder for script ID ${scriptId} not found in DOM. Skipping restore.`);
-          // Clean up the entry if the placeholder is gone
+          console.warn(`Placeholder for script ID ${scriptId} not found in DOM`);
           delete existing_Scripts[scriptId];
           continue;
       }
 
-      // Determine if the script is allowed based on its categories and current preferences
       const isAllowed = scriptInfo.category.some(cat => normalizedPrefs[cat] === true);
 
-      console.log(`Script ID: ${scriptId}, Categories: [${scriptInfo.category.join(',')}], Allowed: ${isAllowed}`);
-
       if (isAllowed) {
-          // Check if a script with this src already exists in the DOM (prevent duplicates)
-          if (scriptInfo.src) {
-               // More specific check: Look for scripts with the same src that are NOT placeholders
-              const existingScript = document.querySelector(`script[src="${scriptInfo.src}"]:not([type='text/plain'])`);
-              if (existingScript && existingScript !== placeholder) {
-                  console.log(`Script with src ${scriptInfo.src} already exists. Skipping restore for ID ${scriptId}.`);
-                   // Remove the placeholder if the script already exists elsewhere
-                  if (placeholder.parentNode) {
-                       placeholder.parentNode.removeChild(placeholder);
-                   }
-                  delete existing_Scripts[scriptId]; // Clean up the reference
-                  continue; // Move to the next script
-              }
-          }
+          // Create fragment for new elements
+          const fragment = document.createDocumentFragment();
+          
+          // Add comment
+          const commentNode = document.createComment(" This script is handled by Consentbit ");
+          fragment.appendChild(commentNode);
 
-
-          console.log(`Restoring script ID: ${scriptId} (${scriptInfo.src || 'inline'})`);
+          // Create and configure new script
           const script = document.createElement("script");
-
-          // Restore core properties
-          script.type = scriptInfo.type; // Restore original type
+          script.type = scriptInfo.type;
           if (scriptInfo.async) script.async = true;
           if (scriptInfo.defer) script.defer = true;
-          script.setAttribute("data-category", scriptInfo.category.join(',')); // Keep category info if needed
+          script.setAttribute("data-category", scriptInfo.category.join(','));
 
-          // Restore src or content
           if (scriptInfo.src) {
               script.src = scriptInfo.src;
-
-              // Special handling for GA or other consent-aware scripts
-              const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
-              if (gtagPattern.test(scriptInfo.src)) {
-                  console.log("Detected GA script, hooking into consent update");
-                  function updateGAConsent() {
-                      if (typeof gtag === "function") {
-                          console.log("Updating GA consent settings...");
-                          gtag('consent', 'update', {
-                              'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
-                              'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
-                              'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied', // Adjust based on your categories
-                              'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'      // Adjust based on your categories
-                          });
-                      } else {
-                          console.warn("gtag is not defined yet. Will retry on script load.");
-                      }
-                  }
-                  // Update on load
-                   script.onload = () => {
-                       console.log(`GA script (${scriptInfo.src}) loaded.`);
-                       updateGAConsent();
-                       // Restore other original attributes after load if necessary
-                      // Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-                      //     script.setAttribute(name, value);
-                      // });
-                   };
-                   script.onerror = () => {
-                       console.error(`Failed to load GA script: ${scriptInfo.src}`);
-                   }
-                  // Attempt immediate update if gtag exists
-                  updateGAConsent();
-              } else {
-                   // Restore other attributes for non-GA scripts immediately or on load
-                  Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-                       script.setAttribute(name, value);
-                   });
+              if (/googletagmanager\.com\/gtag\/js/i.test(scriptInfo.src)) {
+                  script.onload = () => {
+                      console.log(`GA script loaded`);
+                      updateGAConsent(normalizedPrefs);
+                  };
               }
-
           } else {
               script.textContent = scriptInfo.content;
-               // Restore other attributes for inline scripts
-               Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-                   script.setAttribute(name, value);
-               });
           }
 
-          // Replace the placeholder with the restored script
+          Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
+              script.setAttribute(name, value);
+          });
+
+          fragment.appendChild(script);
+
+          // Replace placeholder with fragment (containing both comment and script)
           if (placeholder.parentNode) {
-              placeholder.parentNode.replaceChild(script, placeholder);
+              // Remove existing comment if it exists
+              if (placeholder.previousSibling?.nodeType === Node.COMMENT_NODE) {
+                  placeholder.parentNode.removeChild(placeholder.previousSibling);
+              }
+              placeholder.parentNode.replaceChild(fragment, placeholder);
           } else {
-               console.warn(`Placeholder parent node not found for script ID ${scriptId}. Appending to head.`);
-               document.head.appendChild(script); // Fallback: append to head
+              document.head.appendChild(fragment);
           }
 
-          // Remove the script info from our tracking object *after* successful restoration
           delete existing_Scripts[scriptId];
-
-      } else {
-          console.log(`Script ID: ${scriptId} remains blocked.`);
-          // Ensure the node in the DOM is still a placeholder (it should be)
-           if (placeholder.tagName !== 'SCRIPT' || placeholder.type !== 'text/plain') {
-               console.warn(`Node for script ID ${scriptId} is not a placeholder as expected.`);
-               // Optionally, try to re-block it here if necessary, though ideally,
-               // reblockDisallowedScripts would handle this later if consent changes.
-           }
       }
   }
 
-  console.log("Scripts remaining in existing_Scripts map:", Object.keys(existing_Scripts).length);
   console.log("RESTORE ENDS");
-}
-          
+}  
 
   /* INITIALIZATION */
   async function getVisitorSessionToken() {

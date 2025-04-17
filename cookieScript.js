@@ -229,7 +229,10 @@ async function attachBannerHandlers() {
     const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
     const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
     const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
-      
+    if (necessaryCheckbox) {
+      necessaryCheckbox.checked = true;              // Always checked
+      necessaryCheckbox.disabled = true;             // Prevent user from unchecking
+    }
     // Initialize banner visibility based on user location
     initializeBannerVisibility();
   

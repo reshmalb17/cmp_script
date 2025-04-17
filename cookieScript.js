@@ -198,6 +198,56 @@ function getClientIdentifier() {
       });
   }
   
+
+  function updateThirdPartyConsent(isConsented) {
+    const consentStatus = isConsented ? 'granted' : 'denied';
+    const consentObject = {
+        ad_storage: consentStatus,
+        analytics_storage: consentStatus,
+        functionality_storage: consentStatus,
+        personalization_storage: consentStatus,
+        security_storage: 'granted' // Always allow security-related storage
+    };
+  
+    // Google Analytics
+    if (typeof gtag === 'function') {
+        gtag('consent', 'update', consentObject);
+    }
+  
+    // Meta Pixel
+    if (typeof fbq === 'function') {
+        fbq('consent', isConsented ? 'grant' : 'revoke');
+    }
+  
+    // Microsoft Clarity
+    if (typeof clarity === 'function') {
+        clarity('consent', isConsented);
+    }
+  
+    // Hotjar
+    if (typeof hj === 'function') {
+        hj('consent', isConsented);
+    }
+  
+    // Additional consent APIs can be added here
+  }
+  window.updateThirdPartyConsent=updateThirdPartyConsent;
+  // Helper function to validate preferences object
+  function validatePreferences(preferences) {
+    const requiredKeys = ['Necessary', 'Marketing', 'Analytics', 'Personalization'];
+    const missingKeys = requiredKeys.filter(key => !(key in preferences));
+    
+    if (missingKeys.length > 0) {
+        throw new Error(`Invalid preferences object. Missing keys: ${missingKeys.join(', ')}`);
+    }
+  
+    if (!preferences.ccpa || typeof preferences.ccpa.DoNotShare !== 'boolean') {
+        throw new Error('Invalid CCPA preferences structure');
+    }
+  
+    return true;
+  }
+  window.validatePreferences=validatePreferences;
     
 /*BANNER */
 
@@ -284,7 +334,8 @@ async function attachBannerHandlers() {
     if (toggleConsentButton) {
       toggleConsentButton.addEventListener("click", async function(e) {
           e.preventDefault();
-  
+          const locationData = await detectLocationAndGetBannerType();
+          const currentBannerType=locationData.bannerType;
           
           const consentBanner = document.getElementById("consent-banner");
           const ccpaBanner = document.getElementById("initial-consent-banner");
@@ -310,7 +361,8 @@ async function attachBannerHandlers() {
     newToggleConsentButton.addEventListener("click", async function(e) {
       e.preventDefault();
       //console.log('New Toggle Button Clicked'); // Log for debugging
-  
+     const locationData = await detectLocationAndGetBannerType();
+     const currentBannerType=locationData.bannerType;
       const consentBanner = document.getElementById("consent-banner");
       const ccpaBanner = document.getElementById("initial-consent-banner");
   
@@ -414,31 +466,165 @@ async function attachBannerHandlers() {
       });
     }
   
-    if (saveCCPAPreferencesButton) {
-      saveCCPAPreferencesButton.addEventListener("click", async function(e) {
-        e.preventDefault();
-        const doNotShare = doNotShareCheckbox.checked;
-        const preferences = {
-          Necessary: true, // Always true
-           DoNotShare: doNotShare // Set doNotShare based on checkbox
-        };
-     
-        
-        // Block or unblock scripts based on the checkbox state
-        if (doNotShare) {
-          await blockAllCookies();
-         
-          await saveConsentState(preferences);
-        } else {
-          restoreAllowedScripts(preferences); // Unblock scripts if checkbox is unchecked
-        }
-       
+    // --- CCPA Save Preferences Handler ---
+if (saveCCPAPreferencesButton) {
+  saveCCPAPreferencesButton.addEventListener("click", async function(e) {
+      e.preventDefault();
       
-        hideBanner(ccpaBanner);
-        hideBanner(mainConsentBanner);
-        console.assertLOG
-      });
-    }
+      try {
+          // Validate checkbox existence
+          const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+          if (!doNotShareCheckbox) {
+              console.error("Critical error: Do Not Share checkbox not found in DOM");
+              throw new Error("Do Not Share checkbox not found");
+          }
+
+          // Get the user's choice
+          const doNotShare = doNotShareCheckbox.checked;
+          console.log(`CCPA preference selected: Do Not Share = ${doNotShare}`);
+
+          // Prepare comprehensive preferences object
+          const preferences = {
+              Necessary: true, // Always required
+              Marketing: !doNotShare,
+              Analytics: !doNotShare,
+              Personalization: !doNotShare,
+              ccpa: {
+                  DoNotShare: doNotShare,
+                  lastUpdated: new Date().toISOString(),
+                  region: 'US-CA' // Assuming California, adjust if needed
+              }
+          };
+
+          // Log the preferences being saved
+          console.log("Saving CCPA preferences:", preferences);
+
+          // Save preferences to localStorage and server
+          await saveConsentState(preferences);
+          console.log("Successfully saved CCPA preferences");
+
+          // Apply the preferences immediately
+          if (doNotShare) {
+              console.log("Applying CCPA Opt-out...");
+              
+              // Update blocking flag
+              initialBlockingEnabled = true;
+
+              // Block all non-essential scripts
+              await scanAndBlockScripts();
+
+              // Update various consent APIs
+              const deniedConsent = {
+                  ad_storage: 'denied',
+                  analytics_storage: 'denied',
+                  personalization_storage: 'denied',
+                  functionality_storage: 'denied'
+              };
+
+              // Google Analytics
+              if (typeof gtag === 'function') {
+                  gtag('consent', 'update', deniedConsent);
+              }
+
+              // Meta Pixel
+              if (typeof fbq === 'function') {
+                  fbq('consent', 'revoke');
+              }
+
+              // Microsoft Clarity
+              if (typeof clarity === 'function') {
+                  clarity('consent', false);
+              }
+
+              // Hotjar
+              if (typeof hj === 'function') {
+                  hj('consent', false);
+              }
+
+          } else {
+              console.log("Applying CCPA Opt-in...");
+              
+              // Update blocking flag
+              initialBlockingEnabled = false;
+
+              // Restore allowed scripts
+              await restoreAllowedScripts(preferences);
+
+              // Update various consent APIs
+              const grantedConsent = {
+                  ad_storage: 'granted',
+                  analytics_storage: 'granted',
+                  personalization_storage: 'granted',
+                  functionality_storage: 'granted'
+              };
+
+              // Google Analytics
+              if (typeof gtag === 'function') {
+                  gtag('consent', 'update', grantedConsent);
+              }
+
+              // Meta Pixel
+              if (typeof fbq === 'function') {
+                  fbq('consent', 'grant');
+              }
+
+              // Microsoft Clarity
+              if (typeof clarity === 'function') {
+                  clarity('consent', true);
+              }
+
+              // Hotjar
+              if (typeof hj === 'function') {
+                  hj('consent', true);
+              }
+          }
+
+          // Hide relevant banners
+          const banners = [
+              document.getElementById("initial-consent-banner"),  // CCPA initial banner
+              document.getElementById("main-consent-banner"),     // CCPA preferences banner
+              document.getElementById("consent-banner"),          // Generic consent banner
+              document.getElementById("main-banner")             // Main preferences banner
+          ];
+
+          banners.forEach(banner => {
+              if (banner) {
+                  hideBanner(banner);
+              }
+          });
+
+          // Set consent as handled
+          localStorage.setItem("consent-given", "true");
+
+          // Dispatch custom event for other parts of the application
+          window.dispatchEvent(new CustomEvent('ccpaPreferencesUpdated', {
+              detail: {
+                  preferences: preferences,
+                  timestamp: new Date().toISOString()
+              }
+          }));
+
+      } catch (error) {
+          console.error("Error saving CCPA preferences:", error);
+          
+          // Show error message to user
+          const errorBanner = document.getElementById("error-message");
+          if (errorBanner) {
+              errorBanner.textContent = "There was an error saving your preferences. Please try again.";
+              errorBanner.style.display = "block";
+              
+              // Hide error message after 5 seconds
+              setTimeout(() => {
+                  errorBanner.style.display = "none";
+              }, 5000);
+          }
+      }
+  });
+}
+
+// Helper function to update third-party consent
+
+
   
     // Cancel button handler
     if (cancelButton) {
@@ -1822,22 +2008,55 @@ async function initialize() {
       if (!localStorage.getItem('visitorSessionToken')) {
           localStorage.setItem('visitorSessionToken', token);
       }
-
+      await loadConsentStyles();
+      const locationData = await detectLocationAndGetBannerType();
+      const currentBannerType = locationData.bannerType;
       // Load and apply saved preferences
       const preferences = await loadAndApplySavedPreferences();
+      // Always load these
+    
       
       // Only proceed with normal initialization if no preferences
       if (!preferences || !localStorage.getItem("consent-given")) {
+        if (currentBannerType === 'CCPA') {
+          console.log("CCPA Opt-out no saved preferences");
+          await blockAllCookies();
+        }
+        else if (currentBannerType='GDPR'){
           await scanAndBlockScripts();
+        }
+          
+        
           await initializeBannerVisibility();
       }
 
-      // Always load these
-      await loadConsentStyles();
-      await detectLocationAndGetBannerType();
+      
+   
 
       // Hide banners if consent was given
       if (localStorage.getItem("consent-given") === "true") {
+
+
+
+
+        // Decide if blocking is needed based on saved state for CCPA
+        if (currentBannerType === 'CCPA' && preferences?.ccpa?.DoNotShare) {
+           console.log("CCPA Opt-out detected from saved preferences. Blocking relevant scripts.");
+           await blockAllCookies();
+      } else if(currentBannerType === 'CCPA' && !preferences?.ccpa?.DoNotShare) {
+           
+           console.log("Consent found, and no CCPA opt-out detected. Allowing scripts based on saved preferences.");
+           await acceptAllCookies();
+      }
+      else{
+        await restoreAllowedScripts(preferences)
+      }
+     
+
+         
+
+
+
           hideBanner(document.getElementById("consent-banner"));
           hideBanner(document.getElementById("initial-consent-banner"));
           hideBanner(document.getElementById("main-banner"));

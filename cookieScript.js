@@ -1993,86 +1993,118 @@ console.log(" UPDATE PREFERENCE  ENDS___")
 // Modify initialize function
 async function initialize() {
   console.log("INITIALIZATION STARTS");
+  let retryCount = 0;
+  const MAX_RETRIES = 3;
   
   try {
       // Get visitor session token first
       const token = await getVisitorSessionToken();
       if (!token) {
           console.error("Failed to get visitor session token. Retrying in 2 seconds...");
-          // Retry after a delay
-          setTimeout(initialize, 2000);
-          return;
+          if (retryCount < MAX_RETRIES) {
+              setTimeout(initialize, 2000);
+              return;
+          }
+          throw new Error("Failed to get token after maximum retries");
       }
       
       // Store token in localStorage if not already there
       if (!localStorage.getItem('visitorSessionToken')) {
           localStorage.setItem('visitorSessionToken', token);
       }
+
+      // Load consent styles
       await loadConsentStyles();
+
+      // Get location data and banner type
       const locationData = await detectLocationAndGetBannerType();
-      const currentBannerType = locationData.bannerType;
+      if (!locationData) {
+          throw new Error("Failed to detect location and banner type");
+      }
+
+      // Use let instead of const for currentBannerType since it might be modified
+      let currentBannerType = locationData.bannerType || 'GDPR'; // Default to GDPR if undefined
+      console.log("Detected banner type:", currentBannerType);
+
       // Load and apply saved preferences
       const preferences = await loadAndApplySavedPreferences();
-      // Always load these
-    
-      
-      // Only proceed with normal initialization if no preferences
+      console.log("Loaded preferences:", preferences);
+
+      // Handle initial state (no preferences or consent not given)
       if (!preferences || !localStorage.getItem("consent-given")) {
-        if (currentBannerType === 'CCPA') {
-          console.log("CCPA Opt-out no saved preferences");
-          await blockAllCookies();
-        }
-        else if (currentBannerType='GDPR'){
-          await scanAndBlockScripts();
-        }
+          console.log("No existing preferences or consent found");
           
-        
+          if (currentBannerType === 'CCPA') {
+              console.log("CCPA: Applying default opt-out state");
+              await blockAllCookies();
+          } else if (currentBannerType === 'GDPR') {
+              console.log("GDPR: Blocking scripts until consent");
+              await scanAndBlockScripts();
+          }
+          
           await initializeBannerVisibility();
+      } else {
+          // Handle existing consent state
+          console.log("Existing consent found, applying saved preferences");
+          
+          if (localStorage.getItem("consent-given") === "true") {
+              if (currentBannerType === 'CCPA') {
+                  const isOptedOut = preferences?.ccpa?.DoNotShare;
+                  console.log(`CCPA: User ${isOptedOut ? 'has' : 'has not'} opted out`);
+                  
+                  if (isOptedOut) {
+                      console.log("CCPA: Applying opt-out preferences");
+                      await blockAllCookies();
+                  } else {
+                      console.log("CCPA: Applying opt-in preferences");
+                      await acceptAllCookies();
+                  }
+              } else {
+                  // GDPR or other cases
+                  console.log("Restoring scripts based on saved preferences");
+                  await restoreAllowedScripts(preferences);
+              }
+
+              // Hide all consent banners
+              const bannersToHide = [
+                  "consent-banner",
+                  "initial-consent-banner",
+                  "main-banner",
+                  "main-consent-banner",
+                  "simple-consent-banner"
+              ];
+
+              bannersToHide.forEach(bannerId => {
+                  const banner = document.getElementById(bannerId);
+                  if (banner) {
+                      hideBanner(banner);
+                  }
+              });
+          }
       }
 
-      
-   
+      // Attach event handlers
+      await attachBannerHandlers();
+      console.log("Successfully completed initialization");
 
-      // Hide banners if consent was given
-      if (localStorage.getItem("consent-given") === "true") {
-
-
-
-
-        // Decide if blocking is needed based on saved state for CCPA
-        if (currentBannerType === 'CCPA' && preferences?.ccpa?.DoNotShare) {
-           console.log("CCPA Opt-out detected from saved preferences. Blocking relevant scripts.");
-           await blockAllCookies();
-      } else if(currentBannerType === 'CCPA' && !preferences?.ccpa?.DoNotShare) {
-           
-           console.log("Consent found, and no CCPA opt-out detected. Allowing scripts based on saved preferences.");
-           await acceptAllCookies();
-      }
-      else{
-        await restoreAllowedScripts(preferences)
-      }
-     
-
-         
-
-
-
-          hideBanner(document.getElementById("consent-banner"));
-          hideBanner(document.getElementById("initial-consent-banner"));
-          hideBanner(document.getElementById("main-banner"));
-          hideBanner(document.getElementById("main-consent-banner"));
-          hideBanner(document.getElementById("simple-consent-banner"));
-      }
-
-      attachBannerHandlers();
   } catch (error) {
       console.error("Error during initialization:", error);
-      // Retry initialization after a delay if there was an error
-      setTimeout(initialize, 2000);
+      
+      // Implement exponential backoff for retries
+      if (retryCount < MAX_RETRIES) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+          retryCount++;
+          console.log(`Retrying initialization in ${delay}ms (attempt ${retryCount}/${MAX_RETRIES})`);
+          setTimeout(() => initialize(), delay);
+      } else {
+          console.error("Failed to initialize after maximum retries");
+      }
+  } finally {
+      console.log("INITIALIZATION ENDS");
   }
-  
-  console.log("INITIALIZATION ENDS");
 }
+
+
 // Add to your window exports
 window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
 window.updatePreferenceForm = updatePreferenceForm;

@@ -1,18 +1,14 @@
-
 (async function () {
-
-
-
-    const existing_Scripts = [];
-    let isLoadingState = false;
-    let consentState = {};
-    let observer;
-    let isInitialized = false;
-    const blockedScripts = [];
-    let currentBannerType = null;
-    let country =null;
-    let categorizedScripts=null;  
-    let initialBlockingEnabled = true;
+  const existing_Scripts = {}; // Change to object/map instead of array
+  let scriptIdCounter = 0; // Add this line
+  let isLoadingState = false;
+  let consentState = {};
+  let observer;
+  let isInitialized = false;
+  let currentBannerType = null;
+  let country = null;
+  let categorizedScripts = null;
+  let initialBlockingEnabled = true;
 
     const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
 
@@ -1478,22 +1474,20 @@ async function restoreAllowedScripts(preferences) {
   /* INITIALIZATION */
   async function getVisitorSessionToken() {
     try {
+        // Check if we have a valid token in localStorage first
+        const existingToken = localStorage.getItem('visitorSessionToken');
+        if (existingToken && !isTokenExpired(existingToken)) {
+            console.log("Using existing token from localStorage");
+            return existingToken;
+        }
+
         // Get or create visitor ID
         const visitorId = await getOrCreateVisitorId();
         
         // Get cleaned site name
-        const siteName = await  cleanHostname(window.location.hostname);
+        const siteName = await cleanHostname(window.location.hostname);
         
-        // Check if we have a valid token in localStorage
-        let token = localStorage.getItem('visitorSessionToken');
-        
-        // If we have a token and it's not expired, return it
-        if (token && !isTokenExpired(token)) {
-            console.log("Token is in localstorage")
-            return token;
-        }
-
-        // Request new token from server
+        console.log("Requesting new visitor session token...");
         const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
             method: 'POST',
             headers: {
@@ -1507,13 +1501,14 @@ async function restoreAllowedScripts(preferences) {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to get visitor session token');
+            throw new Error(`Failed to get visitor session token: ${response.status}`);
         }
 
         const data = await response.json();
         
         // Store the new token
         localStorage.setItem('visitorSessionToken', data.token);
+        console.log("Successfully obtained new visitor session token");
         
         return data.token;
     } catch (error) {
@@ -1521,7 +1516,6 @@ async function restoreAllowedScripts(preferences) {
         return null;
     }
 }
-
  
 
    function blockAllInitialRequests() {
@@ -1809,12 +1803,24 @@ console.log(" UPDATE PREFERENCE  ENDS___")
 
 // Modify initialize function
 async function initialize() {
-
-
-console.log("INITIALIZATION STARTS");
+  console.log("INITIALIZATION STARTS");
   
   try {
-      // Load and apply saved preferences first
+      // Get visitor session token first
+      const token = await getVisitorSessionToken();
+      if (!token) {
+          console.error("Failed to get visitor session token. Retrying in 2 seconds...");
+          // Retry after a delay
+          setTimeout(initialize, 2000);
+          return;
+      }
+      
+      // Store token in localStorage if not already there
+      if (!localStorage.getItem('visitorSessionToken')) {
+          localStorage.setItem('visitorSessionToken', token);
+      }
+
+      // Load and apply saved preferences
       const preferences = await loadAndApplySavedPreferences();
       
       // Only proceed with normal initialization if no preferences
@@ -1825,7 +1831,6 @@ console.log("INITIALIZATION STARTS");
 
       // Always load these
       await loadConsentStyles();
-      await getVisitorSessionToken();
       await detectLocationAndGetBannerType();
 
       // Hide banners if consent was given
@@ -1840,6 +1845,8 @@ console.log("INITIALIZATION STARTS");
       attachBannerHandlers();
   } catch (error) {
       console.error("Error during initialization:", error);
+      // Retry initialization after a delay if there was an error
+      setTimeout(initialize, 2000);
   }
   
   console.log("INITIALIZATION ENDS");

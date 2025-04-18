@@ -10,7 +10,7 @@
   let categorizedScripts = null;
   let initialBlockingEnabled = true;
 
-    const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
+  const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
 
 
        /**
@@ -147,7 +147,7 @@ function getClientIdentifier() {
     return window.location.hostname; // Use hostname as the unique client identifier
     }
 
-    async function reblockDisallowedScripts(consentState) {
+async function reblockDisallowedScripts(consentState) {
       console.log("Reblocking scripts based on updated consent preferences");
   
       const allScripts = document.querySelectorAll("script[data-category]");
@@ -249,7 +249,7 @@ async function attachBannerHandlers() {
             Marketing: true,
             Personalization: true,
             Analytics: true,
-            DoNotShare: false
+            ccpa: { DoNotShare: false }
           };
           
             await saveConsentState(preferences);
@@ -270,7 +270,7 @@ async function attachBannerHandlers() {
             Marketing: false,
             Personalization: false,
             Analytics: false,
-            DoNotShare: true
+            ccpa: { DoNotShare: false }
           };
           await saveConsentState(preferences);
           checkAndBlockNewScripts();
@@ -353,7 +353,8 @@ async function attachBannerHandlers() {
           Necessary: true,
           Marketing: true,
           Personalization: true,
-          Analytics: true
+          Analytics: true,
+          ccpa: { DoNotShare: false }
         };
         await saveConsentState(preferences);
        await acceptAllCookies();
@@ -370,7 +371,8 @@ async function attachBannerHandlers() {
           Necessary: true,
           Marketing: false,
           Personalization: false,
-          Analytics: false
+          Analytics: false,
+          ccpa: { DoNotShare: false }
         };
         await saveConsentState(preferences);
         await blockAllCookies();
@@ -423,7 +425,13 @@ async function attachBannerHandlers() {
         const doNotShare = doNotShareCheckbox.checked;
         const preferences = {
           Necessary: true, // Always true
-           DoNotShare: doNotShare // Set doNotShare based on checkbox
+          Marketing: doNotShare? false: true,
+          Personalization: doNotShare? false: true,
+          Analytics: doNotShare? false: true,
+          ccpa:{
+            DoNotShare: doNotShare
+          }
+            // Set doNotShare based on checkbox
         };
      
         
@@ -468,7 +476,10 @@ async function attachBannerHandlers() {
             Necessary: true,
             Marketing: false,
             Personalization: false,
-            Analytics: false
+            Analytics: false,
+            ccpa:{
+              DoNotShare: true
+            }
             // Note: DoNotShare status isn't typically managed here, it has its own flow
           };
     
@@ -495,7 +506,7 @@ async function attachBannerHandlers() {
       }
       
     
-    }
+ }
     
   
 async function initializeBannerVisibility() {
@@ -1430,6 +1441,7 @@ async function restoreAllowedScripts(preferences) {
                    });
               }
 
+
           } else {
               script.textContent = scriptInfo.content;
                // Restore other attributes for inline scripts
@@ -1848,6 +1860,21 @@ async function initialize() {
 // Add to your window exports
 window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
 window.updatePreferenceForm = updatePreferenceForm;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function blockAllInitialRequests() {
   const originalFetch = window.fetch;
   window.fetch = function (...args) {

@@ -10,8 +10,20 @@
   let categorizedScripts = null;
   let initialBlockingEnabled = true;
 
-    const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
-
+  const suspiciousPatterns = [
+    {
+        pattern: /google-analytics|googletagmanager|gtag|analytics|collect|plausible\.io|clarity\.ms/i,
+        category: "Analytics"
+    },
+    {
+        pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i,
+        category: "Marketing"
+    },
+    {
+        pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat|hs-scripts|hsforms|_hsq/i,
+        category: "Personalization"
+    }
+];
 
        /**
 ENCRYPTION AND DECYPTION STARTS
@@ -567,6 +579,8 @@ async function initializeBannerVisibility() {
 
 
 async function saveConsentState(preferences) {
+
+  console.log("INSIDE SAVE CONSENT STATE")
   const clientId = getClientIdentifier();
   const visitorId = localStorage.getItem("visitorId");
   const policyVersion = "1.2";
@@ -1580,48 +1594,70 @@ window.setupMatomoConsent=setupMatomoConsent;
     }
 }
  
+function blockAllInitialRequests() {
+  // Block GA before it initializes
+  window.gtag = function() {
+      console.log('Blocked gtag call');
+  };
+  window.ga = function() {
+      console.log('Blocked ga call');
+  };
 
-   function blockAllInitialRequests() {
-    const originalFetch = window.fetch;
-    window.fetch = function (...args) {
-        const url = args[0];
-        if (initialBlockingEnabled && isSuspiciousResource(url)) {
-            
-            return Promise.resolve(new Response(null, { status: 204 }));
-        }
-        return originalFetch.apply(this, args);
-    };
-    
-    const originalXHR = window.XMLHttpRequest;
-      window.XMLHttpRequest = function() {
-        const xhr = new originalXHR();
-        const originalOpen = xhr.open;
-        
-        xhr.open = function(method, url) {
+  const originalFetch = window.fetch;
+  window.fetch = function (...args) {
+      const url = typeof args[0] === 'string' ? args[0] : args[0].url;
+      if (initialBlockingEnabled && isSuspiciousResource(url)) {
+          console.log('Blocked fetch request to:', url);
+          return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      return originalFetch.apply(this, args);
+  };
+
+  const originalXHR = window.XMLHttpRequest;
+  window.XMLHttpRequest = function() {
+      const xhr = new originalXHR();
+      const originalOpen = xhr.open;
+      const originalSend = xhr.send;
+
+      xhr.open = function(method, url) {
           if (initialBlockingEnabled && isSuspiciousResource(url)) {
-            
-            return;
+              console.log('Blocked XHR request to:', url);
+              // Set a flag to prevent send
+              xhr._blocked = true;
+              // Call open with a dummy URL to maintain valid state
+              return originalOpen.call(xhr, method, 'about:blank');
           }
           return originalOpen.apply(xhr, arguments);
-        };
-        return xhr;
       };
-    
-    const originalImage = window.Image;
-    const originalSetAttribute = Element.prototype.setAttribute;
-    window.Image = function(...args) {
-        const img = new originalImage(...args);
-        img.setAttribute = function(name, value) {
-            if (name === 'src' && initialBlockingEnabled && isSuspiciousResource(value)) {
-                
-                return;
-            }
-            return originalSetAttribute.apply(this, arguments);
-        };
-        return img;
-    };
-    }   
-  
+
+      xhr.send = function() {
+          if (xhr._blocked) {
+              console.log('Prevented send for blocked XHR');
+              return;
+          }
+          return originalSend.apply(xhr, arguments);
+      };
+
+      return xhr;
+  };
+
+  // Block script loading
+  const originalCreateElement = document.createElement;
+  document.createElement = function(tagName) {
+      const element = originalCreateElement.call(document, tagName);
+      if (tagName.toLowerCase() === 'script') {
+          const originalSetAttribute = element.setAttribute;
+          element.setAttribute = function(name, value) {
+              if (name === 'src' && initialBlockingEnabled && isSuspiciousResource(value)) {
+                  console.log('Blocked script src:', value);
+                  return;
+              }
+              return originalSetAttribute.call(this, name, value);
+          };
+      }
+      return element;
+  };
+}
   
   
  async  function initializeAll() {
@@ -1867,6 +1903,10 @@ console.log(" UPDATE PREFERENCE  ENDS___")
 // Modify initialize function
 async function initialize() {
   console.log("INITIALIZATION STARTS");
+    
+  // Block scripts immediately
+  initialBlockingEnabled = true;
+  blockAllInitialRequests();
   
   try {
       // Get visitor session token first

@@ -534,6 +534,7 @@ async function initializeBannerVisibility() {
     } else if (currentBannerType === "CCPA") {
       showBanner(ccpaBanner); // Show CCPA banner
       hideBanner(consentBanner); // Hide GDPR banner
+      hideBanner(mainConsentBanner);
     } else {
       showBanner(consentBanner); // Default to showing GDPR banner
       hideBanner(ccpaBanner);

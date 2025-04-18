@@ -495,8 +495,16 @@
             
             hideBanner(consentBanner); 
             hideBanner(mainBanner);    
-          }); 
-              hideBanner(consentBanner);
+          });
+  
+  
+  
+  
+  
+  
+  
+  
+          hideBanner(consentBanner);
           hideBanner(mainBanner);
         }
         
@@ -588,6 +596,7 @@
     }
   
     try {
+  
       const consentPreferences = buildConsentPreferences(preferences, country, timestamp);
   
       // 1. Generate AES-GCM key and IV
@@ -668,8 +677,13 @@
       const text = await response.text();
       console.log("Consent section response:", text);
       console.log("SAVE CONSENT STATE FINISHES..");
+             // 5. Disable initial blocking after saving preferences
+             initialBlockingEnabled = false;
+             return true;
+
     } catch (error) {
       console.error("Error in saveConsentState:", error);
+      return false;
     }
   }
   
@@ -713,6 +727,7 @@
     }
     
   async function storeEncryptedConsent(encryptedPreferences, key, iv, timestamp) {
+        console.log("Inside storeEncryptedConsent")
     try {
         // Export the key to raw format
         const rawKey = await crypto.subtle.exportKey('raw', key);
@@ -1946,87 +1961,63 @@ function setupGtagConsent(scriptElement, normalizedPrefs) {
   
   // Modify initialize function
   async function initialize() {
-    // Avoid multiple initializations
     if (isInitialized) {
-        console.log("Initialization already complete.");
+        console.log("Already initialized");
         return;
     }
-    isInitialized = true; // Mark as initialized early
+    
     console.log("INITIALIZATION STARTS");
-
+    isInitialized = true;
+    
     try {
-        // Get visitor session token first
+        // 1. Set initial blocking FIRST
+        initialBlockingEnabled = true;
+        blockAllInitialRequests();
+        
+        // 2. Get session token
         const token = await getVisitorSessionToken();
         if (!token) {
-            console.error("Failed to get visitor session token. Retrying in 2 seconds...");
-            setTimeout(initialize, 2000);
-            isInitialized = false; // Reset flag on failure
-            return;
+            throw new Error("Failed to get visitor session token");
         }
-
-        // Store token if needed
-        if (!localStorage.getItem('visitorSessionToken')) {
-            localStorage.setItem('visitorSessionToken', token);
-        }
-
-        // --- Critical Step 1: Initial Scan & Block ---
-        // Run this first to create placeholders for everything found initially.
-        // This populates existing_Scripts map.
-        console.log("Performing initial script scan and block...");
-        await scanAndBlockScripts(); // Creates placeholders
-
-        // --- Critical Step 2: Load Styles & Detect Location ---
-        // These can happen relatively early.
-        console.log("Loading styles and detecting location...");
-        await loadConsentStyles();
-        await detectLocationAndGetBannerType(); // Sets globals: currentBannerType, country
-
-        // --- Critical Step 3: Load Preferences & Restore OR Show Banner ---
+        
+        // 3. Check for existing consent
         const consentGiven = localStorage.getItem("consent-given");
-        console.log(`Consent previously given: ${consentGiven}`);
-
+        
         if (consentGiven === "true") {
-            console.log("Loading and applying saved preferences...");
-            const preferences = await loadAndApplySavedPreferences(); // Will call restoreAllowedScripts
-
+            console.log("Loading saved preferences...");
+            const preferences = await loadAndApplySavedPreferences();
+            
             if (preferences) {
-                 console.log("Preferences loaded. Disabling initial network blocking.");
-                 initialBlockingEnabled = false; // <<< --- Disable initial blocking AFTER restoring based on consent
-                 // Hide all banners as consent is managed
-                 hideBanner(document.getElementById("consent-banner"));
-                 hideBanner(document.getElementById("initial-consent-banner"));
-                 hideBanner(document.getElementById("main-banner"));
-                 hideBanner(document.getElementById("main-consent-banner"));
-                 hideBanner(document.getElementById("simple-consent-banner"));
+                // Only disable blocking if we successfully loaded preferences
+                initialBlockingEnabled = false;
+                await restoreAllowedScripts(preferences);
+                // Hide all banners
+                hideBanner(document.getElementById("consent-banner"));
+                hideBanner(document.getElementById("initial-consent-banner"));
+                hideBanner(document.getElementById("main-banner"));
+                hideBanner(document.getElementById("main-consent-banner"));
+                hideBanner(document.getElementById("simple-consent-banner"));
             } else {
-                // Failed to load/decrypt preferences, treat as consent not given
-                console.warn("Failed to load preferences despite consent flag. Treating as consent not given.");
-                await initializeBannerVisibility(); // Show banner
-                // Keep initialBlockingEnabled = true
+                // If preferences failed to load, show banner
+                await initializeBannerVisibility();
             }
         } else {
-            // Consent not given previously
-            console.log("Consent not previously given. Initializing banner visibility...");
-            await initializeBannerVisibility(); // Show the appropriate banner
-            // Keep initialBlockingEnabled = true until user interacts
+            // No consent yet, show banner
+            await initializeBannerVisibility();
         }
-
-        // --- Critical Step 4: Attach Banner Handlers ---
-        // Do this last so banners/buttons exist.
-        console.log("Attaching banner handlers...");
+        
+        // 4. Load other resources
+        await loadConsentStyles();
+        await detectLocationAndGetBannerType();
+        
+        // 5. Setup handlers
         attachBannerHandlers();
-
+        
     } catch (error) {
-        console.error("Error during initialization:", error);
-        isInitialized = false; // Reset flag
-        // Optionally retry initialization after a delay if there was an error
-        // setTimeout(initialize, 2000); // Consider if retry loop is desired on all errors
+        console.error("Initialization error:", error);
+        isInitialized = false;
     }
-
-    console.log("INITIALIZATION ENDS");
 }
-
- 
   
   
   
@@ -2070,7 +2061,12 @@ function setupGtagConsent(scriptElement, normalizedPrefs) {
         };
         return img;
     };
-    }         
+    }   
+  
+  
+
+      
+      
      
   
   

@@ -396,7 +396,10 @@ async function attachBannerHandlers() {
           Necessary: true, // Always true
           Marketing: marketingCheckbox?.checked || false,
           Personalization: personalizationCheckbox?.checked || false,
-          Analytics: analyticsCheckbox?.checked || false
+          Analytics: analyticsCheckbox?.checked || false,
+           ccpa: {
+              DoNotShare : false
+           }
           
         };
         console.log("Preference selected",preferences);
@@ -1425,7 +1428,7 @@ async function restoreAllowedScripts(preferences) {
                   Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
                        script.setAttribute(name, value);
                    });
-              }Z
+              }
 
           } else {
               script.textContent = scriptInfo.content;
@@ -1845,21 +1848,6 @@ async function initialize() {
 // Add to your window exports
 window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
 window.updatePreferenceForm = updatePreferenceForm;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function blockAllInitialRequests() {
   const originalFetch = window.fetch;
   window.fetch = function (...args) {

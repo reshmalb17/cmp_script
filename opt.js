@@ -1285,201 +1285,175 @@
     function blockAllInitialRequests() {
         console.log("Setting up initial request blocking...");
 
-        // Block global analytics objects
+        // Block global analytics objects with enhanced logging
         const analyticsBlocker = {
             get: function(target, prop) {
-                console.log(`Blocked access to ${prop} in analytics object`);
-                return function() {
-                    console.log(`Blocked ${prop} call:`, arguments);
+                return function(...args) {
+                    console.log(`🚫 Blocked ${prop} call with args:`, args);
+                    return undefined;
                 };
+            },
+            set: function(target, prop, value) {
+                console.log(`🚫 Blocked setting ${prop}:`, value);
+                return true;
             }
         };
 
-        // Define analytics objects in global scope
-        Object.defineProperties(window, {
-            'gtag': {
-                value: function() {
-                    console.log('Blocked gtag call:', Array.from(arguments));
-                    return undefined;
+        // Create a proxy for array-like objects
+        const createArrayProxy = () => {
+            const handler = {
+                get: function(target, prop) {
+                    if (prop === 'push') {
+                        return function(...args) {
+                            console.log('🚫 Blocked array push with args:', args);
+                            return target.length;
+                        };
+                    }
+                    if (prop === 'length') {
+                        return target.length;
+                    }
+                    return function(...args) {
+                        console.log(`🚫 Blocked array method ${prop} with args:`, args);
+                        return undefined;
+                    };
                 },
-                writable: true,
-                configurable: true
-            },
-            'ga': {
-                value: function() {
-                    console.log('Blocked ga call:', Array.from(arguments));
-                    return undefined;
-                },
-                writable: true,
-                configurable: true
-            },
-            'plausible': {
-                value: new Proxy({}, analyticsBlocker),
-                writable: true,
-                configurable: true
-            },
-            '_paq': {
-                value: new Proxy([], analyticsBlocker),
-                writable: true,
-                configurable: true
-            },
-            'clarity': {
-                value: function(method, value) {
-                    console.log('Blocked clarity call:', method, value);
-                    return undefined;
-                },
-                writable: true,
-                configurable: true
-            },
-            '_hsq': {
-                value: new Proxy([], analyticsBlocker),
-                writable: true,
-                configurable: true
-            },
-            'hj': {
-                value: function() {
-                    console.log('Blocked hotjar call:', Array.from(arguments));
-                    return undefined;
-                },
-                writable: true,
-                configurable: true
-            },
-            'dataLayer': {
-                value: new Proxy([], analyticsBlocker),
-                writable: true,
-                configurable: true
+                set: function(target, prop, value) {
+                    console.log(`🚫 Blocked array set ${prop}:`, value);
+                    return true;
+                }
+            };
+            return new Proxy([], handler);
+        };
+
+        // Helper function to safely define or override a property
+        const safeDefineProperty = (obj, prop, value) => {
+            try {
+                // First try to delete the existing property if it exists
+                delete obj[prop];
+                
+                // Then define the new property
+                Object.defineProperty(obj, prop, {
+                    value: value,
+                    writable: true,
+                    configurable: true
+                });
+            } catch (e) {
+                // If we can't delete/redefine, try to just set it
+                try {
+                    obj[prop] = value;
+                } catch (e2) {
+                    console.warn(`Could not block ${prop}:`, e2);
+                }
             }
+        };
+
+        // Create blocked function
+        const createBlockedFunction = (name) => {
+            return function(...args) {
+                console.log(`🚫 Blocked ${name} call with args:`, args);
+                return undefined;
+            };
+        };
+
+        // List of analytics properties to block
+        const analyticsProps = {
+            // Google Analytics
+            'gtag': createBlockedFunction('gtag'),
+            'ga': createBlockedFunction('ga'),
+            'dataLayer': createArrayProxy(),
+            'google_tag_manager': new Proxy({}, analyticsBlocker),
+            
+            // Plausible
+            'plausible': createBlockedFunction('plausible'),
+            
+            // Matomo
+            '_paq': createArrayProxy(),
+            
+            // Microsoft Clarity
+            'clarity': createBlockedFunction('clarity'),
+            
+            // HubSpot
+            '_hsq': createArrayProxy(),
+            'HubSpotAnalytics': new Proxy({}, analyticsBlocker),
+            
+            // Hotjar
+            'hj': createBlockedFunction('hj'),
+            '_hjSettings': new Proxy({}, analyticsBlocker)
+        };
+
+        // Safely define all properties
+        Object.entries(analyticsProps).forEach(([prop, value]) => {
+            safeDefineProperty(window, prop, value);
         });
 
-        // Create a global function to check if analytics are blocked
-        window.checkAnalyticsBlocking = function() {
-            console.log('Analytics Blocking Status:');
-            console.log('gtag:', typeof window.gtag);
-            console.log('ga:', typeof window.ga);
-            console.log('plausible:', typeof window.plausible);
-            console.log('_paq:', typeof window._paq);
-            console.log('clarity:', typeof window.clarity);
-            console.log('_hsq:', typeof window._hsq);
-            console.log('hj:', typeof window.hj);
-            console.log('dataLayer:', typeof window.dataLayer);
+        // Block script injection attempts
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName, options) {
+            const element = originalCreateElement.call(document, tagName, options);
+            
+            if (tagName.toLowerCase() === 'script') {
+                const originalSetAttribute = element.setAttribute;
+                element.setAttribute = function(name, value) {
+                    if (name === 'src' && state.initialBlockingEnabled && isSuspiciousResource(value)) {
+                        console.log('🚫 Blocked script setAttribute:', value);
+                        return;
+                    }
+                    return originalSetAttribute.call(this, name, value);
+                };
+
+                // Block direct src assignment
+                let srcValue = '';
+                Object.defineProperty(element, 'src', {
+                    get: function() {
+                        return srcValue;
+                    },
+                    set: function(value) {
+                        if (state.initialBlockingEnabled && isSuspiciousResource(value)) {
+                            console.log('🚫 Blocked script src:', value);
+                            return;
+                        }
+                        srcValue = value;
+                    },
+                    configurable: true
+                });
+            }
+            
+            return element;
         };
 
         // Block fetch requests
         const originalFetch = window.fetch;
         window.fetch = function(...args) {
-            const url = args[0];
+            const url = args[0]?.url || args[0];
             if (state.initialBlockingEnabled && isSuspiciousResource(url)) {
-                console.log('Blocked fetch request to:', url);
+                console.log('🚫 Blocked fetch request to:', url);
                 return Promise.resolve(new Response(null, { status: 204 }));
             }
             return originalFetch.apply(this, args);
         };
-        
+
         // Block XMLHttpRequest
         const originalXHR = window.XMLHttpRequest;
         window.XMLHttpRequest = function() {
             const xhr = new originalXHR();
             const originalOpen = xhr.open;
-            
             xhr.open = function(method, url) {
                 if (state.initialBlockingEnabled && isSuspiciousResource(url)) {
-                    console.log('Blocked XHR request to:', url);
+                    console.log('🚫 Blocked XHR request to:', url);
                     return;
                 }
                 return originalOpen.apply(xhr, arguments);
             };
             return xhr;
         };
+
+        console.log("✅ Initial request blocking setup complete");
         
-        // Block Image requests
-        const originalImage = window.Image;
-        const originalSetAttribute = Element.prototype.setAttribute;
-        window.Image = function(...args) {
-            const img = new originalImage(...args);
-            img.setAttribute = function(name, value) {
-                if (name === 'src' && state.initialBlockingEnabled && isSuspiciousResource(value)) {
-                    console.log('Blocked image request to:', value);
-                    return;
-                }
-                return originalSetAttribute.apply(this, arguments);
-            };
-            return img;
-        };
-
-        // Block script tags
-        const originalCreateElement = document.createElement;
-        document.createElement = function(tagName) {
-            const element = originalCreateElement.call(document, tagName);
-            
-            if (tagName.toLowerCase() === 'script') {
-                const originalSetAttribute = element.setAttribute;
-                element.setAttribute = function(name, value) {
-                    if (name === 'src' && state.initialBlockingEnabled && isSuspiciousResource(value)) {
-                        console.log('Blocked script src:', value);
-                        return;
-                    }
-                    return originalSetAttribute.call(this, name, value);
-                };
-            }
-            
-            return element;
-        };
-
-        // Enhanced suspicious resource patterns
-        const ENHANCED_SUSPICIOUS_PATTERNS = [
-            // Analytics
-            /google-analytics/,
-            /googletagmanager/,
-            /gtag/,
-            /analytics/,
-            /plausible\.io/,
-            /matomo/,
-            /clarity\.ms/,
-            /static\.hotjar\.com/,
-            /contentsquare/,
-            /mouseflow/,
-            /crazyegg/,
-            /mixpanel/,
-            /segment\.com/,
-            /amplitude/,
-            
-            // Marketing
-            /facebook\.com/,
-            /fbevents/,
-            /doubleclick\.net/,
-            /linkedin\.com/,
-            /twitter\.com/,
-            /pinterest\.com/,
-            /tiktok\.com/,
-            /snap\.com/,
-            /reddit\.com/,
-            /quora\.com/,
-            /outbrain/,
-            /taboola/,
-            /sharethrough/,
-            
-            // Personalization
-            /optimizely/,
-            /hubspot/,
-            /marketo/,
-            /pardot/,
-            /salesforce/,
-            /intercom/,
-            /drift/,
-            /zendesk/,
-            /freshchat/,
-            /tawk/,
-            /livechat/
-        ];
-
-        // Update isSuspiciousResource function
-        window.isSuspiciousResource = function(url) {
-            if (!url) return false;
-            return ENHANCED_SUSPICIOUS_PATTERNS.some(pattern => pattern.test(url));
-        };
-
-        console.log("Initial request blocking setup complete");
-        window.checkAnalyticsBlocking(); // Log initial blocking status
+        // Log blocking status
+        console.log("Analytics Blocking Status:");
+        Object.entries(analyticsProps).forEach(([name, obj]) => {
+            console.log(`${name}: ${typeof window[name]} ${window[name] ? '(blocked)' : '(undefined)'}`);
+        });
     }
 
     // Initialize blocking immediately

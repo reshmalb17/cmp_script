@@ -478,6 +478,201 @@
         }
     }
 
+    class BannerManager {
+        constructor() {
+            this.bannerType = null;
+            this.bannerElement = null;
+            this.settingsElement = null;
+            this.consentManager = new ConsentManager();
+        }
+
+        async initialize() {
+            try {
+                if (this.consentManager.isConsentGiven()) {
+                    await this.consentManager.applyPreferences();
+                    return;
+                }
+
+                this.bannerType = await detectLocationAndGetBannerType();
+                await this.createBanner();
+                this.attachEventListeners();
+                this.showBanner();
+            } catch (error) {
+                console.error('Error initializing BannerManager:', error);
+            }
+        }
+
+        async createBanner() {
+            const template = document.getElementById('consent-banner-template');
+            if (!template) {
+                console.error('Consent banner template not found');
+                return;
+            }
+
+            this.bannerElement = template.content.cloneNode(true).firstElementChild;
+            document.body.appendChild(this.bannerElement);
+
+            // Initialize settings panel
+            const settingsTemplate = document.getElementById('consent-settings-template');
+            if (settingsTemplate) {
+                this.settingsElement = settingsTemplate.content.cloneNode(true).firstElementChild;
+                document.body.appendChild(this.settingsElement);
+            }
+        }
+
+        attachEventListeners() {
+            // Accept all button
+            const acceptAllBtn = this.bannerElement.querySelector('[data-consent="accept-all"]');
+            if (acceptAllBtn) {
+                acceptAllBtn.addEventListener('click', () => this.handleAcceptAll());
+            }
+
+            // Reject all button
+            const rejectAllBtn = this.bannerElement.querySelector('[data-consent="reject-all"]');
+            if (rejectAllBtn) {
+                rejectAllBtn.addEventListener('click', () => this.handleRejectAll());
+            }
+
+            // Settings button
+            const settingsBtn = this.bannerElement.querySelector('[data-consent="settings"]');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', () => this.showSettings());
+            }
+
+            // Save preferences button in settings
+            if (this.settingsElement) {
+                const saveBtn = this.settingsElement.querySelector('[data-consent="save"]');
+                if (saveBtn) {
+                    saveBtn.addEventListener('click', () => this.handleSavePreferences());
+                }
+            }
+        }
+
+        async handleAcceptAll() {
+            console.log('Handling accept all consent...');
+            const preferences = {
+                Necessary: true,
+                Marketing: true,
+                Personalization: true,
+                Analytics: true,
+                DoNotShare: false
+            };
+            
+            // Save and apply preferences
+            const success = await this.consentManager.savePreferences(preferences);
+            
+            if (success) {
+                console.log('Accept all consent saved successfully');
+                // Hide the banner after successful save
+                this.hideBanner();
+                
+                // Trigger any additional callbacks
+                if (window.dataLayer && !state.initialBlockingEnabled) {
+                    window.dataLayer.push({
+                        event: 'consent_accepted',
+                        consent_preferences: preferences
+                    });
+                }
+            } else {
+                console.error('Failed to save accept all consent');
+            }
+        }
+
+        async handleRejectAll() {
+            console.log('Handling reject all consent...');
+            const preferences = {
+                Necessary: true,
+                Marketing: false,
+                Personalization: false,
+                Analytics: false,
+                DoNotShare: true
+            };
+            
+            // Save and apply preferences
+            const success = await this.consentManager.savePreferences(preferences);
+            
+            if (success) {
+                console.log('Reject all consent saved successfully');
+                // Hide the banner after successful save
+                this.hideBanner();
+                
+                // Trigger any additional callbacks
+                if (window.dataLayer && !state.initialBlockingEnabled) {
+                    window.dataLayer.push({
+                        event: 'consent_rejected',
+                        consent_preferences: preferences
+                    });
+                }
+            } else {
+                console.error('Failed to save reject all consent');
+            }
+        }
+
+        async handleSavePreferences() {
+            console.log('Handling save preferences...');
+            const preferences = {
+                Necessary: true,
+                Marketing: this.getCheckboxValue('marketing'),
+                Personalization: this.getCheckboxValue('personalization'),
+                Analytics: this.getCheckboxValue('analytics'),
+                DoNotShare: this.getCheckboxValue('do-not-share')
+            };
+            
+            // Save and apply preferences
+            const success = await this.consentManager.savePreferences(preferences);
+            
+            if (success) {
+                console.log('Preferences saved successfully');
+                this.hideSettings();
+                this.hideBanner();
+                
+                // Trigger any additional callbacks
+                if (window.dataLayer && !state.initialBlockingEnabled) {
+                    window.dataLayer.push({
+                        event: 'consent_updated',
+                        consent_preferences: preferences
+                    });
+                }
+            } else {
+                console.error('Failed to save preferences');
+            }
+        }
+
+        getCheckboxValue(category) {
+            if (!this.settingsElement) return false;
+            const checkbox = this.settingsElement.querySelector(`[data-category="${category}"]`);
+            return checkbox ? checkbox.checked : false;
+        }
+
+        showBanner() {
+            if (this.bannerElement) {
+                this.bannerElement.classList.remove('hidden');
+                this.bannerElement.classList.add('visible');
+            }
+        }
+
+        hideBanner() {
+            if (this.bannerElement) {
+                this.bannerElement.classList.remove('visible');
+                this.bannerElement.classList.add('hidden');
+            }
+        }
+
+        showSettings() {
+            if (this.settingsElement) {
+                this.settingsElement.classList.remove('hidden');
+                this.settingsElement.classList.add('visible');
+            }
+        }
+
+        hideSettings() {
+            if (this.settingsElement) {
+                this.settingsElement.classList.remove('visible');
+                this.settingsElement.classList.add('hidden');
+            }
+        }
+    }
+
     // Location detection and banner type determination
     async function detectLocationAndGetBannerType() {
         try {
@@ -1596,201 +1791,6 @@
         }
     });
 })();
-
-class BannerManager {
-    constructor() {
-        this.bannerType = null;
-        this.bannerElement = null;
-        this.settingsElement = null;
-        this.consentManager = new ConsentManager();
-    }
-
-    async initialize() {
-        try {
-            if (this.consentManager.isConsentGiven()) {
-                await this.consentManager.applyPreferences();
-                return;
-            }
-
-            this.bannerType = await detectLocationAndGetBannerType();
-            await this.createBanner();
-            this.attachEventListeners();
-            this.showBanner();
-        } catch (error) {
-            console.error('Error initializing BannerManager:', error);
-        }
-    }
-
-    async createBanner() {
-        const template = document.getElementById('consent-banner-template');
-        if (!template) {
-            console.error('Consent banner template not found');
-            return;
-        }
-
-        this.bannerElement = template.content.cloneNode(true).firstElementChild;
-        document.body.appendChild(this.bannerElement);
-
-        // Initialize settings panel
-        const settingsTemplate = document.getElementById('consent-settings-template');
-        if (settingsTemplate) {
-            this.settingsElement = settingsTemplate.content.cloneNode(true).firstElementChild;
-            document.body.appendChild(this.settingsElement);
-        }
-    }
-
-    attachEventListeners() {
-        // Accept all button
-        const acceptAllBtn = this.bannerElement.querySelector('[data-consent="accept-all"]');
-        if (acceptAllBtn) {
-            acceptAllBtn.addEventListener('click', () => this.handleAcceptAll());
-        }
-
-        // Reject all button
-        const rejectAllBtn = this.bannerElement.querySelector('[data-consent="reject-all"]');
-        if (rejectAllBtn) {
-            rejectAllBtn.addEventListener('click', () => this.handleRejectAll());
-        }
-
-        // Settings button
-        const settingsBtn = this.bannerElement.querySelector('[data-consent="settings"]');
-        if (settingsBtn) {
-            settingsBtn.addEventListener('click', () => this.showSettings());
-        }
-
-        // Save preferences button in settings
-        if (this.settingsElement) {
-            const saveBtn = this.settingsElement.querySelector('[data-consent="save"]');
-            if (saveBtn) {
-                saveBtn.addEventListener('click', () => this.handleSavePreferences());
-            }
-        }
-    }
-
-    async handleAcceptAll() {
-        console.log('Handling accept all consent...');
-        const preferences = {
-            Necessary: true,
-            Marketing: true,
-            Personalization: true,
-            Analytics: true,
-            DoNotShare: false
-        };
-        
-        // Save and apply preferences
-        const success = await this.consentManager.savePreferences(preferences);
-        
-        if (success) {
-            console.log('Accept all consent saved successfully');
-            // Hide the banner after successful save
-            this.hideBanner();
-            
-            // Trigger any additional callbacks
-            if (window.dataLayer && !state.initialBlockingEnabled) {
-                window.dataLayer.push({
-                    event: 'consent_accepted',
-                    consent_preferences: preferences
-                });
-            }
-        } else {
-            console.error('Failed to save accept all consent');
-        }
-    }
-
-    async handleRejectAll() {
-        console.log('Handling reject all consent...');
-        const preferences = {
-            Necessary: true,
-            Marketing: false,
-            Personalization: false,
-            Analytics: false,
-            DoNotShare: true
-        };
-        
-        // Save and apply preferences
-        const success = await this.consentManager.savePreferences(preferences);
-        
-        if (success) {
-            console.log('Reject all consent saved successfully');
-            // Hide the banner after successful save
-            this.hideBanner();
-            
-            // Trigger any additional callbacks
-            if (window.dataLayer && !state.initialBlockingEnabled) {
-                window.dataLayer.push({
-                    event: 'consent_rejected',
-                    consent_preferences: preferences
-                });
-            }
-        } else {
-            console.error('Failed to save reject all consent');
-        }
-    }
-
-    async handleSavePreferences() {
-        console.log('Handling save preferences...');
-        const preferences = {
-            Necessary: true,
-            Marketing: this.getCheckboxValue('marketing'),
-            Personalization: this.getCheckboxValue('personalization'),
-            Analytics: this.getCheckboxValue('analytics'),
-            DoNotShare: this.getCheckboxValue('do-not-share')
-        };
-        
-        // Save and apply preferences
-        const success = await this.consentManager.savePreferences(preferences);
-        
-        if (success) {
-            console.log('Preferences saved successfully');
-            this.hideSettings();
-            this.hideBanner();
-            
-            // Trigger any additional callbacks
-            if (window.dataLayer && !state.initialBlockingEnabled) {
-                window.dataLayer.push({
-                    event: 'consent_updated',
-                    consent_preferences: preferences
-                });
-            }
-        } else {
-            console.error('Failed to save preferences');
-        }
-    }
-
-    getCheckboxValue(category) {
-        if (!this.settingsElement) return false;
-        const checkbox = this.settingsElement.querySelector(`[data-category="${category}"]`);
-        return checkbox ? checkbox.checked : false;
-    }
-
-    showBanner() {
-        if (this.bannerElement) {
-            this.bannerElement.classList.remove('hidden');
-            this.bannerElement.classList.add('visible');
-        }
-    }
-
-    hideBanner() {
-        if (this.bannerElement) {
-            this.bannerElement.classList.remove('visible');
-            this.bannerElement.classList.add('hidden');
-        }
-    }
-
-    showSettings() {
-        if (this.settingsElement) {
-            this.settingsElement.classList.remove('hidden');
-            this.settingsElement.classList.add('visible');
-        }
-    }
-
-    hideSettings() {
-        if (this.settingsElement) {
-            this.settingsElement.classList.remove('visible');
-            this.settingsElement.classList.add('hidden');
-        }
-    }
-}
 
    
    

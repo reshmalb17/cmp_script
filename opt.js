@@ -1282,6 +1282,36 @@
         }
     }
 
+    // Storage management utilities
+    const StorageManager = {
+        get: function(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (e) {
+                console.warn('Failed to get from storage:', e);
+                return null;
+            }
+        },
+        set: function(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (e) {
+                console.warn('Failed to save to storage:', e);
+                return false;
+            }
+        },
+        remove: function(key) {
+            try {
+                localStorage.removeItem(key);
+                return true;
+            } catch (e) {
+                console.warn('Failed to remove from storage:', e);
+                return false;
+            }
+        }
+    };
+
     function blockAllInitialRequests() {
         console.log("Setting up initial request blocking...");
 
@@ -1299,19 +1329,26 @@
             }
         };
 
-        // Create a proxy for array-like objects
+        // Create a proxy for array-like objects with better error handling
         const createArrayProxy = () => {
             const handler = {
                 get: function(target, prop) {
-                    if (prop === 'push') {
+                    // Handle array methods
+                    if (prop === 'push' || prop === 'unshift' || prop === 'splice') {
                         return function(...args) {
-                            console.log('🚫 Blocked array push with args:', args);
+                            console.log(`🚫 Blocked array ${prop} with args:`, args);
                             return target.length;
                         };
                     }
+                    // Handle array properties
                     if (prop === 'length') {
                         return target.length;
                     }
+                    // Handle array access
+                    if (typeof prop === 'number' || !isNaN(parseInt(prop))) {
+                        return undefined;
+                    }
+                    // Handle other properties/methods
                     return function(...args) {
                         console.log(`🚫 Blocked array method ${prop} with args:`, args);
                         return undefined;
@@ -1347,15 +1384,19 @@
             }
         };
 
-        // Create blocked function
+        // Create blocked function with error handling
         const createBlockedFunction = (name) => {
             return function(...args) {
-                console.log(`🚫 Blocked ${name} call with args:`, args);
+                try {
+                    console.log(`🚫 Blocked ${name} call with args:`, args);
+                } catch (e) {
+                    console.log(`🚫 Blocked ${name} call`);
+                }
                 return undefined;
             };
         };
 
-        // List of analytics properties to block
+        // Enhanced analytics properties to block
         const analyticsProps = {
             // Google Analytics
             'gtag': createBlockedFunction('gtag'),
@@ -1370,7 +1411,12 @@
             '_paq': createArrayProxy(),
             
             // Microsoft Clarity
-            'clarity': createBlockedFunction('clarity'),
+            'clarity': new Proxy(createBlockedFunction('clarity'), {
+                get: (target, prop) => {
+                    if (prop === 'q') return [];
+                    return target;
+                }
+            }),
             
             // HubSpot
             '_hsq': createArrayProxy(),
@@ -1378,7 +1424,10 @@
             
             // Hotjar
             'hj': createBlockedFunction('hj'),
-            '_hjSettings': new Proxy({}, analyticsBlocker)
+            '_hjSettings': new Proxy({}, analyticsBlocker),
+            
+            // Additional Clarity properties
+            'clarityInstance': new Proxy({}, analyticsBlocker)
         };
 
         // Safely define all properties
@@ -1456,375 +1505,7 @@
         });
     }
 
-    // Initialize blocking immediately
-    blockAllInitialRequests();
-
-    // Add a global function to test analytics blocking
-    window.testAnalyticsBlocking = function() {
-        console.log('Testing analytics blocking...');
-        try {
-            gtag('event', 'test');
-            ga('send', 'pageview');
-            plausible('pageview');
-            _paq.push(['trackPageView']);
-            clarity('set', 'test');
-            _hsq.push(['trackPageView']);
-            hj('event', 'test');
-            dataLayer.push({ event: 'test' });
-        } catch (error) {
-            console.error('Error during analytics test:', error);
-        }
-    };
-
-    // Placeholder: detectLocationAndGetBannerType
-    async function detectLocationAndGetBannerType() {
-        console.log("Placeholder: detectLocationAndGetBannerType called");
-        // Return mock data for testing, e.g., GDPR
-        return Promise.resolve({ bannerType: 'GDPR', country: 'PlaceholderCountry' }); 
-    }
-
-    // Helper functions
-    function normalizePreferences(preferences) {
-        return Object.fromEntries(
-            Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
-        );
-    }
-
-    function checkScriptAllowed(category, preferences) {
-        const categories = category.split(',').map(c => c.trim().toLowerCase());
-        return categories.some(cat => preferences[cat] === true);
-    }
-
-    // Script patterns for categorization
-    const SCRIPT_PATTERNS = [
-        {
-            pattern: /collect|plausible\.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i,
-            category: 'Analytics'
-        },
-        {
-            pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i,
-            category: 'Marketing'
-        },
-        {
-            pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i,
-            category: 'Personalization'
-        }
-    ];
-
-    // Helper function to find category by pattern
-    function findCategoryByPattern(content) {
-        if (!content) return null;
-        
-        for (const { pattern, category } of SCRIPT_PATTERNS) {
-            if (pattern.test(content)) {
-                return category;
-            }
-        }
-        return null;
-    }
-
-    // Configuration object
-    const CONFIG = {
-        API: {
-            BASE_URL: 'https://cb-server.web-8fb.workers.dev/api',
-            ENDPOINTS: {
-                VISITOR_TOKEN: '/visitor-token',
-                DETECT_LOCATION: '/cmp/detect-location',
-                CONSENT: '/cmp/consent',
-                SCRIPT_CATEGORY: '/cmp/script-category'
-            }
-        },
-        STORAGE_KEYS: {
-            VISITOR_ID: 'visitorId',
-            SESSION_TOKEN: 'visitorSessionToken',
-            CONSENT_GIVEN: 'consent-given',
-            PREFERENCES: 'consent-preferences',
-            POLICY_VERSION: 'consent-policy-version',
-            DEBUG_MODE: 'consent-debug-mode'
-        },
-        CATEGORIES: {
-            NECESSARY: 'Necessary',
-            MARKETING: 'Marketing',
-            ANALYTICS: 'Analytics',
-            PERSONALIZATION: 'Personalization'
-        },
-        POLICY_VERSION: '1.2',
-        RETRY_DELAY: 2000,
-        MAX_RETRIES: 3,
-        DEBUG: {
-            ENABLED: false,
-            LOG_LEVEL: 'info'
-        }
-    };
-
-    // Helper function to normalize URL
-    function normalizeUrl(url) {
-        if (!url) return '';
-        try {
-            const urlObj = new URL(url);
-            return urlObj.hostname + urlObj.pathname;
-        } catch (e) {
-            return url;
-        }
-    }
-
-    // Update categorizeScript function
-    async function categorizeScript(script, categorizedScripts) {
-        try {
-            const src = script.src;
-            const content = script.textContent;
-
-            // Check against categorized scripts
-            const matched = categorizedScripts?.find(s => 
-                (src && normalizeUrl(s.src) === normalizeUrl(src)) ||
-                (content && s.content?.trim() === content?.trim())
-            );
-
-            if (matched?.category) return matched.category;
-
-            // Check against patterns
-            const category = findCategoryByPattern(src || content);
-            if (category) return category;
-
-            // Check for analytics tools
-            const analyticsInfo = ScriptVerification.detectAnalyticsTool(script);
-            if (analyticsInfo) return analyticsInfo.category;
-
-            return null;
-        } catch (error) {
-            ScriptVerification.logError('categorizeScript', error);
-            return null;
-        }
-    }
-
-    // Update setupMutationObserver function
-    function setupMutationObserver() {
-        if (state.observer) {
-            state.observer.disconnect();
-        }
-
-        state.observer = new MutationObserver(async (mutations) => {
-            for (const mutation of mutations) {
-                for (const node of mutation.addedNodes) {
-                    if (node.tagName === 'SCRIPT') {
-                        try {
-                            const category = await categorizeScript(node, state.categorizedScripts);
-                            if (category) {
-                                const placeholder = await ScriptManager.createScriptElement(node, true);
-                                if (placeholder) {
-                                    placeholder.setAttribute('data-category', category);
-                                    node.parentNode.replaceChild(placeholder, node);
-                                    state.existing_Scripts.add(placeholder);
-                                    ScriptVerification.logBlockedScript(node, category);
-                                }
-                            }
-                        } catch (error) {
-                            ScriptVerification.logError('mutationObserver', error);
-                        }
-                    }
-                }
-            }
-        });
-
-        state.observer.observe(document.documentElement, {
-            childList: true,
-            subtree: true
-        });
-    }
-
-    // Enhanced script blocking and restoration
-    async function restoreAllowedScripts(preferences) {
-        console.log("=== Starting Enhanced Script Restoration ===");
-        
-        try {
-            const normalizedPrefs = normalizePreferences(preferences);
-            const restorationPromises = Array.from(state.existing_Scripts).map(async (placeholder) => {
-                try {
-                    const category = placeholder.getAttribute('data-category');
-                    if (!category) return;
-
-                    const isAllowed = checkScriptAllowed(category, normalizedPrefs);
-                    if (isAllowed) {
-                        const analyticsType = placeholder.getAttribute('data-analytics-type');
-                        const analyticsDetails = placeholder.getAttribute('data-analytics-details');
-
-                        if (analyticsType && analyticsDetails) {
-                            // Handle analytics script restoration
-                            await restoreAnalyticsScript(placeholder, JSON.parse(analyticsDetails));
-                        } else {
-                            // Handle regular script restoration
-                            const script = await ScriptManager.createScriptElement(placeholder, false);
-                            if (script) {
-                                await ScriptManager.loadScript(script);
-                                placeholder.parentNode.replaceChild(script, placeholder);
-                                ScriptVerification.logRestoredScript(script, category);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    ScriptVerification.logError('restoreScript', error);
-                }
-            });
-
-            await Promise.allSettled(restorationPromises);
-            console.log("=== Script Restoration Complete ===");
-            console.log("Verification Stats:", ScriptVerification.getStats());
-        } catch (error) {
-            ScriptVerification.logError('restoreAllowedScripts', error);
-        }
-    }
-
-    async function restoreAnalyticsScript(placeholder, details) {
-        const script = document.createElement('script');
-        const originalSrc = placeholder.getAttribute('data-original-src');
-
-        if (originalSrc) {
-            script.src = originalSrc;
-        }
-
-        // Copy attributes
-        Array.from(placeholder.attributes).forEach(attr => {
-            if (!['type', 'data-original-src', 'data-analytics-type', 'data-analytics-details'].includes(attr.name)) {
-                script.setAttribute(attr.name, attr.value);
-            }
-        });
-
-        // Get current preferences
-        const currentPreferences = await ConsentManager.loadConsent() || {
-            Necessary: true,
-            Marketing: false,
-            Analytics: false,
-            Personalization: false
-        };
-
-        // Special handling for different analytics types
-        switch (details.type) {
-            case 'gtag':
-                if (originalSrc?.includes('googletagmanager.com')) {
-                    // This is the GA loader script
-                    script.onload = async () => {
-                        // Wait for gtag to be available
-                        await waitForFunction(() => typeof gtag === 'function');
-                        await AnalyticsConsentHandlers.updateGoogleAnalytics(currentPreferences);
-                    };
-                }
-                break;
-            case 'plausible':
-                script.onload = async () => {
-                    await waitForFunction(() => window.plausible);
-                    await AnalyticsConsentHandlers.updatePlausible(currentPreferences);
-                };
-                break;
-            case 'hotjar':
-                script.onload = async () => {
-                    await waitForFunction(() => window.hj);
-                    await AnalyticsConsentHandlers.updateHotjar(currentPreferences);
-                };
-                break;
-            case 'clarity':
-                script.onload = async () => {
-                    await waitForFunction(() => window.clarity);
-                    await AnalyticsConsentHandlers.updateClarity(currentPreferences);
-                };
-                break;
-            case 'matomo':
-                script.onload = async () => {
-                    await waitForFunction(() => window._paq);
-                    await AnalyticsConsentHandlers.updateMatomo(currentPreferences);
-                };
-                break;
-            case 'hubspot':
-                script.onload = async () => {
-                    await waitForFunction(() => window.hubspot);
-                    await AnalyticsConsentHandlers.updateHubSpot(currentPreferences);
-                };
-                break;
-        }
-
-        placeholder.parentNode.replaceChild(script, placeholder);
-        ScriptVerification.logRestoredScript(script, placeholder.getAttribute('data-category'));
-    }
-
-    class BannerManager {
-        constructor() {
-          this.banners = {
-            main: document.getElementById('consent-banner'),
-            ccpa: document.getElementById('initial-consent-banner'),
-            preferences: document.getElementById('main-banner'),
-            simple: document.getElementById('simple-consent-banner')
-          };
-          this.setupHandlers();
-        }
-
-        setupHandlers() {
-          // Accept all cookies
-          document.getElementById('accept-btn')?.addEventListener('click', () => {
-            this.handleAcceptAll();
-          });
-
-          // Reject all cookies
-          document.getElementById('decline-btn')?.addEventListener('click', () => {
-            this.handleRejectAll();
-          });
-
-          // Save preferences
-          document.getElementById('save-preferences-btn')?.addEventListener('click', () => {
-            this.handleSavePreferences();
-          });
-
-          // Cancel/Reject from preferences
-          document.getElementById('cancel-btn')?.addEventListener('click', () => {
-            this.handleRejectAll();
-          });
-
-          // Show preferences
-          document.getElementById('preferences-btn')?.addEventListener('click', () => {
-            this.hideAll();
-            this.show('preferences');
-          });
-
-          // Toggle consent button
-          document.getElementById('toggle-consent-btn')?.addEventListener('click', () => {
-            const preferences = document.getElementById('main-banner');
-            if (preferences.style.display === 'none' || !preferences.style.display) {
-              this.hideAll();
-              this.show('preferences');
-            } else {
-              this.hideAll();
-            }
-          });
-        }
-
-        show(bannerKey) {
-          const banner = this.banners[bannerKey];
-          if (banner) {
-            banner.style.display = 'block';
-            banner.classList.add('show-banner');
-            banner.classList.remove('hidden');
-            banner.style.visibility = 'visible';
-            banner.style.opacity = '1';
-          }
-        }
-
-        hide(bannerKey) {
-          const banner = this.banners[bannerKey];
-          if (banner) {
-            banner.style.display = 'none';
-            banner.classList.remove('show-banner');
-            banner.classList.add('hidden');
-          }
-        }
-
-        hideAll() {
-          Object.keys(this.banners).forEach(key => {
-            if (this.banners[key]) {
-              this.hide(key);
-            }
-          });
-        }
-    }
-
-    // Initialize on DOM load
+    // Initialize on DOM load with better error handling
     document.addEventListener('DOMContentLoaded', async () => {
         try {
             await initialize();
@@ -1843,6 +1524,18 @@
         } catch (error) {
             console.error('Error during initialization:', error);
             ScriptVerification.logError('initialization', error);
+            
+            // Fallback initialization
+            try {
+                state.initialBlockingEnabled = true;
+                blockAllInitialRequests();
+                
+                if (!window.bannerManager) {
+                    window.bannerManager = new BannerManager();
+                }
+            } catch (fallbackError) {
+                console.error('Critical: Fallback initialization failed:', fallbackError);
+            }
         }
     });
 
@@ -1882,6 +1575,244 @@
         }
     });
 })();
+
+class BannerManager {
+    constructor() {
+        this.banners = {
+            main: document.getElementById('consent-banner'),
+            ccpa: document.getElementById('initial-consent-banner'),
+            preferences: document.getElementById('main-banner'),
+            simple: document.getElementById('simple-consent-banner')
+        };
+        this.setupHandlers();
+        this.setupNecessaryCheckbox();
+    }
+
+    setupNecessaryCheckbox() {
+        // Find all checkboxes with data-consent-id="necessary-checkbox"
+        const necessaryCheckboxes = document.querySelectorAll('[data-consent-id="necessary-checkbox"]');
+        necessaryCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            checkbox.disabled = true;
+        });
+    }
+
+    async handleAcceptAll() {
+        console.log("=== Handling Accept All Consent ===");
+        try {
+            const preferences = {
+                Necessary: true,
+                Marketing: true,
+                Personalization: true,
+                Analytics: true,
+                DoNotShare: false
+            };
+
+            // Save consent state
+            await ConsentManager.saveConsent(preferences);
+            
+            // Restore all scripts
+            await restoreAllowedScripts(preferences);
+            
+            // Hide all banners
+            this.hideAll();
+            
+            console.log("✅ Accept All: Scripts restored successfully");
+            console.log("Restored scripts:", ScriptVerification.getStats());
+        } catch (error) {
+            console.error("Error in handleAcceptAll:", error);
+            ScriptVerification.logError('handleAcceptAll', error);
+        }
+    }
+
+    async handleRejectAll() {
+        console.log("=== Handling Reject All Consent ===");
+        try {
+            const preferences = {
+                Necessary: true,
+                Marketing: false,
+                Personalization: false,
+                Analytics: false,
+                DoNotShare: true
+            };
+
+            // Save consent state
+            await ConsentManager.saveConsent(preferences);
+            
+            // Block all non-necessary scripts
+            await scanAndBlockScripts();
+            
+            // Hide all banners
+            this.hideAll();
+            
+            console.log("🚫 Reject All: Scripts blocked successfully");
+            console.log("Blocked scripts:", ScriptVerification.getStats());
+        } catch (error) {
+            console.error("Error in handleRejectAll:", error);
+            ScriptVerification.logError('handleRejectAll', error);
+        }
+    }
+
+    async handleSavePreferences() {
+        console.log("=== Handling Save Preferences ===");
+        try {
+            const form = document.getElementById("main-banner") || 
+                        document.getElementById("main-consent-banner");
+            
+            if (!form) {
+                throw new Error("Preferences form not found");
+            }
+
+            const preferences = {
+                Necessary: true, // Always true
+                Marketing: form.querySelector('[data-consent-id="marketing-checkbox"]')?.checked || false,
+                Personalization: form.querySelector('[data-consent-id="personalization-checkbox"]')?.checked || false,
+                Analytics: form.querySelector('[data-consent-id="analytics-checkbox"]')?.checked || false,
+                DoNotShare: form.querySelector('[data-consent-id="do-not-share-checkbox"]')?.checked || false
+            };
+
+            console.log("📝 Selected preferences:", preferences);
+
+            // Save consent state
+            await ConsentManager.saveConsent(preferences);
+            
+            // Update analytics tools
+            await Promise.all([
+                AnalyticsConsentHandlers.updateGoogleAnalytics(preferences),
+                AnalyticsConsentHandlers.updatePlausible(preferences),
+                AnalyticsConsentHandlers.updateHotjar(preferences),
+                AnalyticsConsentHandlers.updateClarity(preferences),
+                AnalyticsConsentHandlers.updateMatomo(preferences),
+                AnalyticsConsentHandlers.updateHubSpot(preferences)
+            ]);
+
+            // Block all scripts first
+            await scanAndBlockScripts();
+            
+            // Then restore allowed scripts
+            await restoreAllowedScripts(preferences);
+            
+            // Hide all banners
+            this.hideAll();
+            
+            console.log("✅ Preferences saved and applied successfully");
+            console.log("Current script status:", ScriptVerification.getStats());
+        } catch (error) {
+            console.error("Error in handleSavePreferences:", error);
+            ScriptVerification.logError('handleSavePreferences', error);
+        }
+    }
+
+    setupHandlers() {
+        // Accept all cookies
+        const acceptBtn = document.getElementById('accept-btn');
+        if (acceptBtn) {
+            acceptBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleAcceptAll();
+            });
+        }
+
+        // Reject all cookies
+        const declineBtn = document.getElementById('decline-btn');
+        if (declineBtn) {
+            declineBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleRejectAll();
+            });
+        }
+
+        // Save preferences
+        const savePreferencesBtn = document.getElementById('save-preferences-btn');
+        if (savePreferencesBtn) {
+            savePreferencesBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleSavePreferences();
+            });
+        }
+
+        // Cancel/Reject from preferences
+        const cancelBtn = document.getElementById('cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleRejectAll();
+            });
+        }
+
+        // Show preferences
+        const preferencesBtn = document.getElementById('preferences-btn');
+        if (preferencesBtn) {
+            preferencesBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.hideAll();
+                this.show('preferences');
+            });
+        }
+
+        // Toggle consent button
+        const toggleConsentBtn = document.getElementById('toggle-consent-btn');
+        if (toggleConsentBtn) {
+            toggleConsentBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const preferences = document.getElementById('main-banner');
+                if (preferences.style.display === 'none' || !preferences.style.display) {
+                    this.hideAll();
+                    this.show('preferences');
+                } else {
+                    this.hideAll();
+                }
+            });
+        }
+
+        // Do Not Share link
+        const doNotShareLink = document.getElementById('do-not-share-link');
+        if (doNotShareLink) {
+            doNotShareLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.hide('ccpa');
+                this.show('preferences');
+            });
+        }
+
+        // Close consent button
+        const closeConsentBtn = document.getElementById('close-consent-banner');
+        if (closeConsentBtn) {
+            closeConsentBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.hide('preferences');
+            });
+        }
+    }
+
+    show(bannerKey) {
+        const banner = this.banners[bannerKey];
+        if (banner) {
+            banner.style.display = 'block';
+            banner.classList.add('show-banner');
+            banner.classList.remove('hidden');
+            banner.style.visibility = 'visible';
+            banner.style.opacity = '1';
+        }
+    }
+
+    hide(bannerKey) {
+        const banner = this.banners[bannerKey];
+        if (banner) {
+            banner.style.display = 'none';
+            banner.classList.remove('show-banner');
+            banner.classList.add('hidden');
+        }
+    }
+
+    hideAll() {
+        Object.keys(this.banners).forEach(key => {
+            if (this.banners[key]) {
+                this.hide(key);
+            }
+        });
+    }
+}
 
    
    

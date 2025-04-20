@@ -1283,15 +1283,99 @@
     }
 
     function blockAllInitialRequests() {
+        console.log("Setting up initial request blocking...");
+
+        // Block global analytics objects
+        const analyticsBlocker = {
+            get: function(target, prop) {
+                console.log(`Blocked access to ${prop} in analytics object`);
+                return function() {
+                    console.log(`Blocked ${prop} call:`, arguments);
+                };
+            }
+        };
+
+        // Define analytics objects in global scope
+        Object.defineProperties(window, {
+            'gtag': {
+                value: function() {
+                    console.log('Blocked gtag call:', Array.from(arguments));
+                    return undefined;
+                },
+                writable: true,
+                configurable: true
+            },
+            'ga': {
+                value: function() {
+                    console.log('Blocked ga call:', Array.from(arguments));
+                    return undefined;
+                },
+                writable: true,
+                configurable: true
+            },
+            'plausible': {
+                value: new Proxy({}, analyticsBlocker),
+                writable: true,
+                configurable: true
+            },
+            '_paq': {
+                value: new Proxy([], analyticsBlocker),
+                writable: true,
+                configurable: true
+            },
+            'clarity': {
+                value: function(method, value) {
+                    console.log('Blocked clarity call:', method, value);
+                    return undefined;
+                },
+                writable: true,
+                configurable: true
+            },
+            '_hsq': {
+                value: new Proxy([], analyticsBlocker),
+                writable: true,
+                configurable: true
+            },
+            'hj': {
+                value: function() {
+                    console.log('Blocked hotjar call:', Array.from(arguments));
+                    return undefined;
+                },
+                writable: true,
+                configurable: true
+            },
+            'dataLayer': {
+                value: new Proxy([], analyticsBlocker),
+                writable: true,
+                configurable: true
+            }
+        });
+
+        // Create a global function to check if analytics are blocked
+        window.checkAnalyticsBlocking = function() {
+            console.log('Analytics Blocking Status:');
+            console.log('gtag:', typeof window.gtag);
+            console.log('ga:', typeof window.ga);
+            console.log('plausible:', typeof window.plausible);
+            console.log('_paq:', typeof window._paq);
+            console.log('clarity:', typeof window.clarity);
+            console.log('_hsq:', typeof window._hsq);
+            console.log('hj:', typeof window.hj);
+            console.log('dataLayer:', typeof window.dataLayer);
+        };
+
+        // Block fetch requests
         const originalFetch = window.fetch;
-        window.fetch = function (...args) {
+        window.fetch = function(...args) {
             const url = args[0];
             if (state.initialBlockingEnabled && isSuspiciousResource(url)) {
+                console.log('Blocked fetch request to:', url);
                 return Promise.resolve(new Response(null, { status: 204 }));
             }
             return originalFetch.apply(this, args);
         };
         
+        // Block XMLHttpRequest
         const originalXHR = window.XMLHttpRequest;
         window.XMLHttpRequest = function() {
             const xhr = new originalXHR();
@@ -1299,6 +1383,7 @@
             
             xhr.open = function(method, url) {
                 if (state.initialBlockingEnabled && isSuspiciousResource(url)) {
+                    console.log('Blocked XHR request to:', url);
                     return;
                 }
                 return originalOpen.apply(xhr, arguments);
@@ -1306,19 +1391,116 @@
             return xhr;
         };
         
+        // Block Image requests
         const originalImage = window.Image;
         const originalSetAttribute = Element.prototype.setAttribute;
         window.Image = function(...args) {
             const img = new originalImage(...args);
             img.setAttribute = function(name, value) {
                 if (name === 'src' && state.initialBlockingEnabled && isSuspiciousResource(value)) {
+                    console.log('Blocked image request to:', value);
                     return;
                 }
                 return originalSetAttribute.apply(this, arguments);
             };
             return img;
         };
+
+        // Block script tags
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+            const element = originalCreateElement.call(document, tagName);
+            
+            if (tagName.toLowerCase() === 'script') {
+                const originalSetAttribute = element.setAttribute;
+                element.setAttribute = function(name, value) {
+                    if (name === 'src' && state.initialBlockingEnabled && isSuspiciousResource(value)) {
+                        console.log('Blocked script src:', value);
+                        return;
+                    }
+                    return originalSetAttribute.call(this, name, value);
+                };
+            }
+            
+            return element;
+        };
+
+        // Enhanced suspicious resource patterns
+        const ENHANCED_SUSPICIOUS_PATTERNS = [
+            // Analytics
+            /google-analytics/,
+            /googletagmanager/,
+            /gtag/,
+            /analytics/,
+            /plausible\.io/,
+            /matomo/,
+            /clarity\.ms/,
+            /static\.hotjar\.com/,
+            /contentsquare/,
+            /mouseflow/,
+            /crazyegg/,
+            /mixpanel/,
+            /segment\.com/,
+            /amplitude/,
+            
+            // Marketing
+            /facebook\.com/,
+            /fbevents/,
+            /doubleclick\.net/,
+            /linkedin\.com/,
+            /twitter\.com/,
+            /pinterest\.com/,
+            /tiktok\.com/,
+            /snap\.com/,
+            /reddit\.com/,
+            /quora\.com/,
+            /outbrain/,
+            /taboola/,
+            /sharethrough/,
+            
+            // Personalization
+            /optimizely/,
+            /hubspot/,
+            /marketo/,
+            /pardot/,
+            /salesforce/,
+            /intercom/,
+            /drift/,
+            /zendesk/,
+            /freshchat/,
+            /tawk/,
+            /livechat/
+        ];
+
+        // Update isSuspiciousResource function
+        window.isSuspiciousResource = function(url) {
+            if (!url) return false;
+            return ENHANCED_SUSPICIOUS_PATTERNS.some(pattern => pattern.test(url));
+        };
+
+        console.log("Initial request blocking setup complete");
+        window.checkAnalyticsBlocking(); // Log initial blocking status
     }
+
+    // Initialize blocking immediately
+    blockAllInitialRequests();
+
+    // Add a global function to test analytics blocking
+    window.testAnalyticsBlocking = function() {
+        console.log('Testing analytics blocking...');
+        try {
+            gtag('event', 'test');
+            ga('send', 'pageview');
+            plausible('pageview');
+            _paq.push(['trackPageView']);
+            clarity('set', 'test');
+            _hsq.push(['trackPageView']);
+            hj('event', 'test');
+            dataLayer.push({ event: 'test' });
+        } catch (error) {
+            console.error('Error during analytics test:', error);
+        }
+    };
 
     // Placeholder: detectLocationAndGetBannerType
     async function detectLocationAndGetBannerType() {
@@ -1339,22 +1521,109 @@
         return categories.some(cat => preferences[cat] === true);
     }
 
-    async function categorizeScript(script, categorizedScripts) {
-        const src = script.src;
-        const content = script.textContent;
+    // Script patterns for categorization
+    const SCRIPT_PATTERNS = [
+        {
+            pattern: /collect|plausible\.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i,
+            category: 'Analytics'
+        },
+        {
+            pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i,
+            category: 'Marketing'
+        },
+        {
+            pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i,
+            category: 'Personalization'
+        }
+    ];
 
-        // Check against categorized scripts
-        const matched = categorizedScripts?.find(s => 
-            (src && normalizeUrl(s.src) === normalizeUrl(src)) ||
-            (content && s.content?.trim() === content?.trim())
-        );
-
-        if (matched?.category) return matched.category;
-
-        // Check against patterns
-        return findCategoryByPattern(src || content);
+    // Helper function to find category by pattern
+    function findCategoryByPattern(content) {
+        if (!content) return null;
+        
+        for (const { pattern, category } of SCRIPT_PATTERNS) {
+            if (pattern.test(content)) {
+                return category;
+            }
+        }
+        return null;
     }
 
+    // Configuration object
+    const CONFIG = {
+        API: {
+            BASE_URL: 'https://cb-server.web-8fb.workers.dev/api',
+            ENDPOINTS: {
+                VISITOR_TOKEN: '/visitor-token',
+                DETECT_LOCATION: '/cmp/detect-location',
+                CONSENT: '/cmp/consent',
+                SCRIPT_CATEGORY: '/cmp/script-category'
+            }
+        },
+        STORAGE_KEYS: {
+            VISITOR_ID: 'visitorId',
+            SESSION_TOKEN: 'visitorSessionToken',
+            CONSENT_GIVEN: 'consent-given',
+            PREFERENCES: 'consent-preferences',
+            POLICY_VERSION: 'consent-policy-version',
+            DEBUG_MODE: 'consent-debug-mode'
+        },
+        CATEGORIES: {
+            NECESSARY: 'Necessary',
+            MARKETING: 'Marketing',
+            ANALYTICS: 'Analytics',
+            PERSONALIZATION: 'Personalization'
+        },
+        POLICY_VERSION: '1.2',
+        RETRY_DELAY: 2000,
+        MAX_RETRIES: 3,
+        DEBUG: {
+            ENABLED: false,
+            LOG_LEVEL: 'info'
+        }
+    };
+
+    // Helper function to normalize URL
+    function normalizeUrl(url) {
+        if (!url) return '';
+        try {
+            const urlObj = new URL(url);
+            return urlObj.hostname + urlObj.pathname;
+        } catch (e) {
+            return url;
+        }
+    }
+
+    // Update categorizeScript function
+    async function categorizeScript(script, categorizedScripts) {
+        try {
+            const src = script.src;
+            const content = script.textContent;
+
+            // Check against categorized scripts
+            const matched = categorizedScripts?.find(s => 
+                (src && normalizeUrl(s.src) === normalizeUrl(src)) ||
+                (content && s.content?.trim() === content?.trim())
+            );
+
+            if (matched?.category) return matched.category;
+
+            // Check against patterns
+            const category = findCategoryByPattern(src || content);
+            if (category) return category;
+
+            // Check for analytics tools
+            const analyticsInfo = ScriptVerification.detectAnalyticsTool(script);
+            if (analyticsInfo) return analyticsInfo.category;
+
+            return null;
+        } catch (error) {
+            ScriptVerification.logError('categorizeScript', error);
+            return null;
+        }
+    }
+
+    // Update setupMutationObserver function
     function setupMutationObserver() {
         if (state.observer) {
             state.observer.disconnect();

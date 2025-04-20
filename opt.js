@@ -13,7 +13,8 @@
             VISITOR_TOKEN: 'https://cb-server.web-8fb.workers.dev/api/visitor-token',
             DETECT_LOCATION: 'https://cb-server.web-8fb.workers.dev/api/cmp/detect-location',
             SCRIPT_CATEGORY: 'https://cb-server.web-8fb.workers.dev/api/cmp/script-category',
-            CONSENT: 'https://cb-server.web-8fb.workers.dev/api/cmp/consent'
+            CONSENT: 'https://cb-server.web-8fb.workers.dev/api/cmp/consent',
+            SITE_DETAILS: 'https://cb-server.web-8fb.workers.dev/api/site-details'
         },
         POLICY_VERSION: '1.2'
     };
@@ -58,7 +59,8 @@
         initialBlockingEnabled: true,
         currentBannerType: null,
         country: null,
-        categorizedScripts: null
+        categorizedScripts: null,
+        siteDetails: null
     };
 
     // Request Blocking Helper
@@ -916,6 +918,22 @@
             state.initialBlockingEnabled = true;
             blockAllInitialRequests();
 
+            // Get visitor token and site details
+            const token = await getVisitorSessionToken();
+            if (token) {
+                // Get full site name
+                const fullSiteName = window.location.hostname;
+                // Extract site ID from the full domain
+                const siteId = fullSiteName.split('.')[0].split('-').pop();
+                
+                if (siteId) {
+                    const siteDetails = await SiteManager.getSiteDetails(siteId);
+                    if (siteDetails) {
+                        state.siteDetails = siteDetails;
+                    }
+                }
+            }
+
             // Create and expose BannerManager instance
             const bannerManager = new BannerManager();
             Object.defineProperty(window, 'bannerManager', {
@@ -1437,7 +1455,24 @@
     }
 
     function cleanHostname(hostname) {
-        return hostname.replace(/^www\./, '').split('.').slice(-2).join('.');
+        try {
+            // Remove any protocol and www if present
+            let cleanedHost = hostname.replace(/^(https?:\/\/)?(www\.)?/, '');
+            
+            // Remove any trailing slashes or paths
+            cleanedHost = cleanedHost.split('/')[0];
+            
+            // Get the full domain without subdomain
+            const parts = cleanedHost.split('.');
+            if (parts.length >= 2) {
+                // If it's a subdomain.domain.tld format, keep the full structure
+                return cleanedHost;
+            }
+            return hostname; // Return original if parsing fails
+        } catch (error) {
+            console.error('Error cleaning hostname:', error);
+            return hostname; // Return original on error
+        }
     }
 
     function isTokenExpired(token) {
@@ -1450,26 +1485,104 @@
         }
     }
 
+    // Add site details handling
+    const SiteManager = {
+        async getSiteDetails(siteId) {
+            try {
+                // Clean and validate the site ID
+                const cleanSiteId = siteId.trim();
+                if (!cleanSiteId) {
+                    throw new Error('Invalid site ID');
+                }
+
+                // Get the site details from local storage first
+                const cachedDetails = localStorage.getItem(`site-details:${cleanSiteId}`);
+                if (cachedDetails) {
+                    try {
+                        return JSON.parse(cachedDetails);
+                    } catch (e) {
+                        console.warn('Invalid cached site details, fetching fresh data');
+                    }
+                }
+
+                // Fetch fresh site details
+                const response = await fetch(`${CONFIG.API_ENDPOINTS.SITE_DETAILS}/${cleanSiteId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('visitorSessionToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch site details: ${response.status}`);
+                }
+
+                const text = await response.text();
+                let data;
+                
+                try {
+                    // Try to parse the response as JSON
+                    data = JSON.parse(text.trim());
+                } catch (e) {
+                    console.error('Failed to parse site details response:', text);
+                    throw new Error('Invalid site details format');
+                }
+
+                // Cache the valid response
+                localStorage.setItem(`site-details:${cleanSiteId}`, JSON.stringify(data));
+                return data;
+            } catch (error) {
+                console.error('Error getting site details:', error);
+                return null;
+            }
+        },
+
+        async processCookiePreferences(keys) {
+            try {
+                const preferences = {};
+                
+                for (const key of keys) {
+                    if (key.name.startsWith('Cookie-Preferences:')) {
+                        const [, domain, visitorId] = key.name.split(':');
+                        if (!preferences[domain]) {
+                            preferences[domain] = [];
+                        }
+                        preferences[domain].push(visitorId);
+                    }
+                }
+
+                return preferences;
+            } catch (error) {
+                console.error('Error processing cookie preferences:', error);
+                return {};
+            }
+        }
+    };
+
+    // Update getVisitorSessionToken function
     async function getVisitorSessionToken() {
         try {
             const visitorId = await getOrCreateVisitorId();
-            const siteName = cleanHostname(window.location.hostname);
+            
+            // Get full site name including subdomains
+            const fullSiteName = window.location.hostname;
+            console.log('Full site name:', fullSiteName);
             
             let token = localStorage.getItem('visitorSessionToken');
             if (token && !isTokenExpired(token)) {
                 return token;
             }
 
-            const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+            const response = await fetch(CONFIG.API_ENDPOINTS.VISITOR_TOKEN, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${CONFIG.API_KEY}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     visitorId,
                     userAgent: navigator.userAgent,
-                    siteName
+                    siteName: fullSiteName, // Use full site name
+                    timestamp: Date.now()
                 })
             });
 
@@ -1477,8 +1590,27 @@
                 throw new Error(`Failed to get visitor token: ${response.status}`);
             }
 
-            const data = await response.json();
+            let data;
+            try {
+                const text = await response.text();
+                data = JSON.parse(text.trim());
+            } catch (e) {
+                console.error('Invalid token response:', e);
+                throw new Error('Invalid token format');
+            }
+
+            if (!data.token) {
+                throw new Error('No token in response');
+            }
+
             localStorage.setItem('visitorSessionToken', data.token);
+            
+            // Process any cookie preferences in the response
+            if (data.keys) {
+                const preferences = await SiteManager.processCookiePreferences(data.keys);
+                localStorage.setItem('cookie-preferences', JSON.stringify(preferences));
+            }
+
             return data.token;
         } catch (error) {
             console.error('Error getting visitor session token:', error);

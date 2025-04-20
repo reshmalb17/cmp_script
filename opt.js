@@ -840,11 +840,136 @@
         }
     };
 
-    // Placeholder: loadCategorizedScripts
+    // Placeholder for Encryption Utilities
+    const EncryptionUtils = {
+        generateKey: async () => {
+            console.warn("Placeholder: EncryptionUtils.generateKey called. Implement real encryption.");
+            // TODO: Implement actual key generation
+            const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            return { key, iv };
+        },
+        importKey: async (keyData, usage) => {
+            console.warn("Placeholder: EncryptionUtils.importKey called. Implement real key import.");
+            // TODO: Implement actual key import
+            return await crypto.subtle.importKey("raw", new Uint8Array(keyData), { name: "AES-GCM" }, true, usage);
+        },
+        encrypt: async (data, key, iv) => {
+            console.warn("Placeholder: EncryptionUtils.encrypt called. Implement real encryption.");
+            // TODO: Implement actual encryption
+            const encoded = new TextEncoder().encode(data);
+            const encryptedContent = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encoded);
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(encryptedContent))); // Base64 encode
+        },
+        decrypt: async (encryptedData, key, iv) => {
+            console.warn("Placeholder: EncryptionUtils.decrypt called. Implement real decryption.");
+            // TODO: Implement actual decryption
+            const encryptedContent = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+            const decryptedContent = await crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(iv) }, key, encryptedContent);
+            return new TextDecoder().decode(decryptedContent);
+        }
+    };
+
+    // Placeholder: loadCategorizedScripts - Replace with the provided implementation
     async function loadCategorizedScripts() {
-        console.log("Placeholder: loadCategorizedScripts called");
-        // Return an empty array or mock data if needed for testing
-        return []; 
+        try {
+            // Get session token from localStorage
+            const sessionToken = localStorage.getItem('visitorSessionToken');
+            if (!sessionToken) {
+                console.error('No session token found');
+                return [];
+            }
+      
+            // Get or generate visitorId
+            let visitorId = localStorage.getItem('visitorId');
+            if (!visitorId) {
+                visitorId = crypto.randomUUID();
+                localStorage.setItem('visitorId', visitorId);
+            }
+      
+            // Get site name from hostname
+            const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+            
+            // Generate encryption key and IV
+            const { key, iv } = await EncryptionUtils.generateKey();
+            
+            // Prepare request data
+            const requestData = {
+                siteName: siteName,
+                visitorId: visitorId,
+                userAgent: navigator.userAgent
+            };
+            
+            // Encrypt the request data
+            const encryptedRequest = await EncryptionUtils.encrypt(
+                JSON.stringify(requestData),
+                key,
+                iv
+            );
+            
+            // Send the encrypted request
+            const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-category', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${sessionToken}`,
+                    'X-Request-ID': crypto.randomUUID(),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Origin': window.location.origin
+                },
+                body: JSON.stringify({
+                    encryptedData: encryptedRequest,
+                    key: Array.from(new Uint8Array(await crypto.subtle.exportKey('raw', key))),
+                    iv: Array.from(iv)
+                })
+            });
+      
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Failed to load categorized scripts:', errorData);
+                return [];
+            }
+      
+            const data = await response.json();
+            
+            // Decrypt the response data
+            if (data.encryptedData) {
+                const responseKey = await EncryptionUtils.importKey(
+                    new Uint8Array(data.key),
+                    ['decrypt']
+                );
+                
+                const decryptedData = await EncryptionUtils.decrypt(
+                    data.encryptedData,
+                    responseKey,
+                    new Uint8Array(data.iv)
+                );
+                
+                const responseObj = JSON.parse(decryptedData);
+                console.log("decrypted Script category",responseObj.scripts)
+                state.categorizedScripts = responseObj.scripts || []; // Update state here
+                console.log("initial categorized script",state.categorizedScripts);
+                return responseObj.scripts || [];
+            } else {
+                console.error('Response does not contain encrypted data');
+                return [];
+            }
+        } catch (error) {
+            console.error('Error loading categorized scripts:', error);
+            return [];
+        }
+    }
+
+    // Placeholder function for script categorization
+    async function categorizeScript(script, categorizedScripts) {
+        console.log('Placeholder: categorizeScript called for:', script.src || 'inline script');
+        
+        // TODO: Implement actual categorization logic here
+        // This might involve checking script.src or script.textContent
+        // against known patterns or calling an API endpoint.
+        
+        // Default to 'Necessary' or null if unsure
+        return 'Necessary'; 
     }
 
     // Enhanced script blocking and restoration

@@ -377,55 +377,18 @@
         }
     };
 
-    // Enhanced ConsentManager with EncryptionUtils
-    const EncryptionUtils = {
-        async generateKey() {
-            const key = await crypto.subtle.generateKey(
-                { name: "AES-GCM", length: 256 },
-                true,
-                ["encrypt", "decrypt"]
-            );
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            return { key, iv };
-        },
-
-        async importKey(rawKey, usages = ['encrypt', 'decrypt']) {
-            return await crypto.subtle.importKey(
-                'raw',
-                rawKey,
-                { name: 'AES-GCM' },
-                false,
-                usages
-            );
-        },
-
-        async encrypt(data, key, iv) {
-            const encoder = new TextEncoder();
-            const encodedData = encoder.encode(data);
-            const encrypted = await crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv },
-                key,
-                encodedData
-            );
-            return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-        },
-
-        async decrypt(encryptedData, key, iv) {
-            const encryptedBytes = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
-            const decrypted = await crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv },
-                key,
-                encryptedBytes
-            );
-            return new TextDecoder().decode(decrypted);
-        }
-    };
-
-    // Consent Management System
+    // Enhanced ConsentManager with proper consent handling
     class ConsentManager {
         constructor() {
             this.preferences = this.loadPreferences();
             this.consentGiven = this.hasConsentBeenGiven();
+            this.initializeAnalyticsBlocking();
+        }
+
+        initializeAnalyticsBlocking() {
+            if (!this.consentGiven) {
+                blockAllInitialRequests();
+            }
         }
 
         loadPreferences() {
@@ -444,34 +407,66 @@
         }
 
         async savePreferences(preferences) {
-            this.preferences = preferences;
-            localStorage.setItem(CONFIG.STORAGE_KEYS.CONSENT_PREFERENCES, JSON.stringify(preferences));
-            localStorage.setItem(CONFIG.STORAGE_KEYS.CONSENT_GIVEN, 'true');
-            localStorage.setItem(CONFIG.STORAGE_KEYS.POLICY_VERSION, CONFIG.POLICY_VERSION);
-            this.consentGiven = true;
-            await this.applyPreferences();
-        }
+            try {
+                console.log('Saving consent preferences:', preferences);
+                
+                // Save preferences to storage
+                localStorage.setItem(CONFIG.STORAGE_KEYS.CONSENT_PREFERENCES, JSON.stringify(preferences));
+                localStorage.setItem(CONFIG.STORAGE_KEYS.CONSENT_GIVEN, 'true');
+                localStorage.setItem(CONFIG.STORAGE_KEYS.POLICY_VERSION, CONFIG.POLICY_VERSION);
+                
+                this.preferences = preferences;
+                this.consentGiven = true;
 
-        async applyPreferences() {
-            const scripts = document.querySelectorAll('script[type="text/plain"][data-category]');
-            for (const script of scripts) {
-                const category = script.getAttribute('data-category');
-                if (this.preferences[category]) {
-                    await this.enableScript(script);
+                // If consent is accepted, unblock and restore scripts
+                if (preferences.Analytics || preferences.Marketing || preferences.Personalization) {
+                    console.log('Consent accepted, restoring scripts...');
+                    state.initialBlockingEnabled = false;
+                    await this.restoreAnalytics(preferences);
+                } else {
+                    console.log('Consent rejected, maintaining blocks...');
+                    state.initialBlockingEnabled = true;
+                    await this.blockAnalytics();
                 }
+
+                // Update analytics tools with new preferences
+                await Promise.all([
+                    AnalyticsConsentHandlers.updateGoogleAnalytics(preferences),
+                    AnalyticsConsentHandlers.updatePlausible(preferences),
+                    AnalyticsConsentHandlers.updateHotjar(preferences),
+                    AnalyticsConsentHandlers.updateClarity(preferences),
+                    AnalyticsConsentHandlers.updateMatomo(preferences),
+                    AnalyticsConsentHandlers.updateHubSpot(preferences)
+                ]);
+
+                console.log('Consent preferences saved and applied successfully');
+                return true;
+            } catch (error) {
+                console.error('Error saving consent preferences:', error);
+                return false;
             }
         }
 
-        async enableScript(script) {
-            const newScript = document.createElement('script');
-            Array.from(script.attributes).forEach(attr => {
-                if (attr.name !== 'type') {
-                    newScript.setAttribute(attr.name, attr.value);
-                }
-            });
-            newScript.textContent = script.textContent;
-            script.parentNode.replaceChild(newScript, script);
-            ScriptVerification.logRestoredScript(newScript, script.getAttribute('data-category'));
+        async restoreAnalytics(preferences) {
+            if (preferences.Analytics) {
+                // Restore analytics objects to their original state
+                delete window.gtag;
+                delete window.ga;
+                delete window.dataLayer;
+                delete window.plausible;
+                delete window._paq;
+                delete window.clarity;
+                
+                // Restore any blocked scripts
+                await restoreAllowedScripts(preferences);
+            }
+        }
+
+        async blockAnalytics() {
+            // Re-enable blocking
+            state.initialBlockingEnabled = true;
+            blockAllInitialRequests();
+            await scanAndBlockScripts();
         }
 
         getPreferences() {
@@ -1673,6 +1668,7 @@ class BannerManager {
     }
 
     async handleAcceptAll() {
+        console.log('Handling accept all consent...');
         const preferences = {
             Necessary: true,
             Marketing: true,
@@ -1680,11 +1676,29 @@ class BannerManager {
             Analytics: true,
             DoNotShare: false
         };
-        await this.consentManager.savePreferences(preferences);
-        this.hideBanner();
+        
+        // Save and apply preferences
+        const success = await this.consentManager.savePreferences(preferences);
+        
+        if (success) {
+            console.log('Accept all consent saved successfully');
+            // Hide the banner after successful save
+            this.hideBanner();
+            
+            // Trigger any additional callbacks
+            if (window.dataLayer && !state.initialBlockingEnabled) {
+                window.dataLayer.push({
+                    event: 'consent_accepted',
+                    consent_preferences: preferences
+                });
+            }
+        } else {
+            console.error('Failed to save accept all consent');
+        }
     }
 
     async handleRejectAll() {
+        console.log('Handling reject all consent...');
         const preferences = {
             Necessary: true,
             Marketing: false,
@@ -1692,11 +1706,29 @@ class BannerManager {
             Analytics: false,
             DoNotShare: true
         };
-        await this.consentManager.savePreferences(preferences);
-        this.hideBanner();
+        
+        // Save and apply preferences
+        const success = await this.consentManager.savePreferences(preferences);
+        
+        if (success) {
+            console.log('Reject all consent saved successfully');
+            // Hide the banner after successful save
+            this.hideBanner();
+            
+            // Trigger any additional callbacks
+            if (window.dataLayer && !state.initialBlockingEnabled) {
+                window.dataLayer.push({
+                    event: 'consent_rejected',
+                    consent_preferences: preferences
+                });
+            }
+        } else {
+            console.error('Failed to save reject all consent');
+        }
     }
 
     async handleSavePreferences() {
+        console.log('Handling save preferences...');
         const preferences = {
             Necessary: true,
             Marketing: this.getCheckboxValue('marketing'),
@@ -1704,9 +1736,25 @@ class BannerManager {
             Analytics: this.getCheckboxValue('analytics'),
             DoNotShare: this.getCheckboxValue('do-not-share')
         };
-        await this.consentManager.savePreferences(preferences);
-        this.hideSettings();
-        this.hideBanner();
+        
+        // Save and apply preferences
+        const success = await this.consentManager.savePreferences(preferences);
+        
+        if (success) {
+            console.log('Preferences saved successfully');
+            this.hideSettings();
+            this.hideBanner();
+            
+            // Trigger any additional callbacks
+            if (window.dataLayer && !state.initialBlockingEnabled) {
+                window.dataLayer.push({
+                    event: 'consent_updated',
+                    consent_preferences: preferences
+                });
+            }
+        } else {
+            console.error('Failed to save preferences');
+        }
     }
 
     getCheckboxValue(category) {

@@ -44,44 +44,8 @@
         }
     };
 
-    // Banner Management Functions
-    function initializeBanner() {
-        // Wait for DOM to be fully loaded
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                const bannerManager = new BannerManager();
-                window.bannerManager = bannerManager; // Make it globally accessible
-                attachBannerHandlers(bannerManager);
-            });
-        } else {
-            const bannerManager = new BannerManager();
-            window.bannerManager = bannerManager; // Make it globally accessible
-            attachBannerHandlers(bannerManager);
-        }
-    }
-
-    function showBanner(banner) {
-        if (banner) {
-            banner.style.display = "block";
-            banner.classList.add("show-banner");
-            banner.classList.remove("hidden");
-            banner.style.visibility = 'visible';
-            banner.style.opacity = '1';
-        }
-    }
-
-    function hideBanner(banner) {
-        if (banner) {
-            banner.style.display = "none";
-            banner.classList.remove("show-banner");
-            banner.classList.add("hidden");
-        }
-    }
-
-    // Make banner functions globally available
-    window.showBanner = showBanner;
-    window.hideBanner = hideBanner;
-    window.initializeBanner = initializeBanner;
+    // Add initialization guard
+    let isInitializing = false;
 
     // Core state management
     const state = {
@@ -478,63 +442,109 @@
         }
     }
 
+    // Enhanced BannerManager with proper method exposure
     class BannerManager {
         constructor() {
-            this.bannerType = null;
-            this.bannerElement = null;
-            this.settingsElement = null;
+            // Initialize banner elements
+            this.banners = {
+                main: document.getElementById('consent-banner'),
+                ccpa: document.getElementById('initial-consent-banner'),
+                preferences: document.getElementById('main-banner'),
+                simple: document.getElementById('simple-consent-banner')
+            };
             this.consentManager = new ConsentManager();
+            
+            // Bind methods to instance
+            this.hideAll = this.hideAll.bind(this);
+            this.show = this.show.bind(this);
+            this.initialize = this.initialize.bind(this);
+        }
+
+        hideAll() {
+            console.log('Hiding all banners');
+            Object.values(this.banners).forEach(banner => {
+                if (banner) {
+                    banner.style.display = 'none';
+                    banner.classList.remove('show-banner');
+                    banner.classList.add('hidden');
+                }
+            });
+        }
+
+        show(bannerType) {
+            console.log('Showing banner:', bannerType);
+            const banner = this.banners[bannerType];
+            if (banner) {
+                banner.style.display = 'block';
+                banner.classList.add('show-banner');
+                banner.classList.remove('hidden');
+                banner.style.visibility = 'visible';
+                banner.style.opacity = '1';
+            } else {
+                console.warn(`Banner type ${bannerType} not found`);
+            }
         }
 
         async initialize() {
             try {
+                console.log('Initializing BannerManager');
+                
                 if (this.consentManager.isConsentGiven()) {
+                    console.log('Consent already given, applying preferences');
                     await this.consentManager.applyPreferences();
                     return;
                 }
 
-                this.bannerType = await detectLocationAndGetBannerType();
-                await this.createBanner();
+                // Default to GDPR banner type
+                this.bannerType = 'gdpr';
+
+                try {
+                    // Try to get location-based banner type
+                    const token = await getVisitorSessionToken();
+                    if (token) {
+                        const detectedType = await detectLocationAndGetBannerType();
+                        if (detectedType) {
+                            this.bannerType = detectedType;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Failed to detect location, using default banner type:', error);
+                }
+
+                // Hide all banners first
+                this.hideAll();
+
+                // Show appropriate banner
+                if (this.bannerType === 'ccpa') {
+                    this.show('ccpa');
+                } else {
+                    this.show('main');
+                }
+
+                // Attach event listeners
                 this.attachEventListeners();
-                this.showBanner();
             } catch (error) {
-                console.error('Error initializing BannerManager:', error);
-            }
-        }
-
-        async createBanner() {
-            const template = document.getElementById('consent-banner-template');
-            if (!template) {
-                console.error('Consent banner template not found');
-                return;
-            }
-
-            this.bannerElement = template.content.cloneNode(true).firstElementChild;
-            document.body.appendChild(this.bannerElement);
-
-            // Initialize settings panel
-            const settingsTemplate = document.getElementById('consent-settings-template');
-            if (settingsTemplate) {
-                this.settingsElement = settingsTemplate.content.cloneNode(true).firstElementChild;
-                document.body.appendChild(this.settingsElement);
+                console.error('Error in BannerManager initialization:', error);
+                // Fallback to main banner
+                this.show('main');
             }
         }
 
         attachEventListeners() {
             // Accept all button
-            const acceptAllBtn = this.bannerElement.querySelector('[data-consent="accept-all"]');
+            const acceptAllBtn = this.banners.main.querySelector('[data-consent="accept-all"]');
             if (acceptAllBtn) {
                 acceptAllBtn.addEventListener('click', () => this.handleAcceptAll());
             }
 
             // Reject all button
-            const rejectAllBtn = this.bannerElement.querySelector('[data-consent="reject-all"]');
+            const rejectAllBtn = this.banners.main.querySelector('[data-consent="reject-all"]');
             if (rejectAllBtn) {
                 rejectAllBtn.addEventListener('click', () => this.handleRejectAll());
             }
 
             // Settings button
-            const settingsBtn = this.bannerElement.querySelector('[data-consent="settings"]');
+            const settingsBtn = this.banners.main.querySelector('[data-consent="settings"]');
             if (settingsBtn) {
                 settingsBtn.addEventListener('click', () => this.showSettings());
             }
@@ -564,7 +574,7 @@
             if (success) {
                 console.log('Accept all consent saved successfully');
                 // Hide the banner after successful save
-                this.hideBanner();
+                this.hideAll();
                 
                 // Trigger any additional callbacks
                 if (window.dataLayer && !state.initialBlockingEnabled) {
@@ -594,7 +604,7 @@
             if (success) {
                 console.log('Reject all consent saved successfully');
                 // Hide the banner after successful save
-                this.hideBanner();
+                this.hideAll();
                 
                 // Trigger any additional callbacks
                 if (window.dataLayer && !state.initialBlockingEnabled) {
@@ -624,7 +634,7 @@
             if (success) {
                 console.log('Preferences saved successfully');
                 this.hideSettings();
-                this.hideBanner();
+                this.hideAll();
                 
                 // Trigger any additional callbacks
                 if (window.dataLayer && !state.initialBlockingEnabled) {
@@ -642,20 +652,6 @@
             if (!this.settingsElement) return false;
             const checkbox = this.settingsElement.querySelector(`[data-category="${category}"]`);
             return checkbox ? checkbox.checked : false;
-        }
-
-        showBanner() {
-            if (this.bannerElement) {
-                this.bannerElement.classList.remove('hidden');
-                this.bannerElement.classList.add('visible');
-            }
-        }
-
-        hideBanner() {
-            if (this.bannerElement) {
-                this.bannerElement.classList.remove('visible');
-                this.bannerElement.classList.add('hidden');
-            }
         }
 
         showSettings() {
@@ -676,17 +672,25 @@
     // Location detection and banner type determination
     async function detectLocationAndGetBannerType() {
         try {
-            const response = await fetch(CONFIG.API_ENDPOINTS.DETECT_LOCATION);
-            if (!response.ok) throw new Error('Failed to detect location');
+            const token = localStorage.getItem('visitorSessionToken');
+            const response = await fetch(CONFIG.API_ENDPOINTS.DETECT_LOCATION, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to detect location');
+            }
+
             const data = await response.json();
             
-            // Default to GDPR if location detection fails
             if (!data || !data.region) {
                 console.warn('Location detection failed, defaulting to GDPR banner');
                 return 'gdpr';
             }
 
-            // Map regions to banner types
             const regionMap = {
                 'EU': 'gdpr',
                 'US-CA': 'ccpa',
@@ -698,7 +702,7 @@
             return regionMap[data.region] || 'gdpr';
         } catch (error) {
             console.error('Error detecting location:', error);
-            return 'gdpr'; // Default to GDPR on error
+            return 'gdpr';
         }
     }
 
@@ -897,59 +901,53 @@
         return Promise.resolve();
     }
 
-    // Initialize the system
+    // Update initialization function
     async function initialize() {
+        if (isInitializing || state.isInitialized) {
+            console.log("Initialization already in progress or completed");
+            return;
+        }
+
+        isInitializing = true;
         console.log("=== Starting System Initialization ===");
         
         try {
-            if (state.isInitialized) {
-                console.log("System already initialized");
-                return;
-            }
-
-            // Create BannerManager instance first
-            const bannerManager = new BannerManager();
-            window.bannerManager = bannerManager;
-
-            // Enable initial blocking
+            // Enable initial blocking first
             state.initialBlockingEnabled = true;
             blockAllInitialRequests();
 
-            // First, get visitor session token
-            const token = await getVisitorSessionToken();
-            if (!token) {
-                console.warn("Failed to get visitor session token, proceeding with limited functionality");
-            }
+            // Create and expose BannerManager instance
+            const bannerManager = new BannerManager();
+            Object.defineProperty(window, 'bannerManager', {
+                value: bannerManager,
+                writable: false,
+                configurable: false
+            });
 
-            // Load consent styles
-            await loadConsentStyles();
-
-            // Then initialize banner visibility based on location
-            await initializeBannerVisibility();
+            // Initialize banner manager
+            await bannerManager.initialize();
 
             state.isInitialized = true;
             console.log("=== System Initialization Complete ===");
-
-            // Verify initial state
-            await ConsentVerification.verifyAllTools();
         } catch (error) {
-            ScriptVerification.logError('initialize', error);
             console.error("Failed to initialize system:", error);
             
             // Fallback initialization
             try {
-                state.initialBlockingEnabled = true;
-                blockAllInitialRequests();
-                
-                // Create BannerManager if it doesn't exist
                 if (!window.bannerManager) {
-                    window.bannerManager = new BannerManager();
+                    const bannerManager = new BannerManager();
+                    Object.defineProperty(window, 'bannerManager', {
+                        value: bannerManager,
+                        writable: false,
+                        configurable: false
+                    });
                 }
-                
-                await initializeBannerVisibility();
+                window.bannerManager.show('main');
             } catch (fallbackError) {
                 console.error("Critical: Fallback initialization failed:", fallbackError);
             }
+        } finally {
+            isInitializing = false;
         }
     }
 
@@ -1454,43 +1452,33 @@
 
     async function getVisitorSessionToken() {
         try {
-            // Get or create visitor ID
             const visitorId = await getOrCreateVisitorId();
-            
-            // Get cleaned site name
             const siteName = cleanHostname(window.location.hostname);
             
-            // Check if we have a valid token in localStorage
             let token = localStorage.getItem('visitorSessionToken');
-            
-            // If we have a token and it's not expired, return it
             if (token && !isTokenExpired(token)) {
-                console.log("Token is in localstorage");
                 return token;
             }
 
-            // Request new token from server
             const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${CONFIG.API_KEY}`
                 },
                 body: JSON.stringify({
-                    visitorId: visitorId,
+                    visitorId,
                     userAgent: navigator.userAgent,
-                    siteName: siteName
+                    siteName
                 })
             });
 
             if (!response.ok) {
-                throw new Error('Failed to get visitor session token');
+                throw new Error(`Failed to get visitor token: ${response.status}`);
             }
 
             const data = await response.json();
-            
-            // Store the new token
             localStorage.setItem('visitorSessionToken', data.token);
-            
             return data.token;
         } catch (error) {
             console.error('Error getting visitor session token:', error);
@@ -1604,7 +1592,13 @@
         const createBlockedFunction = (name) => {
             return function(...args) {
                 try {
-                    console.log(`🚫 Blocked ${name} call with args:`, args);
+                    const safeArgs = args.map(arg => {
+                        if (typeof arg === 'symbol') {
+                            return arg.toString();
+                        }
+                        return arg;
+                    });
+                    console.log(`🚫 Blocked ${name} call with args:`, safeArgs);
                 } catch (e) {
                     console.log(`🚫 Blocked ${name} call`);
                 }

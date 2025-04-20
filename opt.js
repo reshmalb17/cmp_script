@@ -14,7 +14,7 @@
             DETECT_LOCATION: 'https://cb-server.web-8fb.workers.dev/api/cmp/detect-location',
             SCRIPT_CATEGORY: 'https://cb-server.web-8fb.workers.dev/api/cmp/script-category',
             CONSENT: 'https://cb-server.web-8fb.workers.dev/api/cmp/consent',
-            SITE_DETAILS: 'https://cb-server.web-8fb.workers.dev/api/site-details'
+         
         },
         POLICY_VERSION: '1.2'
     };
@@ -460,6 +460,9 @@
             this.hideAll = this.hideAll.bind(this);
             this.show = this.show.bind(this);
             this.initialize = this.initialize.bind(this);
+
+            // Attach banner handlers immediately
+            attachBannerHandlers(this);
         }
 
         hideAll() {
@@ -941,7 +944,8 @@
         try {
             const visitorId = await getOrCreateVisitorId();
             const hostname = window.location.hostname;
-            const siteInfo = SiteUtils.getSiteInfo(hostname);
+            const siteName = await cleanHostname(window.location.hostname);
+          
             
             console.log('Site info:', siteInfo);
             
@@ -962,8 +966,7 @@
                 body: JSON.stringify({
                     visitorId,
                     userAgent: navigator.userAgent,
-                    siteName: siteInfo.siteId, // Send the site identifier
-                    fullDomain: siteInfo.fullDomain, // Send full domain as additional info
+                    siteName: siteName, 
                     timestamp: Date.now()
                 })
             });
@@ -1551,17 +1554,8 @@
     function cleanHostname(hostname) {
         try {
             // Remove any protocol and www if present
-            let cleanedHost = hostname.replace(/^(https?:\/\/)?(www\.)?/, '');
-            
-            // Remove any trailing slashes or paths
-            cleanedHost = cleanedHost.split('/')[0];
-            
-            // Get the full domain without subdomain
-            const parts = cleanedHost.split('.');
-            if (parts.length >= 2) {
-                // If it's a subdomain.domain.tld format, keep the full structure
-                return cleanedHost;
-            }
+            let cleaned = hostname.replace(/^www\./, '');
+            cleaned = cleaned.split('.')[0];
             return hostname; // Return original if parsing fails
         } catch (error) {
             console.error('Error cleaning hostname:', error);

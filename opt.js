@@ -903,7 +903,104 @@
         return Promise.resolve();
     }
 
-    // Update initialization function
+    // Add site name parsing utility
+    const SiteUtils = {
+        extractSiteIdentifier(hostname) {
+            try {
+                // Remove protocol and www if present
+                let domain = hostname.replace(/^(https?:\/\/)?(www\.)?/, '');
+                
+                // Handle different domain patterns
+                if (domain.includes('.webflow.io')) {
+                    // Extract the site identifier for webflow sites
+                    const match = domain.match(/^([^.]+)\.webflow\.io/);
+                    return match ? match[1] : null;
+                }
+                
+                return domain;
+            } catch (error) {
+                console.error('Error extracting site identifier:', error);
+                return null;
+            }
+        },
+
+        getSiteInfo(hostname) {
+            const fullDomain = hostname;
+            const siteId = this.extractSiteIdentifier(hostname);
+            
+            return {
+                fullDomain,
+                siteId,
+                isWebflow: hostname.includes('.webflow.io')
+            };
+        }
+    };
+
+    // Update getVisitorSessionToken function
+    async function getVisitorSessionToken() {
+        try {
+            const visitorId = await getOrCreateVisitorId();
+            const hostname = window.location.hostname;
+            const siteInfo = SiteUtils.getSiteInfo(hostname);
+            
+            console.log('Site info:', siteInfo);
+            
+            if (!siteInfo.siteId) {
+                throw new Error('Could not determine site identifier');
+            }
+
+            let token = localStorage.getItem('visitorSessionToken');
+            if (token && !isTokenExpired(token)) {
+                return token;
+            }
+
+            const response = await fetch(CONFIG.API_ENDPOINTS.VISITOR_TOKEN, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    visitorId,
+                    userAgent: navigator.userAgent,
+                    siteName: siteInfo.siteId, // Send the site identifier
+                    fullDomain: siteInfo.fullDomain, // Send full domain as additional info
+                    timestamp: Date.now()
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to get visitor token: ${response.status}`);
+            }
+
+            let data;
+            try {
+                const text = await response.text();
+                data = JSON.parse(text.trim());
+            } catch (e) {
+                console.error('Invalid token response:', e);
+                throw new Error('Invalid token format');
+            }
+
+            if (!data.token) {
+                throw new Error('No token in response');
+            }
+
+            localStorage.setItem('visitorSessionToken', data.token);
+            
+            // Process any cookie preferences in the response
+            if (data.keys) {
+                const preferences = await SiteManager.processCookiePreferences(data.keys);
+                localStorage.setItem('cookie-preferences', JSON.stringify(preferences));
+            }
+
+            return data.token;
+        } catch (error) {
+            console.error('Error getting visitor session token:', error);
+            return null;
+        }
+    }
+
+    // Update initialization to use site info
     async function initialize() {
         if (isInitializing || state.isInitialized) {
             console.log("Initialization already in progress or completed");
@@ -921,13 +1018,10 @@
             // Get visitor token and site details
             const token = await getVisitorSessionToken();
             if (token) {
-                // Get full site name
-                const fullSiteName = window.location.hostname;
-                // Extract site ID from the full domain
-                const siteId = fullSiteName.split('.')[0].split('-').pop();
+                const siteInfo = SiteUtils.getSiteInfo(window.location.hostname);
                 
-                if (siteId) {
-                    const siteDetails = await SiteManager.getSiteDetails(siteId);
+                if (siteInfo.siteId) {
+                    const siteDetails = await SiteManager.getSiteDetails(siteInfo.siteId);
                     if (siteDetails) {
                         state.siteDetails = siteDetails;
                     }
@@ -1558,65 +1652,6 @@
             }
         }
     };
-
-    // Update getVisitorSessionToken function
-    async function getVisitorSessionToken() {
-        try {
-            const visitorId = await getOrCreateVisitorId();
-            
-            // Get full site name including subdomains
-            const fullSiteName = window.location.hostname;
-            console.log('Full site name:', fullSiteName);
-            
-            let token = localStorage.getItem('visitorSessionToken');
-            if (token && !isTokenExpired(token)) {
-                return token;
-            }
-
-            const response = await fetch(CONFIG.API_ENDPOINTS.VISITOR_TOKEN, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    visitorId,
-                    userAgent: navigator.userAgent,
-                    siteName: fullSiteName, // Use full site name
-                    timestamp: Date.now()
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to get visitor token: ${response.status}`);
-            }
-
-            let data;
-            try {
-                const text = await response.text();
-                data = JSON.parse(text.trim());
-            } catch (e) {
-                console.error('Invalid token response:', e);
-                throw new Error('Invalid token format');
-            }
-
-            if (!data.token) {
-                throw new Error('No token in response');
-            }
-
-            localStorage.setItem('visitorSessionToken', data.token);
-            
-            // Process any cookie preferences in the response
-            if (data.keys) {
-                const preferences = await SiteManager.processCookiePreferences(data.keys);
-                localStorage.setItem('cookie-preferences', JSON.stringify(preferences));
-            }
-
-            return data.token;
-        } catch (error) {
-            console.error('Error getting visitor session token:', error);
-            return null;
-        }
-    }
 
     // Storage management utilities
     const StorageManager = {

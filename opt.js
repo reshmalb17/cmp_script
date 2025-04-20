@@ -691,6 +691,10 @@
                 return;
             }
 
+            // Create BannerManager instance first
+            const bannerManager = new BannerManager();
+            window.bannerManager = bannerManager;
+
             // Enable initial blocking
             state.initialBlockingEnabled = true;
             blockAllInitialRequests();
@@ -701,14 +705,11 @@
                 console.warn("Failed to get visitor session token, proceeding with limited functionality");
             }
 
-            // Then initialize banner visibility based on location
-            await initializeBannerVisibility();
-
             // Load consent styles
             await loadConsentStyles();
 
-            // Initialize banner and attach handlers
-            initializeBanner();
+            // Then initialize banner visibility based on location
+            await initializeBannerVisibility();
 
             state.isInitialized = true;
             console.log("=== System Initialization Complete ===");
@@ -723,8 +724,13 @@
             try {
                 state.initialBlockingEnabled = true;
                 blockAllInitialRequests();
+                
+                // Create BannerManager if it doesn't exist
+                if (!window.bannerManager) {
+                    window.bannerManager = new BannerManager();
+                }
+                
                 await initializeBannerVisibility();
-                initializeBanner();
             } catch (fallbackError) {
                 console.error("Critical: Fallback initialization failed:", fallbackError);
             }
@@ -877,8 +883,13 @@
         }
     }
 
-    // Update banner handlers to use BannerManager
+    // Update banner handlers to use BannerManager instance
     function attachBannerHandlers(bannerManager) {
+        if (!bannerManager) {
+            console.error("BannerManager instance not provided to attachBannerHandlers");
+            return;
+        }
+
         const consentBanner = document.getElementById("consent-banner");
         const ccpaBanner = document.getElementById("initial-consent-banner");
         const mainBanner = document.getElementById("main-banner");
@@ -1038,7 +1049,7 @@
         }
     }
 
-    // Update the initialization code to use BannerManager
+    // Update initialization for different banner types
     async function initializeBannerVisibility() {
         console.log("=== Initializing Banner Visibility ===");
         try {
@@ -1051,11 +1062,16 @@
                 country: state.country
             });
 
+            // Ensure BannerManager exists
+            if (!window.bannerManager) {
+                console.log("Creating new BannerManager instance");
+                window.bannerManager = new BannerManager();
+            }
+
             const consentGiven = localStorage.getItem("consent-given");
-            const bannerManager = window.bannerManager;
 
             // Hide all banners initially
-            bannerManager.hideAll();
+            window.bannerManager.hideAll();
 
             if (consentGiven === "true") {
                 console.log("Consent already given, loading saved preferences");
@@ -1078,16 +1094,21 @@
                     DoNotShare: false
                 };
                 await restoreAllowedScripts(initialPreferences);
-                bannerManager.show('ccpa');
+                window.bannerManager.show('ccpa');
             } else {
                 console.log("Initializing GDPR banner");
                 await scanAndBlockScripts();
-                bannerManager.show('main');
+                window.bannerManager.show('main');
             }
 
         } catch (error) {
             ScriptVerification.logError('initializeBannerVisibility', error);
             console.error("Failed to initialize banner visibility:", error);
+            
+            // Ensure BannerManager exists even in error case
+            if (!window.bannerManager) {
+                window.bannerManager = new BannerManager();
+            }
             
             // Fallback to GDPR banner in case of error
             window.bannerManager.show('main');

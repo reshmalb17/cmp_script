@@ -1,4 +1,49 @@
 (async function () {
+    // Configuration object
+    const CONFIG = {
+        STORAGE_KEYS: {
+            CONSENT_GIVEN: 'consent-given',
+            CONSENT_PREFERENCES: 'consent-preferences',
+            VISITOR_ID: 'visitorId',
+            VISITOR_TOKEN: 'visitorSessionToken',
+            DEBUG_MODE: 'debug-mode',
+            POLICY_VERSION: 'consent-policy-version'
+        },
+        API_ENDPOINTS: {
+            VISITOR_TOKEN: 'https://cb-server.web-8fb.workers.dev/api/visitor-token',
+            DETECT_LOCATION: 'https://cb-server.web-8fb.workers.dev/api/cmp/detect-location',
+            SCRIPT_CATEGORY: 'https://cb-server.web-8fb.workers.dev/api/cmp/script-category',
+            CONSENT: 'https://cb-server.web-8fb.workers.dev/api/cmp/consent'
+        },
+        POLICY_VERSION: '1.2'
+    };
+
+    // Utility functions
+    const Utils = {
+        debugLog: (message, level = 'info') => {
+            if (localStorage.getItem(CONFIG.STORAGE_KEYS.DEBUG_MODE) === 'true') {
+                console[level](`[ConsentBit] ${message}`);
+            }
+        },
+        
+        generateUUID: () => {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        },
+
+        isValidJSON: (str) => {
+            try {
+                JSON.parse(str);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+    };
+
     // Banner Management Functions
     function initializeBanner() {
         // Wait for DOM to be fully loaded
@@ -376,115 +421,96 @@
         }
     };
 
-    const ConsentManager = {
-        async saveConsent(preferences) {
-            try {
-                const encryptedData = await this.encryptPreferences(preferences);
-                localStorage.setItem('consent-preferences', JSON.stringify(encryptedData));
-                localStorage.setItem('consent-given', 'true');
-                return true;
-            } catch (error) {
-                ScriptVerification.logError('saveConsent', error);
-                return false;
-            }
-        },
+    // Consent Management System
+    class ConsentManager {
+        constructor() {
+            this.preferences = this.loadPreferences();
+            this.consentGiven = this.hasConsentBeenGiven();
+        }
 
-        async loadConsent() {
-            try {
-                const savedData = localStorage.getItem('consent-preferences');
-                if (!savedData) return null;
+        loadPreferences() {
+            const stored = localStorage.getItem(CONFIG.STORAGE_KEYS.CONSENT_PREFERENCES);
+            return Utils.isValidJSON(stored) ? JSON.parse(stored) : {
+                Necessary: true,
+                Marketing: false,
+                Personalization: false,
+                Analytics: false,
+                DoNotShare: false
+            };
+        }
 
-                const encryptedData = JSON.parse(savedData);
-                return await this.decryptPreferences(encryptedData);
-            } catch (error) {
-                ScriptVerification.logError('loadConsent', error);
-                return null;
-            }
-        },
+        hasConsentBeenGiven() {
+            return localStorage.getItem(CONFIG.STORAGE_KEYS.CONSENT_GIVEN) === 'true';
+        }
 
-        async encryptPreferences(preferences) {
-            try {
-                // Generate key and IV using EncryptionUtils
-                const { key, iv } = await EncryptionUtils.generateKey();
+        async savePreferences(preferences) {
+            this.preferences = preferences;
+            localStorage.setItem(CONFIG.STORAGE_KEYS.CONSENT_PREFERENCES, JSON.stringify(preferences));
+            localStorage.setItem(CONFIG.STORAGE_KEYS.CONSENT_GIVEN, 'true');
+            localStorage.setItem(CONFIG.STORAGE_KEYS.POLICY_VERSION, CONFIG.POLICY_VERSION);
+            this.consentGiven = true;
+            await this.applyPreferences();
+        }
 
-                // Convert preferences to string with metadata
-                const preferencesString = JSON.stringify({
-                    ...preferences,
-                    timestamp: Date.now(),
-                    version: '1.0'
-                });
-
-                // Encrypt using EncryptionUtils
-                const encryptedData = await EncryptionUtils.encrypt(preferencesString, key, iv);
-
-                // Export the key for storage
-                const exportedKey = await crypto.subtle.exportKey('raw', key);
-
-                // Return encrypted data with key and IV
-                return {
-                    encryptedData,
-                    key: Array.from(new Uint8Array(exportedKey)),
-                    iv: Array.from(iv),
-                    timestamp: Date.now()
-                };
-            } catch (error) {
-                console.error('Error encrypting preferences:', error);
-                throw error;
-            }
-        },
-
-        async decryptPreferences(encryptedData) {
-            try {
-                // Import the key using EncryptionUtils
-                const key = await EncryptionUtils.importKey(
-                    new Uint8Array(encryptedData.key),
-                    ['decrypt']
-                );
-
-                // Decrypt using EncryptionUtils
-                const decryptedText = await EncryptionUtils.decrypt(
-                    encryptedData.encryptedData,
-                    key,
-                    new Uint8Array(encryptedData.iv)
-                );
-
-                // Parse and validate the decrypted data
-                const preferences = JSON.parse(decryptedText);
-                if (!this.validatePreferences(preferences)) {
-                    throw new Error('Invalid preferences format');
+        async applyPreferences() {
+            const scripts = document.querySelectorAll('script[type="text/plain"][data-category]');
+            for (const script of scripts) {
+                const category = script.getAttribute('data-category');
+                if (this.preferences[category]) {
+                    await this.enableScript(script);
                 }
-
-                return preferences;
-            } catch (error) {
-                console.error('Error decrypting preferences:', error);
-                throw error;
-            }
-        },
-
-        validatePreferences(preferences) {
-            const requiredKeys = ['Necessary', 'Marketing', 'Personalization', 'Analytics'];
-            return requiredKeys.every(key => typeof preferences[key] === 'boolean');
-        },
-
-        // Helper function to check if stored preferences are valid
-        async validateStoredPreferences() {
-            try {
-                const preferences = await this.loadConsent();
-                if (!preferences) return false;
-                
-                const isValid = this.validatePreferences(preferences);
-                if (!isValid) {
-                    console.warn('Invalid stored preferences found, clearing...');
-                    localStorage.removeItem('consent-preferences');
-                    localStorage.removeItem('consent-given');
-                }
-                return isValid;
-            } catch (error) {
-                console.error('Error validating stored preferences:', error);
-                return false;
             }
         }
-    };
+
+        async enableScript(script) {
+            const newScript = document.createElement('script');
+            Array.from(script.attributes).forEach(attr => {
+                if (attr.name !== 'type') {
+                    newScript.setAttribute(attr.name, attr.value);
+                }
+            });
+            newScript.textContent = script.textContent;
+            script.parentNode.replaceChild(newScript, script);
+            ScriptVerification.logRestoredScript(newScript, script.getAttribute('data-category'));
+        }
+
+        getPreferences() {
+            return this.preferences;
+        }
+
+        isConsentGiven() {
+            return this.consentGiven;
+        }
+    }
+
+    // Location detection and banner type determination
+    async function detectLocationAndGetBannerType() {
+        try {
+            const response = await fetch(CONFIG.API_ENDPOINTS.DETECT_LOCATION);
+            if (!response.ok) throw new Error('Failed to detect location');
+            const data = await response.json();
+            
+            // Default to GDPR if location detection fails
+            if (!data || !data.region) {
+                console.warn('Location detection failed, defaulting to GDPR banner');
+                return 'gdpr';
+            }
+
+            // Map regions to banner types
+            const regionMap = {
+                'EU': 'gdpr',
+                'US-CA': 'ccpa',
+                'US-VA': 'vcdpa',
+                'US-CO': 'cpra',
+                'US-CT': 'ctdpa'
+            };
+
+            return regionMap[data.region] || 'gdpr';
+        } catch (error) {
+            console.error('Error detecting location:', error);
+            return 'gdpr'; // Default to GDPR on error
+        }
+    }
 
     // Analytics Consent Handlers
     const AnalyticsConsentHandlers = {
@@ -1578,239 +1604,143 @@
 
 class BannerManager {
     constructor() {
-        this.banners = {
-            main: document.getElementById('consent-banner'),
-            ccpa: document.getElementById('initial-consent-banner'),
-            preferences: document.getElementById('main-banner'),
-            simple: document.getElementById('simple-consent-banner')
-        };
-        this.setupHandlers();
-        this.setupNecessaryCheckbox();
+        this.bannerType = null;
+        this.bannerElement = null;
+        this.settingsElement = null;
+        this.consentManager = new ConsentManager();
     }
 
-    setupNecessaryCheckbox() {
-        // Find all checkboxes with data-consent-id="necessary-checkbox"
-        const necessaryCheckboxes = document.querySelectorAll('[data-consent-id="necessary-checkbox"]');
-        necessaryCheckboxes.forEach(checkbox => {
-            checkbox.checked = true;
-            checkbox.disabled = true;
-        });
+    async initialize() {
+        try {
+            if (this.consentManager.isConsentGiven()) {
+                await this.consentManager.applyPreferences();
+                return;
+            }
+
+            this.bannerType = await detectLocationAndGetBannerType();
+            await this.createBanner();
+            this.attachEventListeners();
+            this.showBanner();
+        } catch (error) {
+            console.error('Error initializing BannerManager:', error);
+        }
+    }
+
+    async createBanner() {
+        const template = document.getElementById('consent-banner-template');
+        if (!template) {
+            console.error('Consent banner template not found');
+            return;
+        }
+
+        this.bannerElement = template.content.cloneNode(true).firstElementChild;
+        document.body.appendChild(this.bannerElement);
+
+        // Initialize settings panel
+        const settingsTemplate = document.getElementById('consent-settings-template');
+        if (settingsTemplate) {
+            this.settingsElement = settingsTemplate.content.cloneNode(true).firstElementChild;
+            document.body.appendChild(this.settingsElement);
+        }
+    }
+
+    attachEventListeners() {
+        // Accept all button
+        const acceptAllBtn = this.bannerElement.querySelector('[data-consent="accept-all"]');
+        if (acceptAllBtn) {
+            acceptAllBtn.addEventListener('click', () => this.handleAcceptAll());
+        }
+
+        // Reject all button
+        const rejectAllBtn = this.bannerElement.querySelector('[data-consent="reject-all"]');
+        if (rejectAllBtn) {
+            rejectAllBtn.addEventListener('click', () => this.handleRejectAll());
+        }
+
+        // Settings button
+        const settingsBtn = this.bannerElement.querySelector('[data-consent="settings"]');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => this.showSettings());
+        }
+
+        // Save preferences button in settings
+        if (this.settingsElement) {
+            const saveBtn = this.settingsElement.querySelector('[data-consent="save"]');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => this.handleSavePreferences());
+            }
+        }
     }
 
     async handleAcceptAll() {
-        console.log("=== Handling Accept All Consent ===");
-        try {
-            const preferences = {
-                Necessary: true,
-                Marketing: true,
-                Personalization: true,
-                Analytics: true,
-                DoNotShare: false
-            };
-
-            // Save consent state
-            await ConsentManager.saveConsent(preferences);
-            
-            // Restore all scripts
-            await restoreAllowedScripts(preferences);
-            
-            // Hide all banners
-            this.hideAll();
-            
-            console.log("✅ Accept All: Scripts restored successfully");
-            console.log("Restored scripts:", ScriptVerification.getStats());
-        } catch (error) {
-            console.error("Error in handleAcceptAll:", error);
-            ScriptVerification.logError('handleAcceptAll', error);
-        }
+        const preferences = {
+            Necessary: true,
+            Marketing: true,
+            Personalization: true,
+            Analytics: true,
+            DoNotShare: false
+        };
+        await this.consentManager.savePreferences(preferences);
+        this.hideBanner();
     }
 
     async handleRejectAll() {
-        console.log("=== Handling Reject All Consent ===");
-        try {
-            const preferences = {
-                Necessary: true,
-                Marketing: false,
-                Personalization: false,
-                Analytics: false,
-                DoNotShare: true
-            };
-
-            // Save consent state
-            await ConsentManager.saveConsent(preferences);
-            
-            // Block all non-necessary scripts
-            await scanAndBlockScripts();
-            
-            // Hide all banners
-            this.hideAll();
-            
-            console.log("🚫 Reject All: Scripts blocked successfully");
-            console.log("Blocked scripts:", ScriptVerification.getStats());
-        } catch (error) {
-            console.error("Error in handleRejectAll:", error);
-            ScriptVerification.logError('handleRejectAll', error);
-        }
+        const preferences = {
+            Necessary: true,
+            Marketing: false,
+            Personalization: false,
+            Analytics: false,
+            DoNotShare: true
+        };
+        await this.consentManager.savePreferences(preferences);
+        this.hideBanner();
     }
 
     async handleSavePreferences() {
-        console.log("=== Handling Save Preferences ===");
-        try {
-            const form = document.getElementById("main-banner") || 
-                        document.getElementById("main-consent-banner");
-            
-            if (!form) {
-                throw new Error("Preferences form not found");
-            }
+        const preferences = {
+            Necessary: true,
+            Marketing: this.getCheckboxValue('marketing'),
+            Personalization: this.getCheckboxValue('personalization'),
+            Analytics: this.getCheckboxValue('analytics'),
+            DoNotShare: this.getCheckboxValue('do-not-share')
+        };
+        await this.consentManager.savePreferences(preferences);
+        this.hideSettings();
+        this.hideBanner();
+    }
 
-            const preferences = {
-                Necessary: true, // Always true
-                Marketing: form.querySelector('[data-consent-id="marketing-checkbox"]')?.checked || false,
-                Personalization: form.querySelector('[data-consent-id="personalization-checkbox"]')?.checked || false,
-                Analytics: form.querySelector('[data-consent-id="analytics-checkbox"]')?.checked || false,
-                DoNotShare: form.querySelector('[data-consent-id="do-not-share-checkbox"]')?.checked || false
-            };
+    getCheckboxValue(category) {
+        if (!this.settingsElement) return false;
+        const checkbox = this.settingsElement.querySelector(`[data-category="${category}"]`);
+        return checkbox ? checkbox.checked : false;
+    }
 
-            console.log("📝 Selected preferences:", preferences);
-
-            // Save consent state
-            await ConsentManager.saveConsent(preferences);
-            
-            // Update analytics tools
-            await Promise.all([
-                AnalyticsConsentHandlers.updateGoogleAnalytics(preferences),
-                AnalyticsConsentHandlers.updatePlausible(preferences),
-                AnalyticsConsentHandlers.updateHotjar(preferences),
-                AnalyticsConsentHandlers.updateClarity(preferences),
-                AnalyticsConsentHandlers.updateMatomo(preferences),
-                AnalyticsConsentHandlers.updateHubSpot(preferences)
-            ]);
-
-            // Block all scripts first
-            await scanAndBlockScripts();
-            
-            // Then restore allowed scripts
-            await restoreAllowedScripts(preferences);
-            
-            // Hide all banners
-            this.hideAll();
-            
-            console.log("✅ Preferences saved and applied successfully");
-            console.log("Current script status:", ScriptVerification.getStats());
-        } catch (error) {
-            console.error("Error in handleSavePreferences:", error);
-            ScriptVerification.logError('handleSavePreferences', error);
+    showBanner() {
+        if (this.bannerElement) {
+            this.bannerElement.classList.remove('hidden');
+            this.bannerElement.classList.add('visible');
         }
     }
 
-    setupHandlers() {
-        // Accept all cookies
-        const acceptBtn = document.getElementById('accept-btn');
-        if (acceptBtn) {
-            acceptBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleAcceptAll();
-            });
-        }
-
-        // Reject all cookies
-        const declineBtn = document.getElementById('decline-btn');
-        if (declineBtn) {
-            declineBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleRejectAll();
-            });
-        }
-
-        // Save preferences
-        const savePreferencesBtn = document.getElementById('save-preferences-btn');
-        if (savePreferencesBtn) {
-            savePreferencesBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleSavePreferences();
-            });
-        }
-
-        // Cancel/Reject from preferences
-        const cancelBtn = document.getElementById('cancel-btn');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleRejectAll();
-            });
-        }
-
-        // Show preferences
-        const preferencesBtn = document.getElementById('preferences-btn');
-        if (preferencesBtn) {
-            preferencesBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.hideAll();
-                this.show('preferences');
-            });
-        }
-
-        // Toggle consent button
-        const toggleConsentBtn = document.getElementById('toggle-consent-btn');
-        if (toggleConsentBtn) {
-            toggleConsentBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const preferences = document.getElementById('main-banner');
-                if (preferences.style.display === 'none' || !preferences.style.display) {
-                    this.hideAll();
-                    this.show('preferences');
-                } else {
-                    this.hideAll();
-                }
-            });
-        }
-
-        // Do Not Share link
-        const doNotShareLink = document.getElementById('do-not-share-link');
-        if (doNotShareLink) {
-            doNotShareLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.hide('ccpa');
-                this.show('preferences');
-            });
-        }
-
-        // Close consent button
-        const closeConsentBtn = document.getElementById('close-consent-banner');
-        if (closeConsentBtn) {
-            closeConsentBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.hide('preferences');
-            });
+    hideBanner() {
+        if (this.bannerElement) {
+            this.bannerElement.classList.remove('visible');
+            this.bannerElement.classList.add('hidden');
         }
     }
 
-    show(bannerKey) {
-        const banner = this.banners[bannerKey];
-        if (banner) {
-            banner.style.display = 'block';
-            banner.classList.add('show-banner');
-            banner.classList.remove('hidden');
-            banner.style.visibility = 'visible';
-            banner.style.opacity = '1';
+    showSettings() {
+        if (this.settingsElement) {
+            this.settingsElement.classList.remove('hidden');
+            this.settingsElement.classList.add('visible');
         }
     }
 
-    hide(bannerKey) {
-        const banner = this.banners[bannerKey];
-        if (banner) {
-            banner.style.display = 'none';
-            banner.classList.remove('show-banner');
-            banner.classList.add('hidden');
+    hideSettings() {
+        if (this.settingsElement) {
+            this.settingsElement.classList.remove('visible');
+            this.settingsElement.classList.add('hidden');
         }
-    }
-
-    hideAll() {
-        Object.keys(this.banners).forEach(key => {
-            if (this.banners[key]) {
-                this.hide(key);
-            }
-        });
     }
 }
 

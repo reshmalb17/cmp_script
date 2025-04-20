@@ -1071,13 +1071,7 @@
             const hostname = window.location.hostname;
             const siteName = await cleanHostname(window.location.hostname);
           
-            
-            console.log('Site info:', siteInfo);
-            
-            if (!siteInfo.siteId) {
-                throw new Error('Could not determine site identifier');
-            }
-
+      
             let token = localStorage.getItem('visitorSessionToken');
             if (token && !isTokenExpired(token)) {
                 return token;

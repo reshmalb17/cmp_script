@@ -1078,7 +1078,7 @@
         try {
             const visitorId = await getOrCreateVisitorId();
             const hostname = window.location.hostname;
-            const siteName = await cleanHostname(window.location.hostname);
+            const siteName = await cleanHostname(hostname);
           
       
             let token = localStorage.getItem('visitorSessionToken');
@@ -1118,13 +1118,7 @@
             }
            console.log("session Token",data.token)
             localStorage.setItem('visitorSessionToken', data.token);
-            
-            // Process any cookie preferences in the response
-            if (data.keys) {
-                const preferences = await SiteManager.processCookiePreferences(data.keys);
-                localStorage.setItem('cookie-preferences', JSON.stringify(preferences));
-            }
-
+           
             return data.token;
         } catch (error) {
             console.error('Error getting visitor session token:', error);
@@ -1150,14 +1144,15 @@
             // Get visitor token and site details
             const token = await getVisitorSessionToken();
             if (token) {
-                const siteInfo = SiteUtils.getSiteInfo(window.location.hostname);
+                console.log("Token generated successfully")
+                // const siteInfo = SiteUtils.getSiteInfo(window.location.hostname);
                 
-                if (siteInfo.siteId) {
-                    const siteDetails = await SiteManager.getSiteDetails(siteInfo.siteId);
-                    if (siteDetails) {
-                        state.siteDetails = siteDetails;
-                    }
-                }
+                // if (siteInfo.siteId) {
+                //     const siteDetails = await SiteManager.getSiteDetails(siteInfo.siteId);
+                //     if (siteDetails) {
+                //         state.siteDetails = siteDetails;
+                //     }
+                // }
             }
 
             // Create and expose BannerManager instance

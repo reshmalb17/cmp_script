@@ -690,7 +690,8 @@
     async function detectLocationAndGetBannerType() {
         try {
             const token = localStorage.getItem('visitorSessionToken');
-            const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+            console.log("Token inside location",token)
+            const siteName = await cleanHostname(window.location.hostname);
 
             const response = await fetch(CONFIG.API_ENDPOINTS.DETECT_LOCATION+`?siteName=${encodeURIComponent(siteName)}`, {
                 headers: {
@@ -704,12 +705,14 @@
             }
 
             const data = await response.json();
+            console.log("data",data);
             
             if (!data || !data.bannerType) {
                 console.warn('Location detection failed, defaulting to GDPR banner');
                 return 'gdpr';
             }
             this.currentBannerType = data.bannerType;
+            console.log("currentBannertype",this.currentBannerType);
             this.country =data.country;
            return data;
 
@@ -1001,25 +1004,34 @@
                             script, 
                             analyticsInfo
                         );
-                        if (placeholder) {
-                            script.parentNode.replaceChild(placeholder, script);
-                            state.existing_Scripts.add(placeholder);
-                            ScriptVerification.logBlockedScript(script, analyticsInfo.category);
-                            continue;
-                        }
+                                              // Inside the first 'if (analyticsInfo)' block
+                                              if (placeholder) {
+                                                // Check if parentNode exists before replacing
+                                                if (script.parentNode) {
+                                                    script.parentNode.replaceChild(placeholder, script);
+                                                    state.existing_Scripts.add(placeholder);
+                                                    ScriptVerification.logBlockedScript(script, analyticsInfo.category);
+                                                } else {
+                                                    console.warn('Script node already removed from DOM:', script.src || 'inline script');
+                                                }
+                                                continue; // Added continue here as well, assuming it was intended
+                                            }
                     }
 
                     // Fall back to general categorization
                     const category = await categorizeScript(script, categorizedScripts);
-                    if (category) {
-                        const placeholder = await ScriptManager.createScriptElement(script, true);
-                        if (placeholder) {
-                            placeholder.setAttribute('data-category', category);
-                            script.parentNode.replaceChild(placeholder, script);
-                            state.existing_Scripts.add(placeholder);
-                            ScriptVerification.logBlockedScript(script, category);
-                        }
-                    }
+                                           // Inside the 'if (category)' block
+                                           if (placeholder) {
+                                            placeholder.setAttribute('data-category', category);
+                                            // Check if parentNode exists before replacing
+                                            if (script.parentNode) {
+                                                script.parentNode.replaceChild(placeholder, script);
+                                                state.existing_Scripts.add(placeholder);
+                                                ScriptVerification.logBlockedScript(script, category);
+                                            } else {
+                                                console.warn('Script node already removed from DOM:', script.src || 'inline script');
+                                            }
+                                        }
                 } catch (error) {
                     ScriptVerification.logError('processScript', error);
                 }
@@ -1075,6 +1087,7 @@
 
     // Update getVisitorSessionToken function
     async function getVisitorSessionToken() {
+        console.log("inside get visitor token")
         try {
             const visitorId = await getOrCreateVisitorId();
             const hostname = window.location.hostname;
@@ -1104,6 +1117,7 @@
             }
 
             let data;
+            console.log("data",data)
             try {
                 const text = await response.text();
                 data = JSON.parse(text.trim());
@@ -1155,13 +1169,15 @@
                 // }
             }
 
-            // Create and expose BannerManager instance
-            const bannerManager = new BannerManager();
-            Object.defineProperty(window, 'bannerManager', {
-                value: bannerManager,
-                writable: false,
-                configurable: false
-            });
+             // Create and expose BannerManager instance
+            if (!window.bannerManager) { // Add this check
+                const bannerManager = new BannerManager();
+                Object.defineProperty(window, 'bannerManager', {
+                    value: bannerManager,
+                    writable: false,
+                    configurable: false
+                });
+            } // Add closing brace for the check
 
             // Initialize banner manager
             await bannerManager.initialize();
@@ -1455,51 +1471,58 @@
             });
         }
 
-        // Update the rest of the handlers to use BannerManager
-        const acceptButton = document.getElementById("accept-btn");
-        if (acceptButton) {
-            acceptButton.addEventListener("click", async function(e) {
-                e.preventDefault();
-                await handleAcceptAllConsent();
-                bannerManager.hideAll();
-            });
-        }
-
-        const declineButton = document.getElementById("decline-btn");
-        if (declineButton) {
-            declineButton.addEventListener("click", async function(e) {
-                e.preventDefault();
-                await handleRejectAllConsent();
-                bannerManager.hideAll();
-            });
-        }
-
-        const savePreferencesButton = document.getElementById("save-preferences-btn");
-        if (savePreferencesButton) {
-            savePreferencesButton.addEventListener("click", async function(e) {
-                e.preventDefault();
-                const form = document.getElementById("main-banner") || 
-                            document.getElementById("main-consent-banner");
-                await handlePreferencesSave(form);
-                bannerManager.hideAll();
-            });
-        }
-
-        const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
-        if (doNotShareCheckbox) {
-            doNotShareCheckbox.addEventListener("change", async function(e) {
-                await handleCCPAToggle(e.target.checked);
-            });
-        }
-
-        const cancelButton = document.getElementById("cancel-btn");
-        if (cancelButton) {
-            cancelButton.addEventListener("click", async function(e) {
-                e.preventDefault();
-                await handleRejectAllConsent();
-                bannerManager.hideAll();
-            });
-        }
+              // Update the rest of the handlers to use BannerManager
+              const acceptButton = document.getElementById("accept-btn");
+              if (acceptButton) {
+                  acceptButton.addEventListener("click", async function(e) {
+                      e.preventDefault();
+                      // Call method on the bannerManager instance
+                      await bannerManager.handleAcceptAll();
+                      bannerManager.hideAll(); // BannerManager methods should handle hiding
+                  });
+              }
+      
+              const declineButton = document.getElementById("decline-btn");
+              if (declineButton) {
+                  declineButton.addEventListener("click", async function(e) {
+                      e.preventDefault();
+                       // Call method on the bannerManager instance
+                      await bannerManager.handleRejectAll();
+                      bannerManager.hideAll(); // BannerManager methods should handle hiding
+                  });
+              }
+      
+              const savePreferencesButton = document.getElementById("save-preferences-btn");
+              if (savePreferencesButton) {
+                  savePreferencesButton.addEventListener("click", async function(e) {
+                      e.preventDefault();
+                      // Call method on the bannerManager instance
+                      // The handleSavePreferences method inside BannerManager reads the form itself
+                      await bannerManager.handleSavePreferences();
+                      // bannerManager.hideAll(); // BannerManager methods should handle hiding
+                  });
+              }
+      
+              const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+              if (doNotShareCheckbox) {
+                  // This likely needs to trigger savePreferences to update the state correctly
+                  doNotShareCheckbox.addEventListener("change", async function(e) {
+                       console.log("Do Not Share toggled. Saving preferences...");
+                       // Call save preferences which reads the state of all checkboxes
+                       await bannerManager.handleSavePreferences();
+                  });
+              }
+      
+              const cancelButton = document.getElementById("cancel-btn");
+              if (cancelButton) {
+                  // Assuming cancel means reject
+                  cancelButton.addEventListener("click", async function(e) {
+                      e.preventDefault();
+                       // Call method on the bannerManager instance (usually reject)
+                      await bannerManager.handleRejectAll();
+                      // bannerManager.hideAll(); // BannerManager methods should handle hiding
+                  });
+              }
     }
 
     // Update initialization for different banner types
@@ -1677,10 +1700,9 @@
 
     function cleanHostname(hostname) {
         try {
-            // Remove any protocol and www if present
             let cleaned = hostname.replace(/^www\./, '');
             cleaned = cleaned.split('.')[0];
-            return hostname; // Return original if parsing fails
+            return cleaned;
         } catch (error) {
             console.error('Error cleaning hostname:', error);
             return hostname; // Return original on error
@@ -1897,35 +1919,39 @@
         const createArrayProxy = () => {
             const handler = {
                 get: function(target, prop) {
-                    // Handle array methods
-                    if (prop === 'push' || prop === 'unshift' || prop === 'splice') {
+                    // Handle array methods that modify the array
+                    if (['push', 'unshift', 'splice'].includes(prop)) {
                         return function(...args) {
-                            console.log(`🚫 Blocked array ${prop} with args:`, args);
-                            return target.length;
+                            // Use String() to safely convert prop (could be Symbol)
+                            console.log(`🚫 Blocked array ${String(prop)} with args:`, args);
+                            return target.length; // Return length like original methods
                         };
                     }
-                    // Handle array properties
-                    if (typeof prop === 'number' || !isNaN(parseInt(prop))) { 
+                    // Block access to elements by index (check if prop is a string representing a number)
+                    if (typeof prop === 'string' && /^[0-9]+$/.test(prop)) {
+                        console.log(`🚫 Blocked array access to index ${prop}`);
                         return undefined;
                     }
-                    // Handle array access
-                    if (typeof prop === 'number' || !isNaN(parseInt(prop))) {
-                        return undefined;
+                    // Block other methods or properties by returning a dummy function
+                    // Check if the original target actually has this property as a function
+                    if (typeof target[prop] === 'function') {
+                         return function(...args) {
+                             console.log(`🚫 Blocked array method ${String(prop)} call`);
+                             return undefined; // Or mock a return value if needed
+                         };
                     }
-                    // Handle other properties/methods
-                    return function(...args) {
-                        console.log(`🚫 Blocked array method ${prop} with args:`, args);
-                        return undefined;
-                    };
+                    // For other properties (like 'length' or symbols), block access
+                    console.log(`🚫 Blocked access to array property ${String(prop)}`);
+                    return undefined;
                 },
                 set: function(target, prop, value) {
-                    console.log(`🚫 Blocked array set ${prop}:`, value);
-                    return true;
+                    // Use String() to safely convert prop
+                    console.log(`🚫 Blocked array set ${String(prop)}:`, value);
+                    return true; // Indicate success
                 }
             };
-            return new Proxy([], handler);
+            return new Proxy([], handler); // Proxy an empty array
         };
-
         // Helper function to safely define or override a property
         const safeDefineProperty = (obj, prop, value) => {
             try {

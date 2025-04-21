@@ -500,7 +500,7 @@
                 
                 if (this.consentManager.isConsentGiven()) {
                     console.log('Consent already given, applying preferences');
-                    await this.consentManager.applyPreferences();
+                    await this.consentManager.restoreAnalytics(this.consentManager.getPreferences());
                     return;
                 }
 
@@ -1565,10 +1565,10 @@
 
             if (consentGiven === "true") {
                 console.log("Consent already given, loading saved preferences");
-                const savedPreferences = await ConsentManager.loadConsent();
+                const savedPreferences = window.bannerManager.consentManager.loadPreferences(); 
                 if (savedPreferences) {
                     console.log("Applying saved preferences:", savedPreferences);
-                    await restoreAllowedScripts(savedPreferences);
+                    await window.bannerManager.consentManager.restoreAnalytics(savedPreferences);
                 }
                 return;
             }
@@ -1626,7 +1626,7 @@
     window.verifyConsent = async () => {
         console.log('=== Manual Consent Verification ===');
         const results = await ConsentVerification.verifyAllTools();
-        const currentPreferences = await ConsentManager.loadConsent();
+        const currentPreferences = window.bannerManager.consentManager.loadPreferences(); 
         console.log('Current Preferences:', currentPreferences);
         return { results, preferences: currentPreferences };
     };
@@ -2167,9 +2167,9 @@
             }
         },
         loadAndApplySavedPreferences: async () => {
-            const preferences = await ConsentManager.loadConsent();
+            const preferences = window.bannerManager.consentManager.loadPreferences();
             if (preferences) {
-                await restoreAllowedScripts(preferences);
+                await window.bannerManager.consentManager.restoreAnalytics(preferences);
                 return preferences;
             }
             return null;

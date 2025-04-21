@@ -507,10 +507,22 @@
                     // Try to get location-based banner type
                     const token = await getVisitorSessionToken();
                     if (token) {
-                        const detectedType = await detectLocationAndGetBannerType();
-                        if (detectedType) {
-                            this.bannerType = detectedType;
+                        const response = await detectLocationAndGetBannerType();
+
+
+
+                        const data = await response.json();
+                        // Changed to check for bannerType instead of scripts
+                        if (!data.bannerType) {
+                            console.error('Invalid banner type data format');
+                            return null;
                         }
+                        if (data) {
+                            this.bannerType = data.bannerType;
+                             country =data.country;
+                        }
+                        return data;
+                      
                     }
                 } catch (error) {
                     console.warn('Failed to detect location, using default banner type:', error);
@@ -693,20 +705,15 @@
 
             const data = await response.json();
             
-            if (!data || !data.region) {
+            if (!data || !data.bannerType) {
                 console.warn('Location detection failed, defaulting to GDPR banner');
                 return 'gdpr';
             }
+            this.currentBannerType = data.bannerType;
+            this.country =data.country;
+           return data;
 
-            const regionMap = {
-                'EU': 'gdpr',
-                'US-CA': 'ccpa',
-                'US-VA': 'vcdpa',
-                'US-CO': 'cpra',
-                'US-CT': 'ctdpa'
-            };
-
-            return regionMap[data.region] || 'gdpr';
+        
         } catch (error) {
             console.error('Error detecting location:', error);
             return 'gdpr';

@@ -678,7 +678,9 @@
     async function detectLocationAndGetBannerType() {
         try {
             const token = localStorage.getItem('visitorSessionToken');
-            const response = await fetch(CONFIG.API_ENDPOINTS.DETECT_LOCATION, {
+            const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+
+            const response = await fetch(CONFIG.API_ENDPOINTS.DETECT_LOCATION+`?siteName=${encodeURIComponent(siteName)}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -1098,6 +1100,7 @@
             try {
                 const text = await response.text();
                 data = JSON.parse(text.trim());
+              
             } catch (e) {
                 console.error('Invalid token response:', e);
                 throw new Error('Invalid token format');
@@ -1106,7 +1109,7 @@
             if (!data.token) {
                 throw new Error('No token in response');
             }
-
+           console.log("session Token",data.token)
             localStorage.setItem('visitorSessionToken', data.token);
             
             // Process any cookie preferences in the response
@@ -1825,8 +1828,8 @@
                         };
                     }
                     // Handle array properties
-                    if (prop === 'length') {
-                        return target.length;
+                    if (typeof prop === 'number' || !isNaN(parseInt(prop))) { 
+                        return undefined;
                     }
                     // Handle array access
                     if (typeof prop === 'number' || !isNaN(parseInt(prop))) {

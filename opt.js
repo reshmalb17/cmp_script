@@ -412,19 +412,23 @@
                 return false;
             }
         }
-
         async restoreAnalytics(preferences) {
             if (preferences.Analytics) {
-                // Restore analytics objects to their original state
-                delete window.gtag;
-                delete window.ga;
-                delete window.dataLayer;
-                delete window.plausible;
-                delete window._paq;
-                delete window.clarity;
-                
+                console.log("Attempting to restore analytics objects..."); // Optional log
+                // Restore analytics objects to their original state safely by assigning undefined
+               try { window.gtag = undefined; } catch (e) { console.warn("Could not reset window.gtag:", e); } // <-- Change
+               try { window.ga = undefined; } catch (e) { console.warn("Could not reset window.ga:", e); } // <-- Change
+               try { window.dataLayer = undefined; } catch (e) { console.warn("Could not reset window.dataLayer:", e); } // <-- Change
+               try { window.plausible = undefined; } catch (e) { console.warn("Could not reset window.plausible:", e); } // <-- Change
+               try { window._paq = undefined; } catch (e) { console.warn("Could not reset window._paq:", e); } // <-- Change
+               try { window.clarity = undefined; } catch (e) { console.warn("Could not reset window.clarity:", e); } // <-- Change
+
                 // Restore any blocked scripts
-                await restoreAllowedScripts(preferences);
+               console.log("Restoring allowed scripts..."); // Optional log
+                await restoreAllowedScripts(preferences); // Ensure this function exists and works
+               console.log("Finished restoring analytics."); // Optional log
+            } else {
+               console.log("Analytics preference not granted, skipping restoreAnalytics."); // Optional log
             }
         }
 
@@ -1020,18 +1024,28 @@
 
                     // Fall back to general categorization
                     const category = await categorizeScript(script, categorizedScripts);
-                                           // Inside the 'if (category)' block
-                                           if (placeholder) {
-                                            placeholder.setAttribute('data-category', category);
-                                            // Check if parentNode exists before replacing
-                                            if (script.parentNode) {
-                                                script.parentNode.replaceChild(placeholder, script);
-                                                state.existing_Scripts.add(placeholder);
-                                                ScriptVerification.logBlockedScript(script, category);
-                                            } else {
-                                                console.warn('Script node already removed from DOM:', script.src || 'inline script');
-                                            }
-                                        }
+                    console.log(`Script category determined as: ${category} for`, script.src || 'inline script');
+                    if (category && category !== 'Necessary') { // <-- Change this line
+                        console.log(`Attempting to create placeholder for non-necessary category: ${category}`); // Optional: add log
+                        const placeholder = await ScriptManager.createScriptElement(script, true);
+                        console.log(`Placeholder created: ${!!placeholder}`); // Optional: add log
+                        if (placeholder) {
+                            // ... (rest of the block remains the same)
+                            placeholder.setAttribute('data-category', category);
+                             if (script.parentNode) {
+                                script.parentNode.replaceChild(placeholder, script);
+                                state.existing_Scripts.add(placeholder);
+                                ScriptVerification.logBlockedScript(script, category);
+                             } else {
+                                console.warn('Script node already removed from DOM:', script.src || 'inline script');
+                             }
+                        } else {
+                            console.log(`Placeholder creation failed (returned null/undefined).`); // Optional: add log
+                        }
+                    } else { // <-- Add this else block
+                       console.log(`Skipping block for script (Category: ${category}):`, script.src || 'inline script');
+                    }
+                
                 } catch (error) {
                     ScriptVerification.logError('processScript', error);
                 }

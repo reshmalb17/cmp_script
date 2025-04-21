@@ -1798,6 +1798,81 @@
             }
         }
     };
+    function setupMutationObserver() {
+        if (state.observer) {
+            // Observer already running
+            return;
+        }
+    
+        const observerCallback = async (mutationsList) => {
+            for (const mutation of mutationsList) {
+                if (mutation.type === 'childList') {
+                    for (const node of mutation.addedNodes) {
+                        if (node.nodeName === 'SCRIPT') {
+                            console.log('MutationObserver: Detected new script:', node.src || 'inline script');
+                            if (state.initialBlockingEnabled) {
+                                 // Re-categorize and potentially block the new script
+                                 try {
+                                    const analyticsInfo = ScriptVerification.detectAnalyticsTool(node);
+                                    let category = 'Unknown'; // Default category
+    
+                                    if (analyticsInfo) {
+                                        category = analyticsInfo.category;
+                                    } else {
+                                        // Fallback categorization if not a known tool
+                                        category = await categorizeScript(node, state.categorizedScripts || []);
+                                    }
+    
+                                    const consentPreferences = ConsentManager.getPreferences ? ConsentManager.getPreferences() : { Analytics: false, Marketing: false, Personalization: false }; // Get current prefs
+    
+                                    if (category !== 'Necessary' && !consentPreferences[category]) {
+                                        console.log(`MutationObserver: Blocking dynamically added script (Category: ${category})`);
+                                        ScriptVerification.logBlockedScript(node, category);
+                                        const placeholder = await ScriptManager.createScriptElement(node, true);
+                                        if (placeholder) {
+                                            placeholder.setAttribute('data-category', category);
+                                            if (node.parentNode) {
+                                                node.parentNode.replaceChild(placeholder, node);
+                                            } else {
+                                                 // Node might already be removed by other logic, just log
+                                                 console.warn('MutationObserver: Could not replace script, parentNode missing.');
+                                            }
+                                        }
+                                    } else {
+                                        console.log(`MutationObserver: Allowing dynamically added script (Category: ${category})`);
+                                    }
+                                 } catch (error) {
+                                    ScriptVerification.logError('MutationObserver Callback', error);
+                                 }
+                            } else {
+                                 console.log('MutationObserver: Initial blocking disabled, allowing script:', node.src || 'inline script');
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    
+        const config = { childList: true, subtree: true };
+        state.observer = new MutationObserver(observerCallback);
+    
+        try {
+            state.observer.observe(document.documentElement, config);
+            console.log('MutationObserver started.');
+        } catch (error) {
+            console.error('Failed to start MutationObserver:', error);
+            state.observer = null; // Reset observer state on failure
+        }
+    }
+    
+    // Function to stop the observer (useful when consent changes significantly)
+    function disconnectMutationObserver() {
+        if (state.observer) {
+            state.observer.disconnect();
+            state.observer = null;
+            console.log('MutationObserver disconnected.');
+        }
+    }
 
     function blockAllInitialRequests() {
         console.log("Setting up initial request blocking...");

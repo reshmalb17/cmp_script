@@ -696,13 +696,17 @@
             const token = localStorage.getItem('visitorSessionToken');
             console.log("Token inside location",token)
             const siteName = await cleanHostname(window.location.hostname);
+            console.log("site name",siteName);
 
             const response = await fetch(CONFIG.API_ENDPOINTS.DETECT_LOCATION+`?siteName=${encodeURIComponent(siteName)}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+                method: 'GET',
+          headers: {
+              'Authorization': `Bearer ${sessionToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+          },
+          // credentials: 'include'
+      });
 
             if (!response.ok) {
                 throw new Error('Failed to detect location');
@@ -1440,10 +1444,10 @@
             toggleConsentButton.addEventListener("click", async function(e) {
                 e.preventDefault();
 
-                if (currentBannerType === 'GDPR') {
+                if (state.currentBannerType === 'GDPR') {
                     bannerManager.show('main');
                     bannerManager.hide('ccpa');
-                } else if (currentBannerType === 'CCPA') {
+                } else if (state.currentBannerType=== 'CCPA') {
                     bannerManager.show('ccpa');
                     bannerManager.hide('main');
                 } else {
@@ -1457,10 +1461,10 @@
             newToggleConsentButton.addEventListener("click", async function(e) {
                 e.preventDefault();
             
-                if (currentBannerType === 'GDPR') {
+                if (state.currentBannerType === 'GDPR') {
                     bannerManager.show('main');
                     bannerManager.hide('ccpa');
-                } else if (currentBannerType === 'CCPA') {
+                } else if (state.currentBannerType === 'CCPA') {
                     bannerManager.show('ccpa');
                     bannerManager.hide('main');
                 } else {
@@ -1506,7 +1510,7 @@
                   });
               }
       
-              const savePreferencesButton = document.getElementById("save-preferences-btn");
+              const savePreferencesButton = document.getElementById("preferences-btn");
               if (savePreferencesButton) {
                   savePreferencesButton.addEventListener("click", async function(e) {
                       e.preventDefault();
@@ -2185,6 +2189,3 @@
         }
     });
 })();
-
-   
-   

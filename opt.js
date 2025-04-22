@@ -449,26 +449,101 @@
     }
 
     // Enhanced BannerManager with proper method exposure
-    class BannerManager {
+     class BannerManager {
         constructor() {
             // Initialize banner elements
             this.banners = {
-                main: document.getElementById('consent-banner'),
-                ccpa: document.getElementById('initial-consent-banner'),
-                preferences: document.getElementById('main-banner'),
+                main: document.getElementById('consent-banner'), // This might be the GDPR/main options one
+                ccpa: document.getElementById('initial-consent-banner'), // The initial CCPA message
+                preferences: document.getElementById('main-banner'), // Let's assume this is where preferences are shown/edited
                 simple: document.getElementById('simple-consent-banner')
             };
+            // Assign the element containing the preference controls
+            this.settingsElement = this.banners.preferences; // Assign settingsElement here
+
             this.consentManager = new ConsentManager();
             
             // Bind methods to instance
             this.hideAll = this.hideAll.bind(this);
             this.show = this.show.bind(this);
             this.initialize = this.initialize.bind(this);
+            this.hideSettings = this.hideSettings.bind(this); // Ensure hideSettings is bound
+            this.showSettings = this.showSettings.bind(this); // Ensure showSettings is bound
+
 
             // Attach banner handlers immediately
             attachBannerHandlers(this);
         }
+        
+        async handleSavePreferences() {
+            console.log('Handling save preferences...');
+            const preferences = {
+                Necessary: true,
+                // Use this.settingsElement to find checkboxes
+                Marketing: this.getCheckboxValue('marketing'),
+                Personalization: this.getCheckboxValue('personalization'),
+                Analytics: this.getCheckboxValue('analytics'),
+                // Find the specific checkbox using its data-consent-id
+                DoNotShare: this.settingsElement?.querySelector('[data-consent-id="do-not-share-checkbox"]')?.checked || false
+            };
+            
+            // Save and apply preferences
+            const success = await this.consentManager.savePreferences(preferences);
+            
+            if (success) {
+                console.log('Preferences saved successfully');
+                // Explicitly hide the settings view AND the main banner container
+                this.hideSettings(); // Hides the specific settings UI if distinct
+                this.hideAll();      // Hides the overall banners (main, ccpa, simple)
+                
+                // Trigger any additional callbacks
+                if (window.dataLayer && !state.initialBlockingEnabled) {
+                    window.dataLayer.push({
+                        event: 'consent_updated',
+                        consent_preferences: preferences
+                    });
+                }
+            } else {
+                console.error('Failed to save preferences');
+            }
+        }
+        getCheckboxValue(category) {
+            // Use the assigned settingsElement
+           if (!this.settingsElement) {
+                console.warn("settingsElement not assigned in BannerManager");
+                return false;
+           }
+           // Look for checkboxes based on data-category or data-consent-id
+           const checkbox = this.settingsElement.querySelector(`[data-category="${category}"], [data-consent-id="${category}-checkbox"]`);
+           return checkbox ? checkbox.checked : false;
+       }
 
+       showSettings() {
+           // Use the assigned settingsElement
+           if (this.settingsElement) {
+               console.log('Showing settings element:', this.settingsElement.id);
+               // Make sure it's displayed correctly (e.g., using block or flex)
+               this.settingsElement.style.display = 'block'; // Or appropriate display value
+               this.settingsElement.classList.remove('hidden');
+               this.settingsElement.classList.add('visible', 'show-banner'); // Ensure visibility classes are added
+               this.settingsElement.style.visibility = 'visible';
+               this.settingsElement.style.opacity = '1';
+           } else {
+                console.warn("Cannot show settings: settingsElement not assigned.");
+           }
+       }
+
+       hideSettings() {
+        // Use the assigned settingsElement
+        if (this.settingsElement) {
+             console.log('Hiding settings element:', this.settingsElement.id);
+            this.settingsElement.style.display = 'none';
+            this.settingsElement.classList.remove('visible', 'show-banner');
+            this.settingsElement.classList.add('hidden');
+        } else {
+             console.warn("Cannot hide settings: settingsElement not assigned.");
+        }
+    }
         hideAll() {
             console.log('Hiding all banners');
             Object.values(this.banners).forEach(banner => {
@@ -754,25 +829,47 @@
             }
         },
 
-        async updatePlausible(preferences) {
-            try {
-                if (window.plausible) {
-                    console.log("📝 Updating Plausible consent settings...");
-                    window.plausible.enableAutoTracking = preferences.Analytics;
-                    if (!preferences.Analytics) {
-                        window.plausible.pause();
-                    } else {
-                        window.plausible.resume();
-                    }
-                    
-                    // Verify the update
-                    await ConsentVerification.verifyPlausible();
-                    console.log("✅ Plausible consent updated successfully");
+       
+
+       async updatePlausible(preferences) {
+        try {
+            // Check if plausible exists and is a function or object
+            if (typeof window.plausible === 'function' || typeof window.plausible === 'object') {
+                console.log("📝 Updating Plausible consent settings...");
+                
+                // Check for specific properties/methods before calling them
+                if (typeof window.plausible.enableAutoTracking !== 'undefined') {
+                     window.plausible.enableAutoTracking = preferences.Analytics;
                 }
-            } catch (error) {
-                console.error("❌ Error updating Plausible consent:", error);
+                
+                if (!preferences.Analytics) {
+                    // Check if pause method exists
+                    if (typeof window.plausible.pause === 'function') {
+                       window.plausible.pause();
+                    } else {
+                       console.warn("window.plausible.pause() method not found.");
+                    }
+                } else {
+                     // Check if resume method exists
+                     if (typeof window.plausible.resume === 'function') {
+                       window.plausible.resume();
+                     } else {
+                        console.warn("window.plausible.resume() method not found.");
+                     }
+                }
+                
+                // Verify the update
+                await ConsentVerification.verifyPlausible();
+                console.log("✅ Plausible consent updated successfully");
+            } else {
+                 console.log("Plausible not detected on window, skipping update.");
             }
-        },
+        } catch (error) {
+            console.error("❌ Error updating Plausible consent:", error);
+            // Log the specific error to ScriptVerification if needed
+            ScriptVerification.logError('updatePlausible', error);
+        }
+    },
 
         async updateHotjar(preferences) {
             try {
@@ -1238,6 +1335,105 @@
         return Promise.resolve();
     }
 
+
+    async function restoreAllowedScripts(preferences) {
+        console.log("Restoring allowed scripts based on preferences:", preferences);
+        ScriptVerification.reset(); // Reset stats for this restoration pass
+    
+        // Find all potential placeholder scripts
+        const placeholders = document.querySelectorAll('script[type="text/plain"][data-category]');
+        console.log(`Found ${placeholders.length} placeholder scripts to evaluate.`);
+    
+        for (const placeholder of placeholders) {
+            try {
+                const category = placeholder.getAttribute('data-category');
+                const analyticsType = placeholder.getAttribute('data-analytics-type');
+                let isAllowed = false;
+    
+                // Check preferences
+                switch (category?.toLowerCase()) {
+                    case 'necessary':
+                        isAllowed = true;
+                        break;
+                    case 'analytics':
+                        isAllowed = preferences.Analytics;
+                        break;
+                    case 'marketing':
+                        isAllowed = preferences.Marketing;
+                        break;
+                    case 'personalization':
+                        isAllowed = preferences.Personalization;
+                        break;
+                    default:
+                        console.warn(`Unknown script category: ${category}`);
+                        // Decide how to handle unknown categories - block by default?
+                        isAllowed = false; 
+                }
+                
+                // Handle CCPA DoNotShare override
+                if (preferences.DoNotShare && ['Analytics', 'Marketing', 'Personalization'].includes(category)) {
+                     isAllowed = false;
+                     console.log(`Blocking script due to DoNotShare preference (Category: ${category})`);
+                }
+    
+    
+                if (isAllowed) {
+                    console.log(`✅ Allowing script category: ${category} (Type: ${analyticsType || 'N/A'})`);
+                    
+                    const newScript = document.createElement('script');
+                    
+                    // Copy attributes, excluding type and data attributes used for blocking
+                    Array.from(placeholder.attributes).forEach(attr => {
+                        if (!['type', 'data-category', 'data-original-src', 'data-analytics-type', 'data-analytics-details'].includes(attr.name.toLowerCase())) {
+                            newScript.setAttribute(attr.name, attr.value);
+                        }
+                    });
+    
+                    // Set the correct type
+                    newScript.type = 'text/javascript';
+    
+                    // Restore src or inline content
+                    if (placeholder.hasAttribute('data-original-src')) {
+                        newScript.src = placeholder.getAttribute('data-original-src');
+                    } else if (placeholder.textContent) {
+                        newScript.textContent = placeholder.textContent;
+                    }
+                    
+                    // Replace placeholder with the actual script
+                    if (placeholder.parentNode) {
+                        placeholder.parentNode.replaceChild(newScript, placeholder);
+                        ScriptVerification.logRestoredScript(newScript, category);
+                        
+                        // If it's a script with src, wait for it to load (optional, helps sequence)
+                        if (newScript.src) {
+                           await ScriptManager.loadScript(newScript).catch(err => {
+                               console.error(`Error loading restored script ${newScript.src}:`, err);
+                               ScriptVerification.logError('restoreAllowedScripts-load', err);
+                           });
+                        }
+                    } else {
+                        console.warn('Placeholder script was detached from DOM before restoration:', placeholder);
+                    }
+                } else {
+                    console.log(`🚫 Script category not allowed or DoNotShare enabled: ${category}`);
+                    // Optionally log blocked script again if needed, but it was logged during initial scan
+                    // ScriptVerification.logBlockedScript(placeholder, category); 
+                }
+            } catch (error) {
+                console.error('Error processing placeholder script:', placeholder, error);
+                ScriptVerification.logError('restoreAllowedScripts-loop', error);
+            }
+        }
+    
+        // After restoring scripts, disconnect the observer if it was blocking
+        // disconnectMutationObserver(); // Consider if this is needed or if state.initialBlockingEnabled handles it
+    
+        console.log("=== Script Restoration Complete ===");
+        console.log("Verification Stats:", ScriptVerification.getStats());
+    }
+
+
+
     // Enhanced consent action handlers
     async function handleAcceptAllConsent() {
         console.log("=== Handling Accept All Consent ===");
@@ -1512,6 +1708,7 @@
       
               const savePreferencesButton = document.getElementById("preferences-btn");
               if (savePreferencesButton) {
+
                   savePreferencesButton.addEventListener("click", async function(e) {
                       e.preventDefault();
                       // Call method on the bannerManager instance

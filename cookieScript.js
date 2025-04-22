@@ -1412,7 +1412,10 @@
                 }
                 else if (/static\.hotjar\.com/.test(scriptInfo.src)) {
                     setupHotjar(script);
-                }
+                }else if (/cdn\.(eu\.)?amplitude\.com/.test(scriptInfo.src)) { // Added Amplitude check
+                  setupAmplitude(script);
+              }
+              
 
                 // Restore any other attributes
                 Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
@@ -1454,6 +1457,25 @@
                 }
             };
         }
+        function setupAmplitude(script) {
+         
+      
+          script.onload = () => {
+              // Check if the amplitude object is available
+              if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
+                  // Grant consent after the script loads and consent is given
+                  amplitude.setOptOut(false);
+                  console.log('Amplitude consent granted.');
+              } else {
+                  console.error('Amplitude SDK not found or initialized.');
+              }
+          };
+          // Set optOut to true initially until consent is explicitly given
+          if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
+               amplitude.setOptOut(true);
+               console.log('Amplitude opted out pending consent.');
+          }
+      }
 
         function setupClarity(script) {
             window.clarity = window.clarity || function(...args) { 
@@ -1706,191 +1728,7 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
   }
 
   
-    // Analytics Consent Handlers
-    const AnalyticsConsentHandlers = {
-      async updateGoogleAnalytics(preferences) {
-          try {
-              if (typeof gtag === "function") {
-                  console.log("📝 Updating Google Analytics consent settings...");
-                  await gtag('consent', 'update', {
-                      'ad_storage': preferences.Marketing ? 'granted' : 'denied',
-                      'analytics_storage': preferences.Analytics ? 'granted' : 'denied',
-                      'ad_personalization': preferences.Marketing ? 'granted' : 'denied',
-                      'ad_user_data': preferences.Marketing ? 'granted' : 'denied',
-                      'personalization_storage': preferences.Personalization ? 'granted' : 'denied'
-                  });
-                  
-                  // Verify the update
-                  await ConsentVerification.verifyGoogleAnalytics();
-                  console.log("✅ GA consent updated successfully");
-              }
-          } catch (error) {
-              console.error("❌ Error updating GA consent:", error);
-          }
-      },
 
-     
-
-     async updatePlausible(preferences) {
-      try {
-          // Check if plausible exists and is a function or object
-          if (typeof window.plausible === 'function' || typeof window.plausible === 'object') {
-              console.log("📝 Updating Plausible consent settings...");
-              
-              // Check for specific properties/methods before calling them
-              if (typeof window.plausible.enableAutoTracking !== 'undefined') {
-                   window.plausible.enableAutoTracking = preferences.Analytics;
-              }
-              
-              if (!preferences.Analytics) {
-                  // Check if pause method exists
-                  if (typeof window.plausible.pause === 'function') {
-                     window.plausible.pause();
-                  } else {
-                     console.warn("window.plausible.pause() method not found.");
-                  }
-              } else {
-                   // Check if resume method exists
-                   if (typeof window.plausible.resume === 'function') {
-                     window.plausible.resume();
-                   } else {
-                      console.warn("window.plausible.resume() method not found.");
-                   }
-              }
-              
-              // Verify the update
-              await ConsentVerification.verifyPlausible();
-              console.log("✅ Plausible consent updated successfully");
-          } else {
-               console.log("Plausible not detected on window, skipping update.");
-          }
-      } catch (error) {
-          console.error("❌ Error updating Plausible consent:", error);
-          // Log the specific error to ScriptVerification if needed
-          ScriptVerification.logError('updatePlausible', error);
-      }
-  },
-
-      async updateHotjar(preferences) {
-          try {
-              if (window.hj) {
-                  console.log("📝 Updating Hotjar consent settings...");
-                  if (!preferences.Analytics) {
-                      window._hjSettings = window._hjSettings || {};
-                      window._hjSettings.consent = false;
-                      window.hj('consent', 'no');
-                  } else {
-                      window._hjSettings = window._hjSettings || {};
-                      window._hjSettings.consent = true;
-                      window.hj('consent', 'yes');
-                  }
-                  
-                  // Verify the update
-                  await ConsentVerification.verifyHotjar();
-                  console.log("✅ Hotjar consent updated successfully");
-              }
-          } catch (error) {
-              console.error("❌ Error updating Hotjar consent:", error);
-          }
-      },
-
-      async updateClarity(preferences) {
-          try {
-              if (window.clarity) {
-                  console.log("📝 Updating Clarity consent settings...");
-                  if (!preferences.Analytics) {
-                      window.clarity('consent', false);
-                      window.clarity('stop');
-                  } else {
-                      window.clarity('consent', true);
-                      window.clarity('start');
-                  }
-                  
-                  // Verify the update
-                  await ConsentVerification.verifyClarity();
-                  console.log("✅ Clarity consent updated successfully");
-              }
-          } catch (error) {
-              console.error("❌ Error updating Clarity consent:", error);
-          }
-      },
-
-      async updateMatomo(preferences) {
-          try {
-              if (window._paq) {
-                  console.log("📝 Updating Matomo consent settings...");
-                  if (!preferences.Analytics) {
-                      window._paq.push(['forgetConsentGiven']);
-                      window._paq.push(['optUserOut']);
-                  } else {
-                      window._paq.push(['setConsentGiven']);
-                      window._paq.push(['forgetUserOptOut']);
-                  }
-                  
-                  // Verify the update
-                  await ConsentVerification.verifyMatomo();
-                  console.log("✅ Matomo consent updated successfully");
-              }
-          } catch (error) {
-              console.error("❌ Error updating Matomo consent:", error);
-          }
-      },
-
-      async updateHubSpot(preferences) {
-          try {
-              if (window.hubspot) {
-                  console.log("📝 Updating HubSpot consent settings...");
-                  window._hsq = window._hsq || [];
-                  window._hsq.push(['setPrivacyConsent', {
-                      analytics: preferences.Analytics,
-                      marketing: preferences.Marketing,
-                      personalization: preferences.Personalization
-                  }]);
-                  
-                  // Verify the update
-                  await ConsentVerification.verifyHubSpot();
-                  console.log("✅ HubSpot consent updated successfully");
-              }
-          } catch (error) {
-              console.error("❌ Error updating HubSpot consent:", error);
-          }
-      },
-      async updateAmplitude(preferences) {
-          try {
-              if (typeof amplitude !== "undefined" && amplitude.getInstance) {
-                  console.log("📝 Updating Amplitude consent settings...");
-                  const instance = amplitude.getInstance();
-
-                  if (!preferences.Analytics) {
-                      instance.setOptOut(true);
-                      console.log("❌ Amplitude opted out due to analytics preference.");
-                  } else {
-                      instance.setOptOut(false);
-                      console.log("✅ Amplitude tracking enabled.");
-                  }
-
-                  // Optionally store consent preferences as user properties
-                  instance.setUserProperties({
-                      consent_analytics: preferences.Analytics,
-                      consent_marketing: preferences.Marketing,
-                      consent_personalization: preferences.Personalization
-                  });
-
-                  // Verify the update
-                  await ConsentVerification.verifyAmplitude?.(); // Optional if you've defined one
-                  console.log("✅ Amplitude consent updated successfully");
-              } else {
-                  console.warn("Amplitude not detected on window.");
-              }
-          } catch (error) {
-              console.error("❌ Error updating Amplitude consent:", error);
-              ScriptVerification?.logError?.('updateAmplitude', error);
-          }
-      }
-
-  };
-            
-  
     /* INITIALIZATION */
     async function getVisitorSessionToken() {
       try {

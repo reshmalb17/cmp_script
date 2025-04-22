@@ -10,9 +10,21 @@
     let categorizedScripts = null;
     let initialBlockingEnabled = true;
   
-    const suspiciousPatterns = [ { pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview/i, category: "Analytics" }, { pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i, category: "Marketing" }, { pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i, category: "Personalization" } ];
-  
-  
+    const suspiciousPatterns = [
+      {
+        pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview|amplitude|amplitude.com/i,
+        category: "Analytics"
+      },
+      {
+        pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i,
+        category: "Marketing"
+      },
+      {
+        pattern: /optimizely|hubspot|marketo|pardot|salesforce|intercom|drift|zendesk|freshchat|tawk|livechat/i,
+        category: "Personalization"
+      }
+    ];
+    
          /**
   ENCRYPTION AND DECYPTION STARTS
    */
@@ -253,7 +265,7 @@
             };
             
               await saveConsentState(preferences);
-               restoreAllowedScripts(preferences);
+              await restoreAllowedScripts(preferences);
                hideBanner(simpleBanner);
               localStorage.setItem("consent-given", "true");
             
@@ -884,7 +896,7 @@
   
     return placeholder;
   }
-      
+
       function findCategoryByPattern(text) { 
           for (const { pattern, category } of suspiciousPatterns)
                { if (pattern.test(text)) {
@@ -983,22 +995,7 @@
               return [];
           }
         } 
-   function extractCategories(content) {
-          if (!content) return [];
-          
-          // Extract data-category attribute value
-          const categoryMatch = content.match(/data-category=["']([^"']+)["']/);
-          if (categoryMatch && categoryMatch[1]) {
-              // Split by comma and clean up each category
-              return categoryMatch[1]
-                  .split(',')
-                  .map(cat => cat.trim())
-                  .filter(Boolean); // Remove empty strings
-          }
-      
-          // If no data-category found in content
-          return [];
-      }
+
       
       async function scanAndBlockScripts() {
         console.log("inside scan and block");
@@ -1610,15 +1607,12 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
                      script.onload = () => {
                          console.log(`GA script (${scriptInfo.src}) loaded.`);
                          updateGAConsent();
-                         // Restore other original attributes after load if necessary
-                        // Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-                        //     script.setAttribute(name, value);
-                        // });
+                        
                      };
                      script.onerror = () => {
                          console.error(`Failed to load GA script: ${scriptInfo.src}`);
                      }
-                    // Attempt immediate update if gtag exists
+                 
                     updateGAConsent();
                 } else {
                      // Restore other attributes for non-GA scripts immediately or on load
@@ -1626,6 +1620,55 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
                          script.setAttribute(name, value);
                      });
                 }
+
+
+
+                const amplitudePattern = /amplitude|amplitude.com/i;
+                if (amplitudePattern.test(scriptInfo.src)) {
+                  console.log("Detected Amplitude script, hooking into consent update");
+                
+                  function updateAmplitudeConsent() {
+                    if (typeof amplitude !== "undefined" && amplitude.getInstance) {
+                      const instance = amplitude.getInstance();
+                      console.log("Updating Amplitude tracking settings...");
+                
+                      if (!normalizedPrefs.analytics) {
+                        // Disable tracking completely
+                        instance.setOptOut(true);
+                        console.log("Amplitude tracking opted out due to analytics preference.");
+                      } else {
+                        instance.setOptOut(false);
+                        console.log("Amplitude tracking enabled.");
+                      }
+                
+                      // Optional: Set consent preferences as user properties
+                      instance.setUserProperties({
+                        consent_analytics: normalizedPrefs.analytics,
+                        consent_marketing: normalizedPrefs.marketing,
+                        consent_personalization: normalizedPrefs.personalization || false
+                      });
+                    } else {
+                      console.warn("Amplitude not ready yet. Will retry on script load.");
+                    }
+                  }
+                
+                  // Hook into script load
+                  script.onload = () => {
+                    console.log(`Amplitude script (${scriptInfo.src}) loaded.`);
+                    updateAmplitudeConsent();
+                  };
+                
+                  script.onerror = () => {
+                    console.error(`Failed to load Amplitude script: ${scriptInfo.src}`);
+                  };
+                
+                  // Try early update just in case
+                  updateAmplitudeConsent();
+                }
+
+
+
+
   
   
             } else {
@@ -1661,6 +1704,191 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
     console.log("Scripts remaining in existing_Scripts map:", Object.keys(existing_Scripts).length);
     console.log("RESTORE ENDS");
   }
+
+  
+    // Analytics Consent Handlers
+    const AnalyticsConsentHandlers = {
+      async updateGoogleAnalytics(preferences) {
+          try {
+              if (typeof gtag === "function") {
+                  console.log("📝 Updating Google Analytics consent settings...");
+                  await gtag('consent', 'update', {
+                      'ad_storage': preferences.Marketing ? 'granted' : 'denied',
+                      'analytics_storage': preferences.Analytics ? 'granted' : 'denied',
+                      'ad_personalization': preferences.Marketing ? 'granted' : 'denied',
+                      'ad_user_data': preferences.Marketing ? 'granted' : 'denied',
+                      'personalization_storage': preferences.Personalization ? 'granted' : 'denied'
+                  });
+                  
+                  // Verify the update
+                  await ConsentVerification.verifyGoogleAnalytics();
+                  console.log("✅ GA consent updated successfully");
+              }
+          } catch (error) {
+              console.error("❌ Error updating GA consent:", error);
+          }
+      },
+
+     
+
+     async updatePlausible(preferences) {
+      try {
+          // Check if plausible exists and is a function or object
+          if (typeof window.plausible === 'function' || typeof window.plausible === 'object') {
+              console.log("📝 Updating Plausible consent settings...");
+              
+              // Check for specific properties/methods before calling them
+              if (typeof window.plausible.enableAutoTracking !== 'undefined') {
+                   window.plausible.enableAutoTracking = preferences.Analytics;
+              }
+              
+              if (!preferences.Analytics) {
+                  // Check if pause method exists
+                  if (typeof window.plausible.pause === 'function') {
+                     window.plausible.pause();
+                  } else {
+                     console.warn("window.plausible.pause() method not found.");
+                  }
+              } else {
+                   // Check if resume method exists
+                   if (typeof window.plausible.resume === 'function') {
+                     window.plausible.resume();
+                   } else {
+                      console.warn("window.plausible.resume() method not found.");
+                   }
+              }
+              
+              // Verify the update
+              await ConsentVerification.verifyPlausible();
+              console.log("✅ Plausible consent updated successfully");
+          } else {
+               console.log("Plausible not detected on window, skipping update.");
+          }
+      } catch (error) {
+          console.error("❌ Error updating Plausible consent:", error);
+          // Log the specific error to ScriptVerification if needed
+          ScriptVerification.logError('updatePlausible', error);
+      }
+  },
+
+      async updateHotjar(preferences) {
+          try {
+              if (window.hj) {
+                  console.log("📝 Updating Hotjar consent settings...");
+                  if (!preferences.Analytics) {
+                      window._hjSettings = window._hjSettings || {};
+                      window._hjSettings.consent = false;
+                      window.hj('consent', 'no');
+                  } else {
+                      window._hjSettings = window._hjSettings || {};
+                      window._hjSettings.consent = true;
+                      window.hj('consent', 'yes');
+                  }
+                  
+                  // Verify the update
+                  await ConsentVerification.verifyHotjar();
+                  console.log("✅ Hotjar consent updated successfully");
+              }
+          } catch (error) {
+              console.error("❌ Error updating Hotjar consent:", error);
+          }
+      },
+
+      async updateClarity(preferences) {
+          try {
+              if (window.clarity) {
+                  console.log("📝 Updating Clarity consent settings...");
+                  if (!preferences.Analytics) {
+                      window.clarity('consent', false);
+                      window.clarity('stop');
+                  } else {
+                      window.clarity('consent', true);
+                      window.clarity('start');
+                  }
+                  
+                  // Verify the update
+                  await ConsentVerification.verifyClarity();
+                  console.log("✅ Clarity consent updated successfully");
+              }
+          } catch (error) {
+              console.error("❌ Error updating Clarity consent:", error);
+          }
+      },
+
+      async updateMatomo(preferences) {
+          try {
+              if (window._paq) {
+                  console.log("📝 Updating Matomo consent settings...");
+                  if (!preferences.Analytics) {
+                      window._paq.push(['forgetConsentGiven']);
+                      window._paq.push(['optUserOut']);
+                  } else {
+                      window._paq.push(['setConsentGiven']);
+                      window._paq.push(['forgetUserOptOut']);
+                  }
+                  
+                  // Verify the update
+                  await ConsentVerification.verifyMatomo();
+                  console.log("✅ Matomo consent updated successfully");
+              }
+          } catch (error) {
+              console.error("❌ Error updating Matomo consent:", error);
+          }
+      },
+
+      async updateHubSpot(preferences) {
+          try {
+              if (window.hubspot) {
+                  console.log("📝 Updating HubSpot consent settings...");
+                  window._hsq = window._hsq || [];
+                  window._hsq.push(['setPrivacyConsent', {
+                      analytics: preferences.Analytics,
+                      marketing: preferences.Marketing,
+                      personalization: preferences.Personalization
+                  }]);
+                  
+                  // Verify the update
+                  await ConsentVerification.verifyHubSpot();
+                  console.log("✅ HubSpot consent updated successfully");
+              }
+          } catch (error) {
+              console.error("❌ Error updating HubSpot consent:", error);
+          }
+      },
+      async updateAmplitude(preferences) {
+          try {
+              if (typeof amplitude !== "undefined" && amplitude.getInstance) {
+                  console.log("📝 Updating Amplitude consent settings...");
+                  const instance = amplitude.getInstance();
+
+                  if (!preferences.Analytics) {
+                      instance.setOptOut(true);
+                      console.log("❌ Amplitude opted out due to analytics preference.");
+                  } else {
+                      instance.setOptOut(false);
+                      console.log("✅ Amplitude tracking enabled.");
+                  }
+
+                  // Optionally store consent preferences as user properties
+                  instance.setUserProperties({
+                      consent_analytics: preferences.Analytics,
+                      consent_marketing: preferences.Marketing,
+                      consent_personalization: preferences.Personalization
+                  });
+
+                  // Verify the update
+                  await ConsentVerification.verifyAmplitude?.(); // Optional if you've defined one
+                  console.log("✅ Amplitude consent updated successfully");
+              } else {
+                  console.warn("Amplitude not detected on window.");
+              }
+          } catch (error) {
+              console.error("❌ Error updating Amplitude consent:", error);
+              ScriptVerification?.logError?.('updateAmplitude', error);
+          }
+      }
+
+  };
             
   
     /* INITIALIZATION */

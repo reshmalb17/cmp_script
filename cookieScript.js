@@ -1346,6 +1346,16 @@
   async function unblockAllCookiesAndTools() {
     console.log("UNBLOCK ALL starts - bypassing category checks");
 
+     // --- Temporarily disconnect observer ---
+    if (observer) {
+        console.log("Disconnecting observer during unblockAllCookiesAndTools...");
+        observer.disconnect();
+        // Set observer to null because this function intends to permanently allow all
+        // and doesn't necessarily need the observer afterwards.
+        observer = null;
+    }
+    // ------------------------------------
+
     try {
         // Set all preferences to true
         const allAllowedPreferences = {
@@ -1353,8 +1363,8 @@
             Marketing: true,
             Personalization: true,
             Analytics: true,
-            ccpa: { 
-                DoNotShare: false 
+            ccpa: {
+                DoNotShare: false
             }
         };
 
@@ -1383,350 +1393,424 @@
             const script = document.createElement("script");
 
             // Restore core properties
-            script.type = scriptInfo.type;
+            script.type = scriptInfo.type || "text/javascript";
             if (scriptInfo.async) script.async = true;
             if (scriptInfo.defer) script.defer = true;
-            script.setAttribute("data-category", scriptInfo.category.join(','));
+            const categories = Array.isArray(scriptInfo.category) ? scriptInfo.category : (scriptInfo.category || '').split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
+            script.setAttribute("data-category", categories.join(','));
+
+
+             // Restore other attributes *before* setting src or textContent
+             if (scriptInfo.originalAttributes) {
+                Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
+                     script.setAttribute(name, value);
+                 });
+            }
+
 
             if (scriptInfo.src) {
                 script.src = scriptInfo.src;
 
-                // Handle specific tools
+                // Setup specific tools (assuming all are granted)
                 if (/googletagmanager\.com\/gtag\/js/.test(scriptInfo.src)) {
-                    setupGoogleAnalytics(script);
+                    setupGoogleAnalytics(script, true); // Pass 'granted' state
                 }
                 else if (/clarity\.ms/.test(scriptInfo.src)) {
-                    setupClarity(script);
+                    setupClarity(script, true);
                 }
                 else if (/connect\.facebook\.net/.test(scriptInfo.src)) {
-                    setupFacebookPixel(script);
+                    setupFacebookPixel(script, true);
                 }
                 else if (/matomo\.cloud/.test(scriptInfo.src)) {
-                    setupMatomo(script);
+                    setupMatomo(script, true);
                 }
                 else if (/hs-scripts\.com/.test(scriptInfo.src)) {
-                    setupHubSpot(script);
+                    setupHubSpot(script, true);
                 }
                 else if (/plausible\.io/.test(scriptInfo.src)) {
-                    setupPlausible(script);
+                    setupPlausible(script, true);
                 }
                 else if (/static\.hotjar\.com/.test(scriptInfo.src)) {
-                    setupHotjar(script);
-                }else if (/cdn\.(eu\.)?amplitude\.com/.test(scriptInfo.src)) { // Added Amplitude check
-                  setupAmplitude(script);
-              }
-              
+                    setupHotjar(script, true);
+                } else if (/cdn\.(eu\.)?amplitude\.com/.test(scriptInfo.src)) {
+                    setupAmplitude(script, true); // Pass 'granted' state
+                }
 
-                // Restore any other attributes
-                Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-                    script.setAttribute(name, value);
-                });
+
             } else {
                 script.textContent = scriptInfo.content;
-                Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-                    script.setAttribute(name, value);
-                });
             }
 
             // Replace placeholder with actual script
             if (placeholder.parentNode) {
                 placeholder.parentNode.replaceChild(script, placeholder);
             } else {
+                 console.warn(`Placeholder parent node not found for script ID ${scriptId} during unblock all. Appending to head.`);
                 document.head.appendChild(script);
             }
 
             delete existing_Scripts[scriptId];
         }
 
-        // Disable initial blocking
-        initialBlockingEnabled = false;
+        // Disable initial blocking flag if it's still relevant
+        // initialBlockingEnabled = false; // This variable doesn't seem to be used after initial load
 
-        // Setup specific tools
-        function setupGoogleAnalytics(script) {
-            script.onload = () => {
-                if (typeof gtag === 'function') {
-                    gtag('consent', 'update', {
-                        'ad_storage': 'granted',
-                        'analytics_storage': 'granted',
-                        'functionality_storage': 'granted',
-                        'personalization_storage': 'granted',
-                        'security_storage': 'granted',
-                        'ad_user_data': 'granted',
-                        'ad_personalization': 'granted'
-                    });
-                }
-            };
-        }
-        function setupAmplitude(script) {
-         
-      
-          script.onload = () => {
-              // Check if the amplitude object is available
-              if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
-                  // Grant consent after the script loads and consent is given
-                  amplitude.setOptOut(false);
-                  console.log('Amplitude consent granted.');
-              } else {
-                  console.error('Amplitude SDK not found or initialized.');
-              }
-          };
-          // Set optOut to true initially until consent is explicitly given
-          if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
-               amplitude.setOptOut(true);
-               console.log('Amplitude opted out pending consent.');
-          }
-      }
-
-        function setupClarity(script) {
-            window.clarity = window.clarity || function(...args) { 
-                (window.clarity.q = window.clarity.q || []).push(args); 
-            };
-            window.clarity.consent = true;
-        }
-
-        function setupFacebookPixel(script) {
-            script.onload = () => {
-                if (typeof fbq === 'function') {
-                    fbq('consent', 'grant');
-                }
-            };
-        }
-
-        function setupMatomo(script) {
-            script.onload = () => {
-                if (typeof _paq !== 'undefined') {
-                    _paq.push(['setConsentGiven']);
-                    _paq.push(['trackPageView']);
-                }
-            };
-        }
-
-        function setupHubSpot(script) {
-            script.onload = () => {
-                if (typeof _hsq !== 'undefined') {
-                    _hsq.push(['doNotTrack', { track: true }]);
-                }
-            };
-        }
-
-        function setupPlausible(script) {
-            // Plausible is privacy-friendly and doesn't need explicit consent
-            script.setAttribute('data-consent-given', 'true');
-        }
-
-        function setupHotjar(script) {
-            window.hj = window.hj || function(...args) { 
-                (window.hj.q = window.hj.q || []).push(args); 
-            };
-            script.onload = () => {
-                if (typeof hj === 'function') {
-                    hj('consent', 'granted');
-                }
-            };
-        }
-
-     
         // Mark consent as given
         localStorage.setItem("consent-given", "true");
 
-        // Disconnect observer if it exists
-        if (observer) {
-            observer.disconnect();
-            observer = null;
-        }
+        // Observer was already disconnected above.
 
         console.log("UNBLOCK ALL completed successfully");
 
     } catch (error) {
         console.error("Error in unblockAllCookiesAndTools:", error);
+         // --- Reconnect observer if error occurred ---
+        if (observer) { // Check if it wasn't set to null
+            console.log("Reconnecting observer after error in unblockAll...");
+             observer.observe(document.documentElement, { childList: true, subtree: true });
+        }
+        // ------------------------------------------
     }
 }
 
+// Modify the setup functions to accept a 'granted' state
+function setupGoogleAnalytics(script, granted) {
+  script.onload = () => {
+      if (typeof gtag === 'function') {
+           const state = granted ? 'granted' : 'denied';
+          gtag('consent', 'update', {
+              'ad_storage': state,
+              'analytics_storage': state,
+              'functionality_storage': 'granted', // Usually always granted
+              'personalization_storage': state,
+              'security_storage': 'granted', // Usually always granted
+              'ad_user_data': state,
+              'ad_personalization': state
+          });
+           console.log(`Google Analytics consent updated to ${state}`);
+      } else {
+          console.warn("setupGoogleAnalytics: gtag not found on load.");
+      }
+  };
+}
+function setupAmplitude(script, granted) {
+  script.onload = () => {
+       // Use timeout as before
+      setTimeout(() => {
+           if (typeof amplitude !== 'undefined' && amplitude.getInstance) {
+               try {
+                  const instance = amplitude.getInstance();
+                  instance.setOptOut(!granted); // Opt out if NOT granted
+                  console.log(`Amplitude consent ${granted ? 'granted (tracking enabled)' : 'denied (opted out)'}.`);
+               } catch (error) {
+                    console.error("setupAmplitude: Error accessing Amplitude instance:", error);
+               }
+          } else {
+              console.error('setupAmplitude: Amplitude SDK or getInstance not found or initialized.');
+          }
+      }, 100);
+  };
+  // Initial opt-out state handled by restore logic based on preferences,
+  // but if unblocking all, we ensure it's explicitly enabled on load.
+}
+
+function setupClarity(script, granted) {
+  // Clarity might need initialization + consent flag
+   window.clarity = window.clarity || function(...args) { (window.clarity.q = window.clarity.q || []).push(args); };
+   window.clarity.consent = granted; // Set consent state
+   console.log(`Clarity consent set to ${granted}`);
+}
+
+function setupFacebookPixel(script, granted) {
+  script.onload = () => {
+      if (typeof fbq === 'function') {
+          const action = granted ? 'grant' : 'revoke';
+          fbq('consent', action);
+           console.log(`Facebook Pixel consent ${action}ed.`);
+      } else {
+           console.warn("setupFacebookPixel: fbq not found on load.");
+      }
+  };
+}
+
+function setupMatomo(script, granted) {
+  script.onload = () => {
+      if (typeof _paq !== 'undefined') {
+          if (granted) {
+               _paq.push(['setConsentGiven']);
+               // Optionally, if you track cookies: _paq.push(['enableCookies']);
+               console.log("Matomo consent granted.");
+               _paq.push(['trackPageView']); // Track page view only if consent granted
+          } else {
+               _paq.push(['forgetConsentGiven']);
+               // Optionally, if you track cookies: _paq.push(['disableCookies']);
+               console.log("Matomo consent denied/revoked.");
+          }
+      } else {
+           console.warn("setupMatomo: _paq not found on load.");
+      }
+  };
+}
+
+function setupHubSpot(script, granted) {
+   // HubSpot's `doNotTrack` is inverse of consent
+  script.onload = () => {
+      if (typeof _hsq !== 'undefined') {
+          _hsq.push(['doNotTrack', { track: granted }]); // track: true means DO track (consent given)
+           console.log(`HubSpot doNotTrack set to ${!granted}`);
+      } else {
+          console.warn("setupHubSpot: _hsq not found on load.");
+      }
+  };
+}
+
+function setupPlausible(script, granted) {
+  // Plausible doesn't strictly need consent management in the script itself
+  // but you might add the attribute for clarity or other integrations
+  if (granted) {
+       script.setAttribute('data-consent-given', 'true');
+  } else {
+       script.removeAttribute('data-consent-given');
+  }
+   console.log(`Plausible script marked with consent: ${granted}`);
+}
+
+function setupHotjar(script, granted) {
+   window.hj = window.hj || function(...args) { (window.hj.q = window.hj.q || []).push(args); };
+  script.onload = () => {
+      if (typeof hj === 'function') {
+          // Hotjar consent API might vary, check their docs. Assuming 'consent', 'granted'/'denied'
+           const state = granted ? 'granted' : 'denied';
+           hj('consent', state);
+           console.log(`Hotjar consent set to ${state}`);
+      } else {
+           console.warn("setupHotjar: hj not found on load.");
+      }
+  };
+}
 // Make it globally available
 window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
   
   
-  async function restoreAllowedScripts(preferences) {
-    console.log("RESTORE STARTS");
-  
-    // Normalize preferences keys to lowercase for consistent checking
-    const normalizedPrefs = Object.fromEntries(
-        Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
-    );
-  
-    console.log("Scripts to potentially restore:", Object.keys(existing_Scripts).length);
-    console.log("Current preferences:", normalizedPrefs);
-  
-    // Iterate over a copy of the keys, as we might modify the object during iteration
-    const scriptIdsToRestore = Object.keys(existing_Scripts);
-  
-    for (const scriptId of scriptIdsToRestore) {
-        const scriptInfo = existing_Scripts[scriptId];
-        if (!scriptInfo) continue; // Should not happen, but safety check
-  
-        // Find the placeholder in the DOM
-        const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
-        if (!placeholder) {
-            console.warn(`Placeholder for script ID ${scriptId} not found in DOM. Skipping restore.`);
-            // Clean up the entry if the placeholder is gone
-            delete existing_Scripts[scriptId];
-            continue;
-        }
-  
-        // Determine if the script is allowed based on its categories and current preferences
-        const isAllowed = scriptInfo.category.some(cat => normalizedPrefs[cat] === true);
-  
-        console.log(`Script ID: ${scriptId}, Categories: [${scriptInfo.category.join(',')}], Allowed: ${isAllowed}`);
-  
-        if (isAllowed) {
-            // Check if a script with this src already exists in the DOM (prevent duplicates)
-            if (scriptInfo.src) {
-                 // More specific check: Look for scripts with the same src that are NOT placeholders
-                const existingScript = document.querySelector(`script[src="${scriptInfo.src}"]:not([type='text/plain'])`);
-                if (existingScript && existingScript !== placeholder) {
-                    console.log(`Script with src ${scriptInfo.src} already exists. Skipping restore for ID ${scriptId}.`);
-                     // Remove the placeholder if the script already exists elsewhere
-                    if (placeholder.parentNode) {
-                         placeholder.parentNode.removeChild(placeholder);
-                     }
-                    delete existing_Scripts[scriptId]; // Clean up the reference
-                    continue; // Move to the next script
-                }
-            }
-  
-  
-            console.log(`Restoring script ID: ${scriptId} (${scriptInfo.src || 'inline'})`);
-            const script = document.createElement("script");
-  
-            // Restore core properties
-            script.type = scriptInfo.type; // Restore original type
-            if (scriptInfo.async) script.async = true;
-            if (scriptInfo.defer) script.defer = true;
-            script.setAttribute("data-category", scriptInfo.category.join(',')); // Keep category info if needed
-  
-            // Restore src or content
-            if (scriptInfo.src) {
-                script.src = scriptInfo.src;
-  
-                // Special handling for GA or other consent-aware scripts
-                const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
-                if (gtagPattern.test(scriptInfo.src)) {
-                    console.log("Detected GA script, hooking into consent update");
-                    function updateGAConsent() {
-                        if (typeof gtag === "function") {
-                            console.log("Updating GA consent settings...");
-                            gtag('consent', 'update', {
-                                'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
-                                'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
-                                'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied', // Adjust based on your categories
-                                'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'      // Adjust based on your categories
-                            });
-                        } else {
-                            console.warn("gtag is not defined yet. Will retry on script load.");
-                        }
-                    }
-                    // Update on load
-                     script.onload = () => {
-                         console.log(`GA script (${scriptInfo.src}) loaded.`);
-                         updateGAConsent();
-                        
-                     };
-                     script.onerror = () => {
-                         console.error(`Failed to load GA script: ${scriptInfo.src}`);
-                     }
-                 
-                    updateGAConsent();
-                } else {
-                     // Restore other attributes for non-GA scripts immediately or on load
-                    Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-                         script.setAttribute(name, value);
-                     });
-                }
+async function restoreAllowedScripts(preferences) {
+  console.log("RESTORE STARTS");
 
-
-
-                const amplitudePattern = /amplitude|amplitude.com/i;
-                if (amplitudePattern.test(scriptInfo.src)) {
-                  console.log("Detected Amplitude script, hooking into consent update");
-                
-                  function updateAmplitudeConsent() {
-                    if (typeof amplitude !== "undefined" && amplitude.getInstance) {
-                      const instance = amplitude.getInstance();
-                      console.log("Updating Amplitude tracking settings...");
-                
-                      if (!normalizedPrefs.analytics) {
-                        // Disable tracking completely
-                        instance.setOptOut(true);
-                        console.log("Amplitude tracking opted out due to analytics preference.");
-                      } else {
-                        instance.setOptOut(false);
-                        console.log("Amplitude tracking enabled.");
-                      }
-                
-                      // Optional: Set consent preferences as user properties
-                      instance.setUserProperties({
-                        consent_analytics: normalizedPrefs.analytics,
-                        consent_marketing: normalizedPrefs.marketing,
-                        consent_personalization: normalizedPrefs.personalization || false
-                      });
-                    } else {
-                      console.warn("Amplitude not ready yet. Will retry on script load.");
-                    }
-                  }
-                
-                  // Hook into script load
-                  script.onload = () => {
-                    console.log(`Amplitude script (${scriptInfo.src}) loaded.`);
-                    updateAmplitudeConsent();
-                  };
-                
-                  script.onerror = () => {
-                    console.error(`Failed to load Amplitude script: ${scriptInfo.src}`);
-                  };
-                
-                  // Try early update just in case
-                  updateAmplitudeConsent();
-                }
-
-
-
-
-  
-  
-            } else {
-                script.textContent = scriptInfo.content;
-                 // Restore other attributes for inline scripts
-                 Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-                     script.setAttribute(name, value);
-                 });
-            }
-  
-            // Replace the placeholder with the restored script
-            if (placeholder.parentNode) {
-                placeholder.parentNode.replaceChild(script, placeholder);
-            } else {
-                 console.warn(`Placeholder parent node not found for script ID ${scriptId}. Appending to head.`);
-                 document.head.appendChild(script); // Fallback: append to head
-            }
-  
-            // Remove the script info from our tracking object *after* successful restoration
-            delete existing_Scripts[scriptId];
-  
-        } else {
-            console.log(`Script ID: ${scriptId} remains blocked.`);
-            // Ensure the node in the DOM is still a placeholder (it should be)
-             if (placeholder.tagName !== 'SCRIPT' || placeholder.type !== 'text/plain') {
-                 console.warn(`Node for script ID ${scriptId} is not a placeholder as expected.`);
-                 // Optionally, try to re-block it here if necessary, though ideally,
-                 // reblockDisallowedScripts would handle this later if consent changes.
-             }
-        }
-    }
-  
-    console.log("Scripts remaining in existing_Scripts map:", Object.keys(existing_Scripts).length);
-    console.log("RESTORE ENDS");
+  // --- Temporarily disconnect observer ---
+  if (observer) {
+      console.log("Disconnecting observer during restore...");
+      observer.disconnect();
   }
+  // ------------------------------------
 
+  try {
+      // Normalize preferences keys to lowercase for consistent checking
+      const normalizedPrefs = Object.fromEntries(
+          Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
+      );
+
+      console.log("Scripts to potentially restore:", Object.keys(existing_Scripts).length);
+      console.log("Current preferences:", normalizedPrefs);
+
+      // Iterate over a copy of the keys, as we might modify the object during iteration
+      const scriptIdsToProcess = Object.keys(existing_Scripts); // Renamed for clarity
+
+      for (const scriptId of scriptIdsToProcess) {
+          const scriptInfo = existing_Scripts[scriptId];
+          if (!scriptInfo) continue; // Safety check
+
+          // Find the placeholder in the DOM
+          const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
+          if (!placeholder) {
+              console.warn(`Placeholder for script ID ${scriptId} not found in DOM. Skipping restore.`);
+              // Clean up the entry if the placeholder is gone
+              delete existing_Scripts[scriptId]; // <<< --- Added cleanup here
+              continue;
+          }
+
+          // Determine if the script is allowed based on its categories and current preferences
+          // Ensure scriptInfo.category is always an array
+          const categories = Array.isArray(scriptInfo.category) ? scriptInfo.category : (scriptInfo.category || '').split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
+          const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
+
+          console.log(`Script ID: ${scriptId}, Categories: [${categories.join(',')}], Allowed: ${isAllowed}`);
+
+          if (isAllowed) {
+              // Check if a script with this src OR content already exists and is NOT a placeholder
+              let alreadyExists = false;
+              if (scriptInfo.src) {
+                  const existingScript = document.querySelector(`script[src="${scriptInfo.src}"]:not([type='text/plain'])`);
+                  if (existingScript && existingScript !== placeholder) {
+                       alreadyExists = true;
+                       console.log(`Script with src ${scriptInfo.src} already exists. Skipping restore for ID ${scriptId}.`);
+                  }
+              } else if (scriptInfo.content) {
+                  // Simple check for inline script content (might need refinement for complex scripts)
+                  // const existingInline = Array.from(document.querySelectorAll("script:not([src]):not([type='text/plain'])")).find(s => s.textContent === scriptInfo.content);
+                  // if (existingInline) {
+                  //     alreadyExists = true;
+                  //     console.log(`Inline script content seems to already exist. Skipping restore for ID ${scriptId}.`);
+                  // }
+                  // ^^ Note: Checking inline content equality is tricky and potentially slow. Let's rely on the placeholder mechanism primarily.
+              }
+
+
+              if (alreadyExists) {
+                   // Remove the placeholder if the script already exists elsewhere
+                  if (placeholder.parentNode) {
+                       placeholder.parentNode.removeChild(placeholder);
+                   }
+                  delete existing_Scripts[scriptId]; // Clean up the reference
+                  continue; // Move to the next script
+              }
+
+
+              console.log(`Restoring script ID: ${scriptId} (${scriptInfo.src || 'inline'})`);
+              const script = document.createElement("script");
+
+              // Restore core properties
+              script.type = scriptInfo.type || "text/javascript"; // Restore original type or default
+              if (scriptInfo.async) script.async = true;
+              if (scriptInfo.defer) script.defer = true;
+              script.setAttribute("data-category", categories.join(',')); // Keep category info if needed
+
+              // Restore other attributes *before* setting src or textContent
+              if (scriptInfo.originalAttributes) {
+                  Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
+                       script.setAttribute(name, value);
+                   });
+              }
+
+
+              // Restore src or content
+              if (scriptInfo.src) {
+                  script.src = scriptInfo.src;
+
+                  // Special handling for GA or other consent-aware scripts
+                  const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
+                  if (gtagPattern.test(scriptInfo.src)) {
+                      console.log("Detected GA script, hooking into consent update");
+                      function updateGAConsent() {
+                          if (typeof gtag === "function") {
+                              console.log("Updating GA consent settings...");
+                              // Map preferences to GA consent types
+                              const consentSettings = {
+                                  'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
+                                  'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
+                                  'personalization_storage': normalizedPrefs.personalization ? 'granted' : 'denied',
+                                  'functionality_storage': 'granted', // Assuming necessary/functional is always granted
+                                  'security_storage': 'granted', // Assuming necessary/functional is always granted
+                                  // Add ad_user_data and ad_personalization if relevant to your categories
+                                  'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied',
+                                  'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied'
+                              };
+                              gtag('consent', 'update', consentSettings);
+                              console.log("GA Consent Updated:", consentSettings);
+                          } else {
+                              console.warn("gtag is not defined yet. Will retry on script load.");
+                          }
+                      }
+                      // Update on load
+                      script.onload = () => {
+                          console.log(`GA script (${scriptInfo.src}) loaded.`);
+                          updateGAConsent();
+
+                      };
+                      script.onerror = () => {
+                          console.error(`Failed to load GA script: ${scriptInfo.src}`);
+                      }
+
+                     // updateGAConsent(); // Update immediately in case gtag is already defined
+                  }
+
+
+                  const amplitudePattern = /amplitude|amplitude.com/i;
+                  if (amplitudePattern.test(scriptInfo.src)) {
+                    console.log("Detected Amplitude script, hooking into consent update");
+
+                    function updateAmplitudeConsent() {
+                      // Use a timeout to allow Amplitude SDK to potentially initialize fully
+                      setTimeout(() => {
+                          if (typeof amplitude !== "undefined" && amplitude.getInstance) {
+                              try {
+                                  const instance = amplitude.getInstance();
+                                  console.log("Updating Amplitude tracking settings...");
+
+                                  const analyticsAllowed = normalizedPrefs.analytics === true;
+                                  instance.setOptOut(!analyticsAllowed); // Opt out if analytics is NOT allowed
+                                  console.log(`Amplitude tracking ${analyticsAllowed ? 'enabled' : 'opted out'}.`);
+
+                                  // Optional: Set consent preferences as user properties
+                                   instance.setUserProperties({
+                                   consent_analytics: normalizedPrefs.analytics,
+                                       consent_marketing: normalizedPrefs.marketing,
+                                      consent_personalization: normalizedPrefs.personalization || false
+                                  });
+
+                              } catch (error) {
+                                   console.error("Error accessing Amplitude instance:", error);
+                              }
+                          } else {
+                              console.warn("Amplitude SDK or getInstance not ready after load. Cannot update consent.");
+                          }
+                      }, 100); // Short delay (100ms) to increase chance of SDK being ready
+                    }
+
+                    // Hook into script load
+                    script.onload = () => {
+                      console.log(`Amplitude script (${scriptInfo.src}) loaded.`);
+                      updateAmplitudeConsent();
+                    };
+
+                    script.onerror = () => {
+                      console.error(`Failed to load Amplitude script: ${scriptInfo.src}`);
+                    };
+
+                   // updateAmplitudeConsent(); // Attempt immediate update
+                  }
+
+
+
+
+              } else {
+                  script.textContent = scriptInfo.content;
+              }
+
+              // Replace the placeholder with the restored script
+              if (placeholder.parentNode) {
+                  placeholder.parentNode.replaceChild(script, placeholder);
+              } else {
+                  console.warn(`Placeholder parent node not found for script ID ${scriptId}. Appending to head.`);
+                  document.head.appendChild(script); // Fallback: append to head
+              }
+
+              // Remove the script info from our tracking object *after* successful restoration
+              delete existing_Scripts[scriptId];
+
+          } else {
+              console.log(`Script ID: ${scriptId} remains blocked.`);
+              // Ensure the node in the DOM is still a placeholder (it should be)
+              if (placeholder.tagName !== 'SCRIPT' || placeholder.type !== 'text/plain') {
+                  console.warn(`Node for script ID ${scriptId} is not a placeholder as expected.`);
+                  // Optionally, re-block it if needed, but the observer should handle new scripts.
+              }
+          }
+      }
+  } catch (error) {
+      console.error("Error during script restoration:", error);
+  } finally {
+      // --- Reconnect observer ---
+      if (observer) {
+          // Re-observe after a short delay to allow restored scripts to execute/load if needed
+          setTimeout(() => {
+               console.log("Reconnecting observer after restore...");
+               observer.observe(document.documentElement, { childList: true, subtree: true });
+          }, 50); // Short delay (50ms)
+      }
+      // ------------------------
+      console.log("Scripts remaining in existing_Scripts map:", Object.keys(existing_Scripts).length);
+      console.log("RESTORE ENDS");
+  }
+}
   
 
     /* INITIALIZATION */

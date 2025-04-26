@@ -428,7 +428,6 @@
         
           hideBanner(ccpaBanner);
           hideBanner(mainConsentBanner);
-          console.assertLOG
         });
       }
     
@@ -498,7 +497,6 @@
       const consentGiven = localStorage.getItem("consent-given");
       const consentBanner = document.getElementById("consent-banner"); // GDPR banner
       const ccpaBanner = document.getElementById("initial-consent-banner"); // CCPA banner
-      const mainBanner = document.getElementById("main-banner"); // Main banner
       const mainConsentBanner = document.getElementById("main-consent-banner"); 
   
       if (consentGiven === "true") {
@@ -1150,99 +1148,141 @@
   window.blockAllCookies=blockAllCookies;
   window.acceptAllCookies=acceptAllCookies;
   
-    async function loadConsentState() {
-   
-  
-      if (isLoadingState) {
-          return;
-      }
-      isLoadingState = true;
-  
-      try {
-          const consentGiven = localStorage.getItem("consent-given");
-          
-          if (consentGiven === "true") {
-              try {
-                  const savedPreferences = localStorage.getItem("consent-preferences");
-                  
-                  if (savedPreferences) {
-                      const parsedPrefs = JSON.parse(savedPreferences);
-                      
-                      // Create a key from the stored key data
-                      const key = await crypto.subtle.importKey(
-                          'raw',
-                          new Uint8Array(parsedPrefs.key),
-                          { name: 'AES-GCM' },
-                          false,
-                          ['decrypt']
-                      );
-  
-                      // Decrypt using the same format as encryption
-                      const decryptedData = await crypto.subtle.decrypt(
-                          { name: 'AES-GCM', iv: new Uint8Array(parsedPrefs.iv) },
-                          key,
-                          new Uint8Array(parsedPrefs.encryptedData)
-                      );
-  
-                      const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
-                   
-  
-                      // Update consentState
-                      consentState = {
-                          Necessary: true,
-                          Marketing: preferences.Marketing || false,
-                          Personalization: preferences.Personalization || false,
-                          Analytics: preferences.Analytics || false,
-                          ccpa: {
-                              DoNotShare: preferences.ccpa?.DoNotShare || false
-                          }
-                      };
-  
-                      // Update form using updatePreferenceForm
-                      await updatePreferenceForm(consentState);
-  
-                      // Restore allowed scripts based on preferences
-                      await restoreAllowedScripts(consentState);
-                  }
-              } catch (error) {
-                
-                  consentState = {
-                      Necessary: true,
-                      Marketing: false,
-                      Personalization: false,
-                      Analytics: false,
-                      ccpa: { DoNotShare: false }
-                  };
-                  await updatePreferenceForm(consentState);
-              }
-          } else {
-              consentState = {
-                  Necessary: true,
-                  Marketing: false,
-                  Personalization: false,
-                  Analytics: false,
-                  ccpa: { DoNotShare: false }
-              };
-              await updatePreferenceForm(consentState);
-          }
-      } catch (error) {
-        
-          consentState = {
-              Necessary: true,
-              Marketing: false,
-              Personalization: false,
-              Analytics: false,
-              ccpa: { DoNotShare: false }
-          };
-          await updatePreferenceForm(consentState);
-      } finally {
-          isLoadingState = false;
-      }
-  
-     
-      return consentState;
-  }  
+    /*CONSENT STATE LOADING AND UI UPDATE */
 
+    /**
+     * Attempts to load, parse, and decrypt consent preferences from localStorage.
+     * @returns {Promise<object|null>} The decrypted preferences object or null if an error occurs.
+     */
+    async function _getDecryptedPreferences() {
+        try {
+            const savedPreferencesRaw = localStorage.getItem("consent-preferences");
+            if (!savedPreferencesRaw) {
+                return null;
+            }
+
+            const savedPreferences = JSON.parse(savedPreferencesRaw);
+            if (!savedPreferences?.encryptedData || !savedPreferences.key || !savedPreferences.iv) {
+                 console.warn("Stored preferences format is invalid.");
+                 localStorage.removeItem("consent-preferences"); // Clean up invalid data
+                 return null;
+            }
+
+            // Ensure key data is handled correctly (needs to be Uint8Array for importKey)
+            const keyBytes = new Uint8Array(savedPreferences.key);
+            if (keyBytes.length !== 32) { // AES-256 requires a 32-byte key
+                throw new Error("Invalid key length for AES-256 decryption.");
+            }
+            const key = await crypto.subtle.importKey(
+                 'raw',
+                 keyBytes,
+                 { name: 'AES-GCM', length: 256 },
+                 false,
+                 ['decrypt']
+             );
+
+            // Assuming savedPreferences.encryptedData is base64 string
+            // Need the helper function base64ToArrayBuffer defined
+            const encryptedDataBuffer = base64ToArrayBuffer(savedPreferences.encryptedData);
+
+            const decryptedData = await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: new Uint8Array(savedPreferences.iv) },
+                key,
+                encryptedDataBuffer
+            );
+
+            const decryptedString = new TextDecoder().decode(decryptedData);
+            return JSON.parse(decryptedString);
+
+        } catch (error) {
+            console.error("Failed to load or decrypt preferences:", error);
+            // Clear potentially corrupted data
+            localStorage.removeItem("consent-preferences");
+            localStorage.removeItem("consent-given"); // May need to re-ask consent
+            return null;
+        }
+    }
+
+    /**
+     * Updates the consent form checkboxes based on the provided state.
+     * @param {object} state The consent state object.
+     */
+    function _updateConsentCheckboxes(state) {
+        const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]');
+        const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
+        const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]');
+        const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]');
+        const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+
+        if (necessaryCheckbox) {
+            necessaryCheckbox.checked = true;
+            necessaryCheckbox.disabled = true;
+        }
+        if (marketingCheckbox) {
+            marketingCheckbox.checked = state.Marketing || false;
+        }
+        if (personalizationCheckbox) {
+            personalizationCheckbox.checked = state.Personalization || false;
+        }
+        if (analyticsCheckbox) {
+            analyticsCheckbox.checked = state.Analytics || false;
+        }
+        if (doNotShareCheckbox) {
+            doNotShareCheckbox.checked = state.ccpa?.DoNotShare || false;
+        }
+    }
+
+    // Refactored loadConsentState
+    async function loadConsentState() {
+        if (isLoadingState) {
+            return;
+        }
+        isLoadingState = true;
+
+        const defaultState = {
+            Necessary: true,
+            Marketing: false,
+            Personalization: false,
+            Analytics: false,
+            ccpa: { DoNotShare: false }
+        };
+
+        try {
+            const consentGiven = localStorage.getItem("consent-given");
+            let loadedPreferences = null;
+
+            if (consentGiven === "true") {
+                loadedPreferences = await _getDecryptedPreferences();
+            }
+
+            if (loadedPreferences) {
+                 consentState = {
+                    Necessary: true,
+                    Marketing: loadedPreferences.Marketing || false,
+                    Personalization: loadedPreferences.Personalization || false,
+                    Analytics: loadedPreferences.Analytics || false,
+                    ccpa: {
+                        DoNotShare: loadedPreferences.ccpa?.DoNotShare || false
+                    }
+                };
+            } else {
+                consentState = defaultState;
+            }
+
+            _updateConsentCheckboxes(consentState);
+            await restoreAllowedScripts(consentState);
+
+        } catch (error) {
+            console.error("Unexpected error in loadConsentState:", error);
+            consentState = defaultState;
+            _updateConsentCheckboxes(consentState);
+        } finally {
+            isLoadingState = false;
+        }
+
+        return consentState;
+    }
+  
 
 
   async function unblockAllCookiesAndTools() {
@@ -1680,66 +1720,8 @@ async function restoreAllowedScripts(preferences) {
   }
    
   
-     function blockAllInitialRequests() {
-      const originalFetch = window.fetch;
-      window.fetch = function (...args) {
-          const url = args[0];
-          if (initialBlockingEnabled && isSuspiciousResource(url)) {
-              
-              return Promise.resolve(new Response(null, { status: 204 }));
-          }
-          return originalFetch.apply(this, args);
-      };
-      
-      const originalXHR = window.XMLHttpRequest;
-        window.XMLHttpRequest = function() {
-          const xhr = new originalXHR();
-          const originalOpen = xhr.open;
-          
-          xhr.open = function(method, url) {
-            if (initialBlockingEnabled && isSuspiciousResource(url)) {
-              
-              return;
-            }
-            return originalOpen.apply(xhr, arguments);
-          };
-          return xhr;
-        };
-      
-      const originalImage = window.Image;
-      const originalSetAttribute = Element.prototype.setAttribute;
-      window.Image = function(...args) {
-          const img = new originalImage(...args);
-          img.setAttribute = function(name, value) {
-              if (name === 'src' && initialBlockingEnabled && isSuspiciousResource(value)) {
-                  
-                  return;
-              }
-              return originalSetAttribute.apply(this, arguments);
-          };
-          return img;
-      };
-      }   
     
-    
-    
-   async  function initializeAll() {
-      if (isInitialized) {
-        
-        return;
-      }
-      
-      
-      // Block everything first
-      blockAllInitialRequests();
-      
-      // Then load state and initialize banner
-      loadConsentState().then(() => {
-        initializeBanner();
-        
-        isInitialized = true;
-      });
-     }
+
         
     async  function loadConsentStyles() {
       try {

@@ -1,6 +1,6 @@
 (async function () {
-    const existing_Scripts = {}; // Change to object/map instead of array
-    let scriptIdCounter = 0; // Add this line
+    const existing_Scripts = {}; 
+    let scriptIdCounter = 0; 
     let isLoadingState = false;
     let consentState = {};
     let observer;
@@ -24,15 +24,8 @@
         category: "Personalization"
       }
     ];
-    
-         /**
-  ENCRYPTION AND DECYPTION STARTS
-   */
-  const EncryptionUtils = {
-      /**
-       * Generates a new encryption key and IV
-       * @returns {Promise<{key: CryptoKey, iv: Uint8Array}>}
-       */
+
+  const EncryptionUtils = {    
       async generateKey() {
           const key = await crypto.subtle.generateKey(
               { name: "AES-GCM", length: 256 },
@@ -78,13 +71,6 @@
     };
   
   
-       /**
-    ENCRYPTION AND DECYPTION ENDS
-  
-   /*LOCATION DETECTION AND BANNER TYPE STARTS*/
-  
-   /*LOCATION DETECTION AND BANNER TYPE ENDS*/
-   // Function to check if token is expired
    function isTokenExpired(token) {
       try {
           const [payloadBase64] = token.split('.');
@@ -93,8 +79,7 @@
           if (!payload.exp) return true;
           
           return payload.exp < Math.floor(Date.now() / 1000);
-      } catch (error) {
-          console.error('Error checking token expiration:', error);
+      } catch (error) {       
           return true;
       }
   }
@@ -119,11 +104,9 @@
   async function detectLocationAndGetBannerType() {
     try {
         const sessionToken = localStorage.getItem('visitorSessionToken');
-        if (!sessionToken) {
-            console.log("No visitor session token found in detect location");
+        if (!sessionToken) {       
             return null;
-        }
-  
+        }  
         const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
         const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`, {
             method: 'GET',
@@ -132,35 +115,31 @@
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            // credentials: 'include'
-        });
+                   });
   
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error('Failed to load banner type:', errorData);
+           
             return null;
         }
   
         const data = await response.json();
-        // Changed to check for bannerType instead of scripts
+      
         if (!data.bannerType) {
-            console.error('Invalid banner type data format');
             return null;
         }
       country =data.country;
         return data;
     } catch (error) {
-        console.error('Error detecting location:', error);
         return null;
     }
   }
     
   function getClientIdentifier() {
-      return window.location.hostname; // Use hostname as the unique client identifier
+      return window.location.hostname; 
       }
   
   async function reblockDisallowedScripts(consentState) {
-        console.log("Reblocking scripts based on updated consent preferences");
     
         const allScripts = document.querySelectorAll("script[data-category]");
     
@@ -194,7 +173,6 @@
                         src: originalSrc,
                     });
     
-                    console.log("Blocked external script again:", originalSrc);
                 }
     
                 // Inline script
@@ -203,7 +181,6 @@
                     if (placeholder) {
                         script.parentNode.replaceChild(placeholder, script);
                         existing_Scripts.push(placeholder);
-                        console.log("Re-blocked inline script for categories:", categoriesAttr);
                     }
                 }
             }
@@ -249,13 +226,11 @@
       initializeBannerVisibility();
     
       if (simpleBanner) {
-        console.log('Simple banner found, initializing handlers'); // Debug log
         showBanner(simpleBanner);
     
         if (simpleAcceptButton) {
           simpleAcceptButton.addEventListener("click", async function(e) {
             e.preventDefault();
-            console.log('Accept button clicked');
             const preferences = {
               Necessary: true,
               Marketing: true,
@@ -276,7 +251,6 @@
         if (simpleRejectButton) {
           simpleRejectButton.addEventListener("click", async function(e) {
             e.preventDefault();
-            console.log('Reject button clicked');
             const preferences = {
               Necessary: true,
               Marketing: false,
@@ -295,16 +269,12 @@
     
       if (toggleConsentButton) {
         toggleConsentButton.addEventListener("click", async function(e) {
-            e.preventDefault();
-    
+            e.preventDefault();    
             
             const consentBanner = document.getElementById("consent-banner");
             const ccpaBanner = document.getElementById("initial-consent-banner");
             const simpleBanner = document.getElementById("simple-consent-banner");
-            //console.log('Location Data:', window.currentLocation); // Log the location data for debugging
-            //console.log('Banner Type:', window.currentBannerType);
-    
-            // Show the appropriate banner based on bannerType
+          
             if (currentBannerType === 'GDPR') {
                 showBanner(consentBanner); // Show GDPR banner
                 hideBanner(ccpaBanner); // Hide CCPA banner
@@ -321,7 +291,6 @@
     if (newToggleConsentButton) {
       newToggleConsentButton.addEventListener("click", async function(e) {
         e.preventDefault();
-        //console.log('New Toggle Button Clicked'); // Log for debugging
     
         const consentBanner = document.getElementById("consent-banner");
         const ccpaBanner = document.getElementById("initial-consent-banner");
@@ -403,7 +372,6 @@
       }
     
       if (savePreferencesButton) {
-         console.log(" inside save preference click")
         savePreferencesButton.addEventListener("click", async function(e) {
           e.preventDefault();
           const preferences = {
@@ -416,10 +384,8 @@
              }
             
           };
-          console.log("Preference selected",preferences);
           try{
               await saveConsentState(preferences);
-              console.log("calling unblock script");
               await restoreAllowedScripts(preferences);
           }catch(error){
               console.log(error)
@@ -527,7 +493,6 @@
   async function initializeBannerVisibility() {
       //const request = new Request(window.location.href);
       const locationData = await detectLocationAndGetBannerType();  
-      console.log("Location Data",locationData);
       currentBannerType = locationData?.bannerType;
       country = locationData?.country;  
       const consentGiven = localStorage.getItem("consent-given");
@@ -584,17 +549,7 @@
       }
     }
   
-  
-  /*BANNER ENDS*/
-  
-  /*CONSENT STATE*/
-  
-  
-  
-  
-  /*CONSENT  SAVING TO LOCALSTORAGE STARTS*/
-  
-  
+   
   
   async function saveConsentState(preferences) {
     const clientId = getClientIdentifier();
@@ -604,7 +559,6 @@
     const sessionToken = localStorage.getItem("visitorSessionToken");
   
     if (!sessionToken) {
-      console.error("Failed to retrieve authentication token.");
       return;
     }
   
@@ -672,10 +626,6 @@
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         }
       };
-      console.log("called function buildPayload ");
-      console.log("called https://cb-server.web-8fb.workers.dev/api/cmp/consent ");
-      console.log("payload", payload);
-  
       // 7. Send payload to server
       const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
         method: "POST",
@@ -687,10 +637,7 @@
       });
   
       const text = await response.text();
-      console.log("Consent section response:", text);
-      console.log("SAVE CONSENT STATE FINISHES..");
     } catch (error) {
-      console.error("Error in saveConsentState:", error);
     }
   }
   
@@ -751,7 +698,7 @@
         
         localStorage.setItem("consent-policy-version", "1.2");
     } catch (error) {
-        console.error("Error storing encrypted consent:", error);
+
     }
   }
     function buildPayload({ clientId, encryptedVisitorId, encryptedPreferences, encryptionKey, policyVersion, timestamp, country }) {
@@ -828,7 +775,6 @@
       });
     
       if (newScripts.length === 0) {
-        console.log("✅ All scripts are already blocked.");
         return;
       }
     
@@ -962,7 +908,6 @@
         
               if (!response.ok) {
                   const errorData = await response.json().catch(() => ({}));
-                  console.error('Failed to load categorized scripts:', errorData);
                   return [];
               }
         
@@ -982,23 +927,18 @@
                   );
                   
                   const responseObj = JSON.parse(decryptedData);
-                  console.log("decrypted Script category",responseObj.scripts)
                   categorizedScripts =responseObj.scripts || [];
-                  console.log("initial categorized script",categorizedScripts);
                   return responseObj.scripts || [];
               } else {
-                  console.error('Response does not contain encrypted data');
                   return [];
               }
           } catch (error) {
-              console.error('Error loading categorized scripts:', error);
               return [];
           }
         } 
 
       
       async function scanAndBlockScripts() {
-        console.log("inside scan and block");
     
         const scripts = document.querySelectorAll("script[src]:not([type='text/plain']):not([data-consentbit-id])"); // Select only executable scripts without our ID
         const inlineScripts = document.querySelectorAll("script:not([src]):not([type='text/plain']):not([data-consentbit-id])"); // Select only executable inline scripts without our ID
@@ -1039,13 +979,8 @@
                 const placeholder = createPlaceholder(script, scriptCategories.join(','));
                 if (placeholder && script.parentNode) {
                     script.parentNode.replaceChild(placeholder, script);
-                    console.log(`Blocked external script ${script.src} with categories [${scriptCategories.join(',')}] (source: ${categorySource})`);
-                } else {
-                    console.error("Could not create/replace placeholder for:", script.src);
-                }
-            } else {
-               // console.log("Script not categorized, allowing:", script.src);
-            }
+                } 
+              }
         });
     
         // Block inline scripts
@@ -1072,12 +1007,7 @@
                 const placeholder = createPlaceholder(script, scriptCategories.join(','));
                 if (placeholder && script.parentNode) {
                     script.parentNode.replaceChild(placeholder, script);
-                    console.log(`Blocked inline script with categories [${scriptCategories.join(',')}] (source: ${categorySource})`);
-                } else {
-                     console.error("Could not create/replace placeholder for inline script.");
-                }
-            } else {
-               // console.log("Inline script not categorized, allowing.");
+                } 
             }
         });
     
@@ -1127,13 +1057,10 @@
     
                             // If the dynamically added script is categorized, block it
                             if (categories.length > 0) {
-                                 console.log(`Blocking dynamically injected script (${node.src || 'inline'}) with categories [${categories.join(',')}] (source: ${categorySource})`);
                                 const placeholder = createPlaceholder(node, categories.join(','));
                                 if (placeholder && node.parentNode) {
                                     node.parentNode.replaceChild(placeholder, node);
                                 }
-                             } else {
-                               console.log(`Allowing dynamically injected script (${node.src || 'inline'}) - not categorized.`);
                              }
                         }
                     }
@@ -1141,11 +1068,9 @@
             });
     
             observer.observe(document.documentElement, { childList: true, subtree: true });
-            console.log("MutationObserver is now active.");
         }
     }
     async function acceptAllCookies() {
-      console.log("ACCEPT ALL COOKIES triggered");
   
       // Define preferences for accepting all categories relevant to scripts
       const allAllowedPreferences = {
@@ -1153,33 +1078,23 @@
           Marketing: true,
           Personalization: true,
           Analytics: true,
-          // Include other categories if scripts use them
-          // Reset DoNotShare if applicable to your logic (e.g., for CCPA)
-          ccpa: { DoNotShare: false } // Example: Assuming accepting all implies sharing is okay
+                   ccpa: { DoNotShare: false } // Example: Assuming accepting all implies sharing is okay
       };
   
-      // 1. Save the "accept all" consent state
-      // Ensure saveConsentState uses the correct structure expected by your backend/logic
+    
       await saveConsentState(allAllowedPreferences); // Pass the full preference object
   
-      // 2. Update the preference form display (if visible)
       await updatePreferenceForm(allAllowedPreferences);
   
-      // 3. Restore all scripts based on the new preferences
-      // restoreAllowedScripts will now unblock everything based on the map
+   
       await restoreAllowedScripts(allAllowedPreferences);
   
-      // 4. Disconnect the observer *if* desired.
-      // If accepting all means no further dynamic blocking is needed.
-      // However, if the user can later change preferences back, you might *not* want to disconnect it.
-      // Consider the user flow. For now, let's keep it as potentially disconnecting.
+
       if (observer) {
-          console.log("Disconnecting MutationObserver as all scripts are allowed.");
           observer.disconnect();
           observer = null; // Clear the observer variable
       }
   
-      // 5. Hide banners
       hideBanner(document.getElementById("consent-banner"));
       hideBanner(document.getElementById("initial-consent-banner")); // CCPA
       hideBanner(document.getElementById("main-banner")); // GDPR Preferences
@@ -1188,46 +1103,33 @@
   
       localStorage.setItem("consent-given", "true"); // Mark consent as handled
   
-      console.log("ACCEPT ALL COOKIES finished");
   }
   // Make sure it's globally accessible if called from HTML etc.
   window.acceptAllCookies = acceptAllCookies;
   async function blockAllCookies() {
-    console.log("BLOCK ALL COOKIES triggered (Rejecting non-necessary)");
   
-    // Define preferences for blocking all non-necessary categories
     const rejectNonNecessaryPreferences = {
         Necessary: true, // Necessary scripts are usually always allowed
         Marketing: false,
         Personalization: false,
         Analytics: false,
-        // Handle CCPA 'DoNotShare' based on your logic for "block all"
+      
         ccpa: { DoNotShare: true } // Example: Blocking all might imply DoNotShare = true
     };
   
-    // 1. Save the "reject non-necessary" consent state
+   
     await saveConsentState(rejectNonNecessaryPreferences);
   
-    // 2. Update the preference form display (if visible)
+ 
     await updatePreferenceForm(rejectNonNecessaryPreferences);
   
-    // 3. Ensure scripts are blocked according to these preferences.
-    // Calling restoreAllowedScripts with 'false' for categories ensures
-    // only 'Necessary' scripts run, and others remain placeholders.
-    // It effectively "re-blocks" anything that shouldn't be running.
-    console.log("Applying 'block all' preferences to scripts...");
+    
     await restoreAllowedScripts(rejectNonNecessaryPreferences);
   
-    // 4. Ensure the MutationObserver is running to catch dynamic scripts.
-    // scanAndBlockScripts sets up the observer if it's not already running.
-    // If it was disconnected by acceptAllCookies, we might need to re-initialize it.
+  
     if (!observer) {
-        console.log("MutationObserver was not active. Re-running scanAndBlockScripts to ensure observer is set up.");
-        // Re-running scan might be redundant if placeholders are already correct,
-        // but it ensures the observer is active. Consider a lighter way to just restart the observer if needed.
+      
         await scanAndBlockScripts();
-    } else {
-        console.log("MutationObserver is active.");
     }
   
   
@@ -1240,7 +1142,7 @@
   
     localStorage.setItem("consent-given", "true"); // Mark consent as handled
   
-    console.log("BLOCK ALL COOKIES finished");
+ 
   }
   // Make sure it's globally accessible if called from HTML etc.
   window.blockAllCookies = blockAllCookies;
@@ -1249,7 +1151,7 @@
   window.acceptAllCookies=acceptAllCookies;
   
     async function loadConsentState() {
-      console.log("LOAD CONSENT STATE STARTS");
+   
   
       if (isLoadingState) {
           return;
@@ -1283,7 +1185,7 @@
                       );
   
                       const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
-                      console.log("Decrypted preferences:", preferences);
+                   
   
                       // Update consentState
                       consentState = {
@@ -1303,7 +1205,7 @@
                       await restoreAllowedScripts(consentState);
                   }
               } catch (error) {
-                  console.error("Error decrypting preferences:", error);
+                
                   consentState = {
                       Necessary: true,
                       Marketing: false,
@@ -1324,7 +1226,7 @@
               await updatePreferenceForm(consentState);
           }
       } catch (error) {
-          console.error("Error in loadConsentState:", error);
+        
           consentState = {
               Necessary: true,
               Marketing: false,
@@ -1337,18 +1239,16 @@
           isLoadingState = false;
       }
   
-      console.log("LOAD CONSENT STATE ENDS");
+     
       return consentState;
   }  
 
 
 
   async function unblockAllCookiesAndTools() {
-    console.log("UNBLOCK ALL starts - bypassing category checks");
-
+  
      // --- Temporarily disconnect observer ---
     if (observer) {
-        console.log("Disconnecting observer during unblockAllCookiesAndTools...");
         observer.disconnect();
         // Set observer to null because this function intends to permanently allow all
         // and doesn't necessarily need the observer afterwards.
@@ -1368,28 +1268,19 @@
             }
         };
 
-        // Save the "accept all" consent state
         await saveConsentState(allAllowedPreferences);
-
-        // Update preference form if it exists
         await updatePreferenceForm(allAllowedPreferences);
-
-        // Restore all scripts from placeholders
-        console.log("Restoring all scripts without category checking");
         const scriptIdsToRestore = Object.keys(existing_Scripts);
-
         for (const scriptId of scriptIdsToRestore) {
             const scriptInfo = existing_Scripts[scriptId];
             if (!scriptInfo) continue;
 
             const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
-            if (!placeholder) {
-                console.warn(`Placeholder for script ID ${scriptId} not found in DOM`);
+            if (!placeholder) {               
                 delete existing_Scripts[scriptId];
                 continue;
             }
 
-            console.log(`Unconditionally restoring script: ${scriptId}`);
             const script = document.createElement("script");
 
             // Restore core properties
@@ -1445,35 +1336,25 @@
             if (placeholder.parentNode) {
                 placeholder.parentNode.replaceChild(script, placeholder);
             } else {
-                 console.warn(`Placeholder parent node not found for script ID ${scriptId} during unblock all. Appending to head.`);
                 document.head.appendChild(script);
             }
 
             delete existing_Scripts[scriptId];
         }
 
-        // Disable initial blocking flag if it's still relevant
-        // initialBlockingEnabled = false; // This variable doesn't seem to be used after initial load
-
-        // Mark consent as given
+       
         localStorage.setItem("consent-given", "true");
 
-        // Observer was already disconnected above.
-
-        console.log("UNBLOCK ALL completed successfully");
-
     } catch (error) {
-        console.error("Error in unblockAllCookiesAndTools:", error);
-         // --- Reconnect observer if error occurred ---
+         
         if (observer) { // Check if it wasn't set to null
-            console.log("Reconnecting observer after error in unblockAll...");
+            c
              observer.observe(document.documentElement, { childList: true, subtree: true });
         }
-        // ------------------------------------------
+        
     }
 }
 
-// Modify the setup functions to accept a 'granted' state
 function setupGoogleAnalytics(script, granted) {
   script.onload = () => {
       if (typeof gtag === 'function') {
@@ -1487,10 +1368,7 @@ function setupGoogleAnalytics(script, granted) {
               'ad_user_data': state,
               'ad_personalization': state
           });
-           console.log(`Google Analytics consent updated to ${state}`);
-      } else {
-          console.warn("setupGoogleAnalytics: gtag not found on load.");
-      }
+      } 
   };
 }
 function setupAmplitude(script, granted) {
@@ -1501,7 +1379,6 @@ function setupAmplitude(script, granted) {
                try {
                   const instance = amplitude.getInstance();
                   instance.setOptOut(!granted); // Opt out if NOT granted
-                  console.log(`Amplitude consent ${granted ? 'granted (tracking enabled)' : 'denied (opted out)'}.`);
                } catch (error) {
                     console.error("setupAmplitude: Error accessing Amplitude instance:", error);
                }
@@ -1518,7 +1395,6 @@ function setupClarity(script, granted) {
   // Clarity might need initialization + consent flag
    window.clarity = window.clarity || function(...args) { (window.clarity.q = window.clarity.q || []).push(args); };
    window.clarity.consent = granted; // Set consent state
-   console.log(`Clarity consent set to ${granted}`);
 }
 
 function setupFacebookPixel(script, granted) {
@@ -1526,53 +1402,39 @@ function setupFacebookPixel(script, granted) {
       if (typeof fbq === 'function') {
           const action = granted ? 'grant' : 'revoke';
           fbq('consent', action);
-           console.log(`Facebook Pixel consent ${action}ed.`);
-      } else {
-           console.warn("setupFacebookPixel: fbq not found on load.");
-      }
+      } 
   };
 }
-
 function setupMatomo(script, granted) {
   script.onload = () => {
       if (typeof _paq !== 'undefined') {
           if (granted) {
-               _paq.push(['setConsentGiven']);
-               // Optionally, if you track cookies: _paq.push(['enableCookies']);
-               console.log("Matomo consent granted.");
+               _paq.push(['setConsentGiven']);               
                _paq.push(['trackPageView']); // Track page view only if consent granted
           } else {
-               _paq.push(['forgetConsentGiven']);
-               // Optionally, if you track cookies: _paq.push(['disableCookies']);
-               console.log("Matomo consent denied/revoked.");
+               _paq.push(['forgetConsentGiven']);              
           }
-      } else {
-           console.warn("setupMatomo: _paq not found on load.");
-      }
+      } 
   };
 }
 
 function setupHubSpot(script, granted) {
-   // HubSpot's `doNotTrack` is inverse of consent
-  script.onload = () => {
+    script.onload = () => {
       if (typeof _hsq !== 'undefined') {
-          _hsq.push(['doNotTrack', { track: granted }]); // track: true means DO track (consent given)
-           console.log(`HubSpot doNotTrack set to ${!granted}`);
-      } else {
-          console.warn("setupHubSpot: _hsq not found on load.");
-      }
+          _hsq.push(['doNotTrack', { track: granted }]); 
+       
+      } 
   };
 }
 
 function setupPlausible(script, granted) {
-  // Plausible doesn't strictly need consent management in the script itself
-  // but you might add the attribute for clarity or other integrations
+ 
   if (granted) {
        script.setAttribute('data-consent-given', 'true');
   } else {
        script.removeAttribute('data-consent-given');
   }
-   console.log(`Plausible script marked with consent: ${granted}`);
+  
 }
 
 function setupHotjar(script, granted) {
@@ -1582,10 +1444,8 @@ function setupHotjar(script, granted) {
           // Hotjar consent API might vary, check their docs. Assuming 'consent', 'granted'/'denied'
            const state = granted ? 'granted' : 'denied';
            hj('consent', state);
-           console.log(`Hotjar consent set to ${state}`);
-      } else {
-           console.warn("setupHotjar: hj not found on load.");
-      }
+           
+      } 
   };
 }
 // Make it globally available
@@ -1593,23 +1453,21 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
   
   
 async function restoreAllowedScripts(preferences) {
-  console.log("RESTORE STARTS");
+
 
   // --- Temporarily disconnect observer ---
   if (observer) {
-      console.log("Disconnecting observer during restore...");
       observer.disconnect();
   }
   // ------------------------------------
 
   try {
-      // Normalize preferences keys to lowercase for consistent checking
+     
       const normalizedPrefs = Object.fromEntries(
           Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
       );
 
-      console.log("Scripts to potentially restore:", Object.keys(existing_Scripts).length);
-      console.log("Current preferences:", normalizedPrefs);
+    
 
       // Iterate over a copy of the keys, as we might modify the object during iteration
       const scriptIdsToProcess = Object.keys(existing_Scripts); // Renamed for clarity
@@ -1621,7 +1479,6 @@ async function restoreAllowedScripts(preferences) {
           // Find the placeholder in the DOM
           const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
           if (!placeholder) {
-              console.warn(`Placeholder for script ID ${scriptId} not found in DOM. Skipping restore.`);
               // Clean up the entry if the placeholder is gone
               delete existing_Scripts[scriptId]; // <<< --- Added cleanup here
               continue;
@@ -1632,7 +1489,6 @@ async function restoreAllowedScripts(preferences) {
           const categories = Array.isArray(scriptInfo.category) ? scriptInfo.category : (scriptInfo.category || '').split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
           const isAllowed = categories.some(cat => normalizedPrefs[cat] === true);
 
-          console.log(`Script ID: ${scriptId}, Categories: [${categories.join(',')}], Allowed: ${isAllowed}`);
 
           if (isAllowed) {
               // Check if a script with this src OR content already exists and is NOT a placeholder
@@ -1641,16 +1497,8 @@ async function restoreAllowedScripts(preferences) {
                   const existingScript = document.querySelector(`script[src="${scriptInfo.src}"]:not([type='text/plain'])`);
                   if (existingScript && existingScript !== placeholder) {
                        alreadyExists = true;
-                       console.log(`Script with src ${scriptInfo.src} already exists. Skipping restore for ID ${scriptId}.`);
                   }
               } else if (scriptInfo.content) {
-                  // Simple check for inline script content (might need refinement for complex scripts)
-                  // const existingInline = Array.from(document.querySelectorAll("script:not([src]):not([type='text/plain'])")).find(s => s.textContent === scriptInfo.content);
-                  // if (existingInline) {
-                  //     alreadyExists = true;
-                  //     console.log(`Inline script content seems to already exist. Skipping restore for ID ${scriptId}.`);
-                  // }
-                  // ^^ Note: Checking inline content equality is tricky and potentially slow. Let's rely on the placeholder mechanism primarily.
               }
 
 
@@ -1664,7 +1512,6 @@ async function restoreAllowedScripts(preferences) {
               }
 
 
-              console.log(`Restoring script ID: ${scriptId} (${scriptInfo.src || 'inline'})`);
               const script = document.createElement("script");
 
               // Restore core properties
@@ -1688,10 +1535,8 @@ async function restoreAllowedScripts(preferences) {
                   // Special handling for GA or other consent-aware scripts
                   const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
                   if (gtagPattern.test(scriptInfo.src)) {
-                      console.log("Detected GA script, hooking into consent update");
                       function updateGAConsent() {
                           if (typeof gtag === "function") {
-                              console.log("Updating GA consent settings...");
                               // Map preferences to GA consent types
                               const consentSettings = {
                                   'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
@@ -1704,14 +1549,10 @@ async function restoreAllowedScripts(preferences) {
                                   'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied'
                               };
                               gtag('consent', 'update', consentSettings);
-                              console.log("GA Consent Updated:", consentSettings);
-                          } else {
-                              console.warn("gtag is not defined yet. Will retry on script load.");
-                          }
+                          } 
                       }
                       // Update on load
                       script.onload = () => {
-                          console.log(`GA script (${scriptInfo.src}) loaded.`);
                           updateGAConsent();
 
                       };
@@ -1719,25 +1560,20 @@ async function restoreAllowedScripts(preferences) {
                           console.error(`Failed to load GA script: ${scriptInfo.src}`);
                       }
 
-                     // updateGAConsent(); // Update immediately in case gtag is already defined
                   }
 
 
                   const amplitudePattern = /amplitude|amplitude.com/i;
                   if (amplitudePattern.test(scriptInfo.src)) {
-                    console.log("Detected Amplitude script, hooking into consent update");
 
                     function updateAmplitudeConsent() {
-                      // Use a timeout to allow Amplitude SDK to potentially initialize fully
                       setTimeout(() => {
                           if (typeof amplitude !== "undefined" && amplitude.getInstance) {
                               try {
                                   const instance = amplitude.getInstance();
-                                  console.log("Updating Amplitude tracking settings...");
 
                                   const analyticsAllowed = normalizedPrefs.analytics === true;
                                   instance.setOptOut(!analyticsAllowed); // Opt out if analytics is NOT allowed
-                                  console.log(`Amplitude tracking ${analyticsAllowed ? 'enabled' : 'opted out'}.`);
 
                                   // Optional: Set consent preferences as user properties
                                    instance.setUserProperties({
@@ -1747,22 +1583,17 @@ async function restoreAllowedScripts(preferences) {
                                   });
 
                               } catch (error) {
-                                   console.error("Error accessing Amplitude instance:", error);
                               }
-                          } else {
-                              console.warn("Amplitude SDK or getInstance not ready after load. Cannot update consent.");
-                          }
+                          } 
                       }, 100); // Short delay (100ms) to increase chance of SDK being ready
                     }
 
                     // Hook into script load
                     script.onload = () => {
-                      console.log(`Amplitude script (${scriptInfo.src}) loaded.`);
                       updateAmplitudeConsent();
                     };
 
                     script.onerror = () => {
-                      console.error(`Failed to load Amplitude script: ${scriptInfo.src}`);
                     };
 
                    // updateAmplitudeConsent(); // Attempt immediate update
@@ -1779,7 +1610,6 @@ async function restoreAllowedScripts(preferences) {
               if (placeholder.parentNode) {
                   placeholder.parentNode.replaceChild(script, placeholder);
               } else {
-                  console.warn(`Placeholder parent node not found for script ID ${scriptId}. Appending to head.`);
                   document.head.appendChild(script); // Fallback: append to head
               }
 
@@ -1787,28 +1617,22 @@ async function restoreAllowedScripts(preferences) {
               delete existing_Scripts[scriptId];
 
           } else {
-              console.log(`Script ID: ${scriptId} remains blocked.`);
               // Ensure the node in the DOM is still a placeholder (it should be)
               if (placeholder.tagName !== 'SCRIPT' || placeholder.type !== 'text/plain') {
-                  console.warn(`Node for script ID ${scriptId} is not a placeholder as expected.`);
                   // Optionally, re-block it if needed, but the observer should handle new scripts.
               }
           }
       }
   } catch (error) {
-      console.error("Error during script restoration:", error);
   } finally {
       // --- Reconnect observer ---
       if (observer) {
-          // Re-observe after a short delay to allow restored scripts to execute/load if needed
           setTimeout(() => {
-               console.log("Reconnecting observer after restore...");
                observer.observe(document.documentElement, { childList: true, subtree: true });
           }, 50); // Short delay (50ms)
       }
       // ------------------------
-      console.log("Scripts remaining in existing_Scripts map:", Object.keys(existing_Scripts).length);
-      console.log("RESTORE ENDS");
+    
   }
 }
   
@@ -1819,7 +1643,6 @@ async function restoreAllowedScripts(preferences) {
           // Check if we have a valid token in localStorage first
           const existingToken = localStorage.getItem('visitorSessionToken');
           if (existingToken && !isTokenExpired(existingToken)) {
-              console.log("Using existing token from localStorage");
               return existingToken;
           }
   
@@ -1829,7 +1652,6 @@ async function restoreAllowedScripts(preferences) {
           // Get cleaned site name
           const siteName = await cleanHostname(window.location.hostname);
           
-          console.log("Requesting new visitor session token...");
           const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
               method: 'POST',
               headers: {
@@ -1850,11 +1672,9 @@ async function restoreAllowedScripts(preferences) {
           
           // Store the new token
           localStorage.setItem('visitorSessionToken', data.token);
-          console.log("Successfully obtained new visitor session token");
           
           return data.token;
       } catch (error) {
-          console.error('Error getting visitor session token:', error);
           return null;
       }
   }
@@ -1940,12 +1760,11 @@ async function restoreAllowedScripts(preferences) {
           
           // Add load confirmation
           link.onload = function() {
-              console.log('Consent styles loaded successfully');
           };
           
           document.head.appendChild(link);
       } catch (error) {
-          console.error('Error loading consent styles:', error);
+          console.error( error);
       }
   }
   window.loadConsentStyles =loadConsentStyles;
@@ -1981,10 +1800,8 @@ async function restoreAllowedScripts(preferences) {
   document.addEventListener('DOMContentLoaded',  initialize);
   
   async function loadAndApplySavedPreferences() {
-    console.log("Loading and applying saved preferences...");
     
     if (isLoadingState) {
-    console.log("isloading state...",isLoadingState);
   
         return;
     }
@@ -1992,18 +1809,15 @@ async function restoreAllowedScripts(preferences) {
   
     try {
         const consentGiven = localStorage.getItem("consent-given");
-        console.log("consent given",consentGiven);
         
   
         
         if (consentGiven === "true") {
             const savedPreferences = localStorage.getItem("consent-preferences");
-            console.log("saved preferences",savedPreferences);
             
             if (savedPreferences) {
                 try {
                     const parsedPrefs = JSON.parse(savedPreferences);
-                    console.log("Parsed preferences",parsedPrefs)
                     
                     // Ensure we have a proper 256-bit key
                     const keyData = new Uint8Array(parsedPrefs.key);
@@ -2029,11 +1843,9 @@ async function restoreAllowedScripts(preferences) {
                         key,
                         encryptedData
                     );
-                    console.log("decrypted saved preference",decryptedData);
                     
   
                     const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
-                    console.log("Decrypted preferences:", preferences);
   
                     // Normalize preferences structure
                     const normalizedPreferences = {
@@ -2054,13 +1866,12 @@ async function restoreAllowedScripts(preferences) {
   
                     return normalizedPreferences;
                 } catch (error) {
-                    console.error("Error decrypting preferences:", error);
                     localStorage.removeItem("consent-preferences");
                 }
             }
         }
     } catch (error) {
-        console.error("Error loading preferences:", error);
+        console.error( error);
     } finally {
         isLoadingState = false;
     }
@@ -2094,7 +1905,6 @@ async function restoreAllowedScripts(preferences) {
     return btoa(binary);
   }
   async function updatePreferenceForm(preferences) {
-    console.log("___INSIDE UPDATE PREFERENCE___");
   
   
     // Get checkbox elements
@@ -2106,7 +1916,6 @@ async function restoreAllowedScripts(preferences) {
   
     if (!necessaryCheckbox && !marketingCheckbox && !personalizationCheckbox && 
         !analyticsCheckbox && !doNotShareCheckbox) {
-        console.log("No form elements found, form might not be loaded yet");
         return;
     }
   // Update necessary checkbox
@@ -2131,27 +1940,17 @@ async function restoreAllowedScripts(preferences) {
   if (doNotShareCheckbox) {
       doNotShareCheckbox.checked = Boolean(preferences.ccpa?.DoNotShare);
   }
-  
-  console.log("Updated form with preferences:", {
-      necessary: true,
-      marketing: marketingCheckbox?.checked,
-      personalization: personalizationCheckbox?.checked,
-      analytics: analyticsCheckbox?.checked,
-      DoNotShare: doNotShareCheckbox?.checked
-  });
-  console.log(" UPDATE PREFERENCE  ENDS___")
+
   
   }
   
   // Modify initialize function
   async function initialize() {
-    console.log("INITIALIZATION STARTS");
     
     try {
         // Get visitor session token first
         const token = await getVisitorSessionToken();
         if (!token) {
-            console.error("Failed to get visitor session token. Retrying in 2 seconds...");
             // Retry after a delay
             setTimeout(initialize, 2000);
             return;
@@ -2186,30 +1985,14 @@ async function restoreAllowedScripts(preferences) {
   
         attachBannerHandlers();
     } catch (error) {
-        console.error("Error during initialization:", error);
         // Retry initialization after a delay if there was an error
         setTimeout(initialize, 2000);
     }
     
-    console.log("INITIALIZATION ENDS");
   }
   // Add to your window exports
   window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
-  window.updatePreferenceForm = updatePreferenceForm;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  window.updatePreferenceForm = updatePreferenceForm;  
   
   function blockAllInitialRequests() {
     const originalFetch = window.fetch;
@@ -2271,18 +2054,8 @@ async function restoreAllowedScripts(preferences) {
       
       isInitialized = true;
     });
-   }
-      
-           
-      
-      
-      
-      
-     
-  
-  
-  
-  })();
+   }  
+       })();
   
      
      

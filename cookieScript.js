@@ -1389,7 +1389,13 @@ function _handlePlausibleConsentUpdate(script, normalizedPrefs) {
 function _handleHotjarConsentUpdate(script, normalizedPrefs) {
     const src = script.src;
     const granted = normalizedPrefs.analytics === true;
-    window.hj = window.hj || function(...args) { (window.hj.q = window.hj.q || []).push(args); };
+
+    // Initialize HJ queueing mechanism (Refactored)
+    // Step 1: Ensure window.hj is the queuing function if it doesn't exist
+    window.hj = window.hj || function(...args) { window.hj.q.push(args); };
+    // Step 2: Ensure window.hj.q exists as an array on the window.hj object
+    window.hj.q = window.hj.q || [];
+
     const updateConsent = () => { if (typeof hj === 'function') hj('consent', granted ? 'granted' : 'denied'); };
     script.onload = updateConsent;
     script.onerror = () => console.error(`Failed to load Hotjar script for consent update: ${src}`);
@@ -1482,6 +1488,102 @@ function _createRestoredScriptElement(scriptInfo, normalizedPrefs) {
     return script;
 }
 
+/**
+ * Processes the restoration logic for a single blocked script.
+ * Finds placeholder, checks allowance & duplicates, creates/replaces script, cleans up.
+ * Assumes helpers `_isScriptAllowed` and `_createRestoredScriptElement` exist.
+ * Modifies `existing_Scripts` directly by deleting the entry upon successful restoration or cleanup.
+ * @param {string} scriptId - The ID of the script placeholder to process.
+ * @param {object} normalizedPrefs - The normalized user consent preferences.
+ */
+function _processSingleScriptRestoration(scriptId, normalizedPrefs) {
+    const scriptInfo = existing_Scripts[scriptId];
+    if (!scriptInfo) {
+        // console.warn(`Script info for ID ${scriptId} not found.`);
+        return; // Safety check, script info missing
+    }
+
+    const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
+    if (!placeholder) {
+        // console.warn(`Placeholder for script ID ${scriptId} not found in DOM.`);
+        delete existing_Scripts[scriptId]; // Clean up if placeholder is gone
+        return;
+    }
+
+    // Ensure categories are lowercase and an array
+    const categories = Array.isArray(scriptInfo.category)
+        ? scriptInfo.category.map(c => c.toLowerCase())
+        : (scriptInfo.category || '').split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
+
+    // Check if allowed
+    if (!_isScriptAllowed(categories, normalizedPrefs)) {
+        // Not allowed, leave placeholder as is.
+        return;
+    }
+
+    // --- Script is allowed, proceed with restoration ---
+
+    // Check for duplicates (only for scripts with src for simplicity)
+    let alreadyExists = false;
+    if (scriptInfo.src) {
+        const existingScript = document.querySelector(`script[src="${scriptInfo.src}"]:not([type='text/plain']):not([data-consentbit-id])`);
+        if (existingScript) {
+            alreadyExists = true;
+        }
+    } // Inline script duplicate check skipped
+
+    if (alreadyExists) {
+        // Remove placeholder, clean up, and exit
+        if (placeholder.parentNode && document.contains(placeholder)) {
+            placeholder.parentNode.removeChild(placeholder);
+        }
+        delete existing_Scripts[scriptId];
+        // console.log(`Removed duplicate placeholder for: ${scriptInfo.src || 'inline script ' + scriptId}`);
+        return;
+    }
+
+    // Create the script element using the helper
+    const script = _createRestoredScriptElement(scriptInfo, normalizedPrefs);
+    if (!script) {
+        console.error(`Failed to create script element for scriptId ${scriptId}`);
+        return; // Stop if script creation failed
+    }
+
+    // Replace placeholder or fallback
+    let replacedOrAppended = false;
+    if (placeholder.parentNode && document.contains(placeholder)) {
+        try {
+            placeholder.parentNode.replaceChild(script, placeholder);
+            replacedOrAppended = true;
+        } catch (replaceError) {
+             console.error(`Error replacing placeholder for scriptId ${scriptId}:`, replaceError);
+             // Attempt fallback if replacement failed
+             try {
+                  document.head.appendChild(script);
+                  replacedOrAppended = true; // Consider it handled if append works
+             } catch (appendError) {
+                  console.error(`Error appending script ${scriptId} to head as fallback:`, appendError);
+             }
+        }
+    } else {
+        // Fallback if placeholder or its parent is gone
+        console.warn(`Placeholder or parentNode missing for scriptId ${scriptId}. Appending to head.`);
+        try {
+            document.head.appendChild(script);
+            replacedOrAppended = true;
+        } catch (appendError) {
+            console.error(`Error appending script ${scriptId} to head as fallback:`, appendError);
+        }
+    }
+
+    // Clean up if replacement or append was successful
+    if (replacedOrAppended) {
+        delete existing_Scripts[scriptId];
+    } else {
+        // If script creation succeeded but adding to DOM failed, it's an issue.
+        console.error(`Failed to add script ${scriptId} to the DOM.`);
+    }
+}
 
 // Refactored restoreAllowedScripts
 async function restoreAllowedScripts(preferences) {
@@ -1505,71 +1607,23 @@ async function restoreAllowedScripts(preferences) {
             })
         );
 
-
+        // Process each script using the helper
+        // Iterate over a copy of keys as the helper modifies the object
         const scriptIdsToProcess = Object.keys(existing_Scripts);
-
         for (const scriptId of scriptIdsToProcess) {
-            const scriptInfo = existing_Scripts[scriptId];
-            if (!scriptInfo) continue; // Safety check
-
-            const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
-            if (!placeholder) {
-                delete existing_Scripts[scriptId]; // Clean up if placeholder is gone
-                continue;
-            }
-
-            // Ensure categories are lowercase and an array
-            const categories = Array.isArray(scriptInfo.category)
-                ? scriptInfo.category.map(c => c.toLowerCase())
-                : (scriptInfo.category || '').split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
-
-
-            // Check if allowed using the helper
-            if (_isScriptAllowed(categories, normalizedPrefs)) {
-                // Check if script already exists (to prevent duplicates)
-                 let alreadyExists = false;
-                 if (scriptInfo.src) {
-                     // Query for non-placeholder scripts with the same src
-                     const existingScript = document.querySelector(`script[src="${scriptInfo.src}"]:not([type='text/plain']):not([data-consentbit-id])`);
-                     if (existingScript) {
-                         alreadyExists = true;
-                     }
-                 } else if (scriptInfo.content) {
-                     // Duplicate check for inline scripts is harder and less reliable, skip for now
-                     // or implement a more sophisticated content comparison if needed.
-                 }
-
-                if (alreadyExists) {
-                    // If already exists, just remove the placeholder and skip restoration
-                    if (placeholder.parentNode && document.contains(placeholder)) {
-                         placeholder.parentNode.removeChild(placeholder);
-                     }
-                    delete existing_Scripts[scriptId];
-                    continue;
-                }
-
-                // Create the script element using the helper
-                const script = _createRestoredScriptElement(scriptInfo, normalizedPrefs);
-
-                if (script && placeholder.parentNode && document.contains(placeholder)) {
-                    // Replace placeholder with the real script
-                    placeholder.parentNode.replaceChild(script, placeholder);
-                    // Remove from tracking *after* successful replacement
-                    delete existing_Scripts[scriptId];
-                } else if (script) {
-                     // Fallback if placeholder or parent is gone, append to head?
-                     console.warn(`Could not replace placeholder for scriptId ${scriptId}. Appending to head.`);
-                     document.head.appendChild(script);
-                      delete existing_Scripts[scriptId]; // Still remove from tracking
-                }
-
-            } else {
-                // Script category not allowed, ensure it remains a placeholder
-                // (No action needed unless it was somehow converted already)
+            // Use try-catch around individual processing if one script failure
+            // shouldn't stop others (optional, adds slight complexity back)
+            try {
+                _processSingleScriptRestoration(scriptId, normalizedPrefs);
+            } catch (singleScriptError) {
+                 console.error(`Error processing restoration for scriptId ${scriptId}:`, singleScriptError);
+                 // Continue to next script despite error with this one
             }
         }
+
     } catch (error) {
-        console.error("Error during restoreAllowedScripts:", error);
+        // Catch errors during preference normalization or loop setup
+        console.error("Error during restoreAllowedScripts setup:", error);
     } finally {
         // --- Reconnect observer ---
         if (observer) {

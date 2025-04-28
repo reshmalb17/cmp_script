@@ -591,7 +591,7 @@
           // *** Corrected Endpoint: Use the path of your GET handler ***
           
         const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-          const apiUrl = `https://cb-server.web-8fb.workers.dev/api/app-data?siteName=siteName=${encodeURIComponent(siteName)}`;
+          const apiUrl = `https://cb-server.web-8fb.workers.dev/api/app-data?siteName=${encodeURIComponent(siteName)}`;
 
           const response = await fetch(apiUrl, { // Removed siteName query param
               method: "GET",

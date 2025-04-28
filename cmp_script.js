@@ -584,7 +584,8 @@
     }
 
     try {
-        const response = await fetch("https://cb-server.web-8fb.workers.dev/api/app-data", { // Correct endpoint
+      const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+        const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/app-data??siteName=${encodeURIComponent(siteName)}`, { // Correct endpoint
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${sessionToken}`, // Still likely unauthorized

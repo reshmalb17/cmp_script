@@ -574,49 +574,64 @@
   
   /*CONSENT  SAVING TO LOCALSTORAGE STARTS*/
   // Fetches ONLY cookie expiration - WARNING: NOT RECOMMENDED for ccpa.js.
-  // Expiration duration should ideally be injected by the backend.
+   // Fetches ONLY cookie expiration - WARNING: NOT RECOMMENDED for this script.
+  // Expiration duration should ideally be injected by the backend using site owner context.
   async function fetchCookieExpirationDays() {
-    const sessionToken = localStorage.getItem("visitorSessionToken");
+      // Using visitorSessionToken here is likely incorrect for fetching
+      // site owner settings and might fail backend authentication.
+      const sessionToken = localStorage.getItem("visitorSessionToken");
 
-    if (!sessionToken) {
-        console.warn("fetchCookieExpirationDays: No visitor session token found.");
-        return null; // Return null or a default (e.g., "180")
-    }
+      if (!sessionToken) {
+          console.warn("fetchCookieExpirationDays: No visitor session token found.");
+          // Fallback to a default value or null if no token is available client-side
+          return null; // Or return a default like "180"
+      }
 
-    try {
-      const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-        const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/app-data?siteName=${encodeURIComponent(siteName)}`, { // Correct endpoint
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${sessionToken}`, // Still likely unauthorized
-                "Accept": "application/json"
-            }
-        });
+      try {
+          // *** Corrected Endpoint: Use the path of your GET handler ***
+          const apiUrl = "https://cb-server.web-8fb.workers.dev/api/app-data/save";
 
-        if (!response.ok) {
-            // Log error but might still want a default value client-side
-            console.error(`fetchCookieExpirationDays: Failed to fetch settings. Status: ${response.status}`);
-            return null; // Or return default like "180"
-        }
+          const response = await fetch(apiUrl, { // Removed siteName query param
+              method: "GET",
+              headers: {
+                  // Sending visitor token - backend expects site owner token via jwt.verifyAuth
+                  "Authorization": `Bearer ${sessionToken}`,
+                  "Accept": "application/json"
+              }
+          });
 
-        const data = await response.json(); // Expect { cookieExpiration: "..." }
+          if (!response.ok) {
+              let errorDetails = `Status: ${response.status}`;
+              try {
+                   // Attempt to get more details if the server sent JSON error
+                   const errorJson = await response.json();
+                   errorDetails += `, Details: ${JSON.stringify(errorJson)}`;
+              } catch (_) { /* Ignore if response body wasn't JSON */ }
+              console.error(`fetchCookieExpirationDays: Failed to fetch settings. ${errorDetails}`);
+              // Fallback on error
+              return null; // Or return default like "180"
+          }
 
-        // Check if the expected property exists
-        if (data && data.cookieExpiration !== undefined && data.cookieExpiration !== null) {
-             console.log("fetchCookieExpirationDays: Received expiration value:", data.cookieExpiration);
-             // Return the value (likely a string)
-             return String(data.cookieExpiration);
-        } else {
-             console.warn("fetchCookieExpirationDays: 'cookieExpiration' not found in response.", data);
-             return null; // Or return default like "180"
-        }
+          // Expect backend to return { cookieExpiration: "..." or null }
+          const data = await response.json();
 
-    } catch (error) {
-        console.error("fetchCookieExpirationDays: Network or parsing error:", error);
-        return null; // Or return default like "180" on error
-    }
-}
+          // Check if the expected property exists and is not null
+          if (data && data.cookieExpiration !== null && data.cookieExpiration !== undefined) {
+               console.log("fetchCookieExpirationDays: Received expiration value:", data.cookieExpiration);
+               // Return the value (should be string or null based on backend)
+               return String(data.cookieExpiration);
+          } else {
+               console.warn("fetchCookieExpirationDays: 'cookieExpiration' was null or missing in response.", data);
+               // Fallback if value is explicitly null or missing
+               return null; // Or return default like "180"
+          }
 
+      } catch (error) {
+          console.error("fetchCookieExpirationDays: Network or parsing error:", error);
+          // Fallback on network/fetch error
+          return null; // Or return default like "180" on error
+      }
+  }
 
   
   async function saveConsentState(preferences) {
@@ -633,23 +648,24 @@
     if (!sessionToken) {
       return;
     }
-    try {
-      // ** Using Fetch (NOT RECOMMENDED) **
-      const fetchedExpirationStr = await fetchCookieExpirationDays();
-      // Use fetched value or fallback to injected config or hardcoded default
-      const expirationDaysStr = fetchedExpirationStr ?? CONSENTBIT_CCPA_CONFIG.cookieExpirationDays ?? "180";
+    const savedAtTimestamp = Date.now(); // *** THIS LINE IS NEEDED ***
+       
 
-      // --- Calculate Future Expiration Timestamp ---
-      let expiresAtTimestamp = null;
-      const expirationDays = parseInt(expirationDaysStr, 10); // Parse the final string value
+        if (!sessionToken) { /* ... */ }
 
-      if (!isNaN(expirationDays) && expirationDays > 0) {
-          const expirationMillis = expirationDays * 24 * 60 * 60 * 1000;
-          expiresAtTimestamp = savedAtTimestamp + expirationMillis;
-      } else {
-          console.warn("saveConsentState: Invalid expiration duration. Setting consent to not expire.");
-      }
-
+        try {
+             // --- This is your snippet ---
+             const fetchedExpirationStr = await fetchCookieExpirationDays();
+             const expirationDaysStr = fetchedExpirationStr ?? CONSENTBIT_CCPA_CONFIG.cookieExpirationDays ?? "180";
+             let expiresAtTimestamp = null;
+             const expirationDays = parseInt(expirationDaysStr, 10);
+             if (!isNaN(expirationDays) && expirationDays > 0) {
+                 const expirationMillis = expirationDays * 24 * 60 * 60 * 1000;
+                 // Now 'savedAtTimestamp' is available for the calculation
+                 expiresAtTimestamp = savedAtTimestamp + expirationMillis;
+             } else {
+                 console.warn("saveConsentState: Invalid expiration duration...");
+             }
       const consentPreferences = buildConsentPreferences(preferences, country, timestamp);
   
       // 1. Generate AES-GCM key and IV

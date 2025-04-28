@@ -573,8 +573,50 @@
   
   
   /*CONSENT  SAVING TO LOCALSTORAGE STARTS*/
-  
-  
+  // Fetches ONLY cookie expiration - WARNING: NOT RECOMMENDED for ccpa.js.
+  // Expiration duration should ideally be injected by the backend.
+  async function fetchCookieExpirationDays() {
+    const sessionToken = localStorage.getItem("visitorSessionToken");
+
+    if (!sessionToken) {
+        console.warn("fetchCookieExpirationDays: No visitor session token found.");
+        return null; // Return null or a default (e.g., "180")
+    }
+
+    try {
+        const response = await fetch("https://cb-server.web-8fb.workers.dev/api/app-data", { // Correct endpoint
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${sessionToken}`, // Still likely unauthorized
+                "Accept": "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            // Log error but might still want a default value client-side
+            console.error(`fetchCookieExpirationDays: Failed to fetch settings. Status: ${response.status}`);
+            return null; // Or return default like "180"
+        }
+
+        const data = await response.json(); // Expect { cookieExpiration: "..." }
+
+        // Check if the expected property exists
+        if (data && data.cookieExpiration !== undefined && data.cookieExpiration !== null) {
+             console.log("fetchCookieExpirationDays: Received expiration value:", data.cookieExpiration);
+             // Return the value (likely a string)
+             return String(data.cookieExpiration);
+        } else {
+             console.warn("fetchCookieExpirationDays: 'cookieExpiration' not found in response.", data);
+             return null; // Or return default like "180"
+        }
+
+    } catch (error) {
+        console.error("fetchCookieExpirationDays: Network or parsing error:", error);
+        return null; // Or return default like "180" on error
+    }
+}
+
+
   
   async function saveConsentState(preferences) {
     const clientId = getClientIdentifier();
@@ -582,12 +624,31 @@
     const policyVersion = "1.2";
     const timestamp = new Date().toISOString();
     const sessionToken = localStorage.getItem("visitorSessionToken");
+    const CONSENTBIT_CCPA_CONFIG = {
+     
+      cookieExpirationDays: 180
+    }
   
     if (!sessionToken) {
       return;
     }
-  
     try {
+      // ** Using Fetch (NOT RECOMMENDED) **
+      const fetchedExpirationStr = await fetchCookieExpirationDays();
+      // Use fetched value or fallback to injected config or hardcoded default
+      const expirationDaysStr = fetchedExpirationStr ?? CONSENTBIT_CCPA_CONFIG.cookieExpirationDays ?? "180";
+
+      // --- Calculate Future Expiration Timestamp ---
+      let expiresAtTimestamp = null;
+      const expirationDays = parseInt(expirationDaysStr, 10); // Parse the final string value
+
+      if (!isNaN(expirationDays) && expirationDays > 0) {
+          const expirationMillis = expirationDays * 24 * 60 * 60 * 1000;
+          expiresAtTimestamp = savedAtTimestamp + expirationMillis;
+      } else {
+          console.warn("saveConsentState: Invalid expiration duration. Setting consent to not expire.");
+      }
+
       const consentPreferences = buildConsentPreferences(preferences, country, timestamp);
   
       // 1. Generate AES-GCM key and IV

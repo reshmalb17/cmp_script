@@ -589,7 +589,7 @@
 
       try {
           // *** Corrected Endpoint: Use the path of your GET handler ***
-          const apiUrl = "https://cb-server.web-8fb.workers.dev/api/app-data/save";
+          const apiUrl = "https://cb-server.web-8fb.workers.dev/api/app-data";
 
           const response = await fetch(apiUrl, { // Removed siteName query param
               method: "GET",

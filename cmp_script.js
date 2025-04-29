@@ -661,13 +661,30 @@
              const expirationDaysStr = fetchedExpirationStr ?? CONSENTBIT_CCPA_CONFIG.cookieExpirationDays ?? "180";
              let expiresAtTimestamp = null;
              const expirationDays = parseInt(expirationDaysStr, 10);
-             if (!isNaN(expirationDays) && expirationDays > 0) {
-                 const expirationMillis = expirationDays * 24 * 60 * 60 * 1000;
-                 // Now 'savedAtTimestamp' is available for the calculation
-                 expiresAtTimestamp = savedAtTimestamp + expirationMillis;
-             } else {
-                 console.warn("saveConsentState: Invalid expiration duration...");
-             }
+          
+        if (!isNaN(parsedExpirationDays) && parsedExpirationDays > 0) {
+          // Assign the valid duration
+          expirationDurationDays = parsedExpirationDays;
+          const expirationMillis = expirationDurationDays * 24 * 60 * 60 * 1000;
+
+          // *** 1a. Calculate expiresAtTimestamp ***
+          expiresAtTimestamp = savedAtTimestamp + expirationMillis;
+
+          // *** 1b. Store expiresAtTimestamp in LocalStorage ***
+          localStorage.setItem('consentExpiresAt', expiresAtTimestamp.toString());
+
+          // *** 1c. Store expirationDurationDays in LocalStorage ***
+          localStorage.setItem('consentExpirationDays', expirationDurationDays.toString());
+
+
+      } else {
+          console.warn("saveConsentState: Invalid expiration duration provided. Expiration info not set.");
+           // Clear relevant local storage items if duration is invalid
+           localStorage.removeItem('consentExpiresAt');
+           localStorage.removeItem('consentExpirationDays');
+           expiresAtTimestamp = null;
+           expirationDurationDays = null; // Ensure duration is null too
+      }
       const consentPreferences = buildConsentPreferences(preferences, country, timestamp);
   
       // 1. Generate AES-GCM key and IV
@@ -724,6 +741,8 @@
         timestamp,
         country,
         bannerType: currentBannerType, 
+        expiresAtTimestamp: expiresAtTimestamp,           
+        expirationDurationDays: expirationDurationDays, // number (days) or null
         metadata: {
           userAgent: navigator.userAgent,
           language: navigator.language,
@@ -1040,9 +1059,7 @@
           } catch (error) {
               return [];
           }
-        } 
-
-      
+        }       
       async function scanAndBlockScripts() {
     
         const scripts = document.querySelectorAll("script[src]:not([type='text/plain']):not([data-consentbit-id])"); // Select only executable scripts without our ID
@@ -1655,12 +1672,6 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
                   // Try early update just in case
                   updateAmplitudeConsent();
                 }
-
-
-
-
-  
-  
             } else {
                 script.textContent = scriptInfo.content;
                  // Restore other attributes for inline scripts
@@ -1853,90 +1864,137 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
   document.addEventListener('DOMContentLoaded',  initialize);
   
   async function loadAndApplySavedPreferences() {
-    
+    console.log("loadAndApplySavedPreferences: Starting..."); // Added log
     if (isLoadingState) {
-  
-        return;
+        console.log("loadAndApplySavedPreferences: Already loading, returning."); // Added log
+        return null; // Return null or appropriate value indicating loading state
     }
     isLoadingState = true;
-  
+
+    let loadedPreferences = null; // To store the final preferences to return
+
     try {
         const consentGiven = localStorage.getItem("consent-given");
-        
-  
-        
-        if (consentGiven === "true") {
-            const savedPreferences = localStorage.getItem("consent-preferences");
-            
-            if (savedPreferences) {
-                try {
-                    const parsedPrefs = JSON.parse(savedPreferences);
-                    
-                    // Ensure we have a proper 256-bit key
-                    const keyData = new Uint8Array(parsedPrefs.key);
-                    if (keyData.length !== 32) { // 256 bits = 32 bytes
-                        throw new Error("Invalid key length");
-                    }
-  
-                    // Import the key
-                    const key = await crypto.subtle.importKey(
-                        'raw',
-                        keyData,
-                        { name: 'AES-GCM', length: 256 }, // Specify the key length
-                        false,
-                        ['decrypt']
-                    );
-  
-                    // Convert base64 encrypted data back to ArrayBuffer
-                    const encryptedData = base64ToArrayBuffer(parsedPrefs.encryptedData);
-                    
-                    // Decrypt using the same format as encryption
-                    const decryptedData = await crypto.subtle.decrypt(
-                        { name: 'AES-GCM', iv: new Uint8Array(parsedPrefs.iv) },
-                        key,
-                        encryptedData
-                    );
-                    
-  
-                    const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
-  
-                    // Normalize preferences structure
-                    const normalizedPreferences = {
-                        Necessary: true,
-                        Marketing: preferences.Marketing || false,
-                        Personalization: preferences.Personalization || false,
-                        Analytics: preferences.Analytics || false,
-                        ccpa: {
-                            DoNotShare: preferences.ccpa?.DoNotShare || false
+        const consentExpiresAtStr = localStorage.getItem("consentExpiresAt"); // Get expiration timestamp
+
+        if (consentGiven === "true" && consentExpiresAtStr) {
+            const consentExpiresAt = parseInt(consentExpiresAtStr, 10);
+
+            // *** Check if consent is expired ***
+            if (!isNaN(consentExpiresAt) && Date.now() >= consentExpiresAt) {
+                // Consent has expired
+                localStorage.removeItem("consent-given");
+                localStorage.removeItem("consent-preferences");
+                localStorage.removeItem("consentExpiresAt");
+                localStorage.removeItem("consentExpirationDays"); // Also remove duration if stored
+                // No preferences loaded, will fall through to default
+                loadedPreferences = null; // Explicitly set to null
+            } else if (!isNaN(consentExpiresAt)) {
+                // Consent is valid and not expired, load preferences
+                const savedPreferences = localStorage.getItem("consent-preferences");
+
+                if (savedPreferences) {
+                    try {
+                        const parsedPrefs = JSON.parse(savedPreferences);
+
+                        // Ensure we have a proper key
+                        const keyData = new Uint8Array(parsedPrefs.key);
+                        if (keyData.length !== 32) { // 256 bits = 32 bytes
+                            throw new Error("loadAndApplySavedPreferences: Invalid key length stored.");
                         }
-                    };
-  
-                    // Update form
-                    await updatePreferenceForm(normalizedPreferences);
-                    
-                    // Unblock allowed scripts
-                    await restoreAllowedScripts(normalizedPreferences);
-  
-                    return normalizedPreferences;
-                } catch (error) {
-                    localStorage.removeItem("consent-preferences");
+
+                        const key = await crypto.subtle.importKey(
+                            'raw', keyData, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+                        );
+
+                        const encryptedData = base64ToArrayBuffer(parsedPrefs.encryptedData);
+
+                        const decryptedData = await crypto.subtle.decrypt(
+                            { name: 'AES-GCM', iv: new Uint8Array(parsedPrefs.iv) }, key, encryptedData
+                        );
+
+                        const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
+
+                        // Normalize preferences structure
+                        loadedPreferences = {
+                            Necessary: true, // Always true
+                            Marketing: preferences.Marketing || false,
+                            Personalization: preferences.Personalization || false,
+                            Analytics: preferences.Analytics || false,
+                            ccpa: {
+                                DoNotShare: preferences.ccpa?.DoNotShare || false
+                            }
+                        };
+
+
+                        // Update form display immediately after loading
+                        await updatePreferenceForm(loadedPreferences);
+                        // Unblock scripts based on these loaded preferences
+                        await restoreAllowedScripts(loadedPreferences);
+
+                    } catch (error) {
+                        // Error during decryption or parsing
+                        localStorage.removeItem("consent-preferences"); // Clear corrupted data
+                        localStorage.removeItem("consent-given"); // Assume invalid state
+                        localStorage.removeItem("consentExpiresAt");
+                        localStorage.removeItem("consentExpirationDays");
+                        loadedPreferences = null; // Fallback to default
+                    }
+                } else {
+                     // Consent was marked as given, but preferences are missing (data inconsistency)
+                     localStorage.removeItem("consent-given");
+                     localStorage.removeItem("consentExpiresAt");
+                     localStorage.removeItem("consentExpirationDays");
+                     loadedPreferences = null; // Fallback to default
                 }
+            } else {
+                 // Invalid timestamp stored, treat as expired/invalid
+                 localStorage.removeItem("consent-given");
+                 localStorage.removeItem("consent-preferences");
+                 localStorage.removeItem("consentExpiresAt");
+                 localStorage.removeItem("consentExpirationDays");
+                 loadedPreferences = null; // Fallback to default
             }
+        } else {
+             // Consent not given or timestamp missing
+             loadedPreferences = null; // Indicate no valid saved state
         }
     } catch (error) {
+        // General error, clear potentially inconsistent state
+        localStorage.removeItem("consent-given");
+        localStorage.removeItem("consent-preferences");
+        localStorage.removeItem("consentExpiresAt");
+        localStorage.removeItem("consentExpirationDays");
+        loadedPreferences = null; // Fallback to default
     } finally {
         isLoadingState = false;
     }
-  
-    // Default preferences if nothing was loaded
-    return {
+
+    // Return the loaded preferences (which could be null) or default if nothing valid was loaded
+    return loadedPreferences ?? { // Use nullish coalescing for default return
         Necessary: true,
         Marketing: false,
         Personalization: false,
         Analytics: false,
         ccpa: { DoNotShare: false }
     };
-  }
+}
+
+// --- Helper function used above (ensure it exists) ---
+function base64ToArrayBuffer(base64) {
+    try {
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    } catch (e) {
+        console.error("Error in base64ToArrayBuffer:", e);
+        throw e; // Re-throw error after logging
+    }
+}
+
   
   // Helper functions for base64 conversion
   function base64ToArrayBuffer(base64) {
@@ -2053,21 +2111,7 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
   }
   // Add to your window exports
   window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
-  window.updatePreferenceForm = updatePreferenceForm;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  window.updatePreferenceForm = updatePreferenceForm; 
   
   function blockAllInitialRequests() {
     const originalFetch = window.fetch;
@@ -2108,16 +2152,7 @@ window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
         };
         return img;
     };
-    }   
-  
-  
-  
-
-           
-      
-      
-      
-      
+    }        
      
   
   

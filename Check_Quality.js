@@ -854,7 +854,6 @@ ENCRYPTION AND DECYPTION STARTS
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
         return [];
       }
 
@@ -880,6 +879,7 @@ ENCRYPTION AND DECYPTION STARTS
         return [];
       }
     } catch (error) {
+      console.log(error);
       return [];
     }
   }
@@ -911,7 +911,6 @@ ENCRYPTION AND DECYPTION STARTS
       const normalizedSrc = normalizeUrl(script.src);
       const matched = normalizedCategorized.find(s => s.normalizedSrc && s.normalizedSrc === normalizedSrc);
       let scriptCategories = matched?.categories || [];
-      let categorySource = matched ? 'server' : 'pattern';
 
       // If not found by server list, try pattern matching
       if (!matched) {
@@ -939,7 +938,6 @@ ENCRYPTION AND DECYPTION STARTS
       // Find based on normalized content (less reliable for inline)
       const matched = normalizedCategorized.find(s => s.normalizedContent && s.normalizedContent === content);
       let scriptCategories = matched?.categories || [];
-      let categorySource = matched ? 'server' : 'pattern';
 
       // If not found by server list, try pattern matching
       if (!matched) {
@@ -960,62 +958,75 @@ ENCRYPTION AND DECYPTION STARTS
 
     // Setup MutationObserver after initial scan (if not already observing)
     if (!observer) {
-      observer = new MutationObserver((mutationsList) => {
-        for (const mutation of mutationsList) {
-          for (const node of mutation.addedNodes) {
-            // Check if it's a script, not already a placeholder, and not type/plain
-            if (
-              node.tagName === 'SCRIPT' &&
-              !node.hasAttribute('data-consentbit-id') &&
-              node.type !== 'text/plain'
-            ) {
-              let categories = [];
-              let categorySource = 'unknown';
-
-              if (node.src) {
-                const normalizedSrc = normalizeUrl(node.src);
-                const matched = normalizedCategorized.find(s => s.normalizedSrc === normalizedSrc);
-                if (matched) {
-                  categories = matched.categories;
-                  categorySource = 'server';
-                } else {
-                  const patternCategory = findCategoryByPattern(node.src);
-                  if (patternCategory) {
-                    categories = [patternCategory];
-                    categorySource = 'pattern';
-                  }
-                }
-              } else {
-                const content = node.textContent.trim().replace(/\s+/g, '');
-                if (content) { // Only process if there's content
-                  const matched = normalizedCategorized.find(s => s.normalizedContent === content);
-                  if (matched) {
-                    categories = matched.categories;
-                    categorySource = 'server';
-                  } else {
-                    const patternCategory = findCategoryByPattern(node.textContent);
-                    if (patternCategory) {
-                      categories = [patternCategory];
-                      categorySource = 'pattern';
-                    }
-                  }
-                }
-              }
-
-              // If the dynamically added script is categorized, block it
-              if (categories.length > 0) {
-                const placeholder = createPlaceholder(node, categories.join(','));
-                if (placeholder && node.parentNode) {
-                  node.parentNode.replaceChild(placeholder, node);
-                }
-              }
+      observer = new MutationObserver(handleMutations);
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+    }
+    
+    function handleMutations(mutationsList) {
+      for (const mutation of mutationsList) {
+        for (const node of mutation.addedNodes) {
+          if (shouldProcessScriptNode(node)) {
+            const { categories, categorySource } = categorizeScript(node);
+            if (categories.length > 0) {
+              replaceWithPlaceholder(node, categories);
             }
           }
         }
-      });
-
-      observer.observe(document.documentElement, { childList: true, subtree: true });
+      }
     }
+    
+    function shouldProcessScriptNode(node) {
+      return (
+        node.tagName === 'SCRIPT' &&
+        !node.hasAttribute('data-consentbit-id') &&
+        node.type !== 'text/plain'
+      );
+    }
+    
+    function categorizeScript(node) {
+      let categories = [];
+      let categorySource = 'unknown';
+    
+      if (node.src) {
+        const normalizedSrc = normalizeUrl(node.src);
+        const matched = normalizedCategorized.find(s => s.normalizedSrc === normalizedSrc);
+        if (matched) {
+          categories = matched.categories;
+          categorySource = 'server';
+        } else {
+          const patternCategory = findCategoryByPattern(node.src);
+          if (patternCategory) {
+            categories = [patternCategory];
+            categorySource = 'pattern';
+          }
+        }
+      } else {
+        const content = node.textContent.trim().replace(/\s+/g, '');
+        if (content) {
+          const matched = normalizedCategorized.find(s => s.normalizedContent === content);
+          if (matched) {
+            categories = matched.categories;
+            categorySource = 'server';
+          } else {
+            const patternCategory = findCategoryByPattern(node.textContent);
+            if (patternCategory) {
+              categories = [patternCategory];
+              categorySource = 'pattern';
+            }
+          }
+        }
+      }
+    
+      return { categories, categorySource };
+    }
+    
+    function replaceWithPlaceholder(node, categories) {
+      const placeholder = createPlaceholder(node, categories.join(','));
+      if (placeholder && node.parentNode) {
+        node.parentNode.replaceChild(placeholder, node);
+      }
+    }
+    
   }
   async function acceptAllCookies() {
 
@@ -1191,191 +1202,159 @@ ENCRYPTION AND DECYPTION STARTS
 
 
   async function unblockAllCookiesAndTools() {
-
     try {
-      // Set all preferences to true
       const allAllowedPreferences = {
         Necessary: true,
         Marketing: true,
         Personalization: true,
         Analytics: true,
-        ccpa: {
-          DoNotShare: false
-        }
+        ccpa: { DoNotShare: false }
       };
-
-      // Save the "accept all" consent state
+  
       await saveConsentState(allAllowedPreferences);
-
-      // Update preference form if it exists
       await updatePreferenceForm(allAllowedPreferences);
-
-      // Restore all scripts from placeholders
-      const scriptIdsToRestore = Object.keys(existing_Scripts);
-
-      for (const scriptId of scriptIdsToRestore) {
+  
+      for (const scriptId of Object.keys(existing_Scripts)) {
         const scriptInfo = existing_Scripts[scriptId];
         if (!scriptInfo) continue;
-
+  
         const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
         if (!placeholder) {
           delete existing_Scripts[scriptId];
           continue;
         }
-
-        const script = document.createElement("script");
-
-        // Restore core properties
-        script.type = scriptInfo.type;
-        if (scriptInfo.async) script.async = true;
-        if (scriptInfo.defer) script.defer = true;
-        script.setAttribute("data-category", scriptInfo.category.join(','));
-
-        if (scriptInfo.src) {
-          script.src = scriptInfo.src;
-
-          if (/googletagmanager\.com\/gtag\/js/.test(scriptInfo.src)) {
-            setupGoogleAnalytics(script);
-          }
-          else if (/clarity\.ms/.test(scriptInfo.src)) {
-            setupClarity(script);
-          }
-          else if (/connect\.facebook\.net/.test(scriptInfo.src)) {
-            setupFacebookPixel(script);
-          }
-          else if (/matomo\.cloud/.test(scriptInfo.src)) {
-            setupMatomo(script);
-          }
-          else if (/hs-scripts\.com/.test(scriptInfo.src)) {
-            setupHubSpot(script);
-          }
-          else if (/plausible\.io/.test(scriptInfo.src)) {
-            setupPlausible(script);
-          }
-          else if (/static\.hotjar\.com/.test(scriptInfo.src)) {
-            setupHotjar(script);
-          } else if (/cdn\.(eu\.)?amplitude\.com/.test(scriptInfo.src)) { // Added Amplitude check
-            setupAmplitude(script);
-          }
-
-
-          Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-            script.setAttribute(name, value);
-          });
-        } else {
-          script.textContent = scriptInfo.content;
-          Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-            script.setAttribute(name, value);
-          });
-        }
-
+  
+        const script = createRestoredScript(scriptInfo);
+        applyScriptSetups(script, scriptInfo.src);
         if (placeholder.parentNode) {
           placeholder.parentNode.replaceChild(script, placeholder);
         } else {
           document.head.appendChild(script);
         }
-
+  
         delete existing_Scripts[scriptId];
       }
-
+  
       initialBlockingEnabled = false;
-
-      function setupGoogleAnalytics(script) {
-        script.onload = () => {
-          if (typeof gtag === 'function') {
-            gtag('consent', 'update', {
-              'ad_storage': 'granted',
-              'analytics_storage': 'granted',
-              'functionality_storage': 'granted',
-              'personalization_storage': 'granted',
-              'security_storage': 'granted',
-              'ad_user_data': 'granted',
-              'ad_personalization': 'granted'
-            });
-          }
-        };
-      }
-      function setupAmplitude(script) {
-
-
-        script.onload = () => {
-          // Check if the amplitude object is available
-          if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
-            // Grant consent after the script loads and consent is given
-            amplitude.setOptOut(false);
-          }
-        };
-        // Set optOut to true initially until consent is explicitly given
-        if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
-          amplitude.setOptOut(true);
-        }
-      }
-
-      function setupClarity(script) {
-        window.clarity = window.clarity || function (...args) {
-          (window.clarity.q = window.clarity.q || []).push(args);
-        };
-        window.clarity.consent = true;
-      }
-
-      function setupFacebookPixel(script) {
-        script.onload = () => {
-          if (typeof fbq === 'function') {
-            fbq('consent', 'grant');
-          }
-        };
-      }
-
-      function setupMatomo(script) {
-        script.onload = () => {
-          if (typeof _paq !== 'undefined') {
-            _paq.push(['setConsentGiven']);
-            _paq.push(['trackPageView']);
-          }
-        };
-      }
-
-      function setupHubSpot(script) {
-        script.onload = () => {
-          if (typeof _hsq !== 'undefined') {
-            _hsq.push(['doNotTrack', { track: true }]);
-          }
-        };
-      }
-
-      function setupPlausible(script) {
-        // Plausible is privacy-friendly and doesn't need explicit consent
-        script.setAttribute('data-consent-given', 'true');
-      }
-
-      function setupHotjar(script) {
-        window.hj = window.hj || function (...args) {
-          (window.hj.q = window.hj.q || []).push(args);
-        };
-        script.onload = () => {
-          if (typeof hj === 'function') {
-            hj('consent', 'granted');
-          }
-        };
-      }
-
-
-      // Mark consent as given
       localStorage.setItem("consent-given", "true");
-
-      // Disconnect observer if it exists
+  
       if (observer) {
         observer.disconnect();
         observer = null;
       }
-
-
+  
     } catch (error) {
+      console.error("Error unblocking cookies/tools:", error);
     }
   }
-
-  // Make it globally available
+  
+  function createRestoredScript(scriptInfo) {
+    const script = document.createElement("script");
+    script.type = scriptInfo.type;
+    if (scriptInfo.async) script.async = true;
+    if (scriptInfo.defer) script.defer = true;
+    script.setAttribute("data-category", scriptInfo.category.join(','));
+  
+    if (scriptInfo.src) {
+      script.src = scriptInfo.src;
+    } else {
+      script.textContent = scriptInfo.content;
+    }
+  
+    applyOriginalAttributes(script, scriptInfo.originalAttributes);
+    return script;
+  }
+  
+  function applyOriginalAttributes(script, attributes) {
+    Object.entries(attributes).forEach(([name, value]) => {
+      script.setAttribute(name, value);
+    });
+  }
+  
+  function applyScriptSetups(script, src = "") {
+    if (!src) return;
+  
+    if (/googletagmanager\.com\/gtag\/js/.test(src)) setupGoogleAnalytics(script);
+    else if (/clarity\.ms/.test(src)) setupClarity(script);
+    else if (/connect\.facebook\.net/.test(src)) setupFacebookPixel(script);
+    else if (/matomo\.cloud/.test(src)) setupMatomo(script);
+    else if (/hs-scripts\.com/.test(src)) setupHubSpot(script);
+    else if (/plausible\.io/.test(src)) setupPlausible(script);
+    else if (/static\.hotjar\.com/.test(src)) setupHotjar(script);
+    else if (/cdn\.(eu\.)?amplitude\.com/.test(src)) setupAmplitude(script);
+  }
+  
+  // Setup Functions
+  function setupGoogleAnalytics(script) {
+    script.onload = () => {
+      if (typeof gtag === 'function') {
+        gtag('consent', 'update', {
+          'ad_storage': 'granted',
+          'analytics_storage': 'granted',
+          'functionality_storage': 'granted',
+          'personalization_storage': 'granted',
+          'security_storage': 'granted',
+          'ad_user_data': 'granted',
+          'ad_personalization': 'granted'
+        });
+      }
+    };
+  }
+  
+  function setupClarity() {
+    window.clarity = window.clarity || function (...args) {
+      (window.clarity.q = window.clarity.q || []).push(args);
+    };
+    window.clarity.consent = true;
+  }
+  
+  function setupFacebookPixel(script) {
+    script.onload = () => {
+      if (typeof fbq === 'function') fbq('consent', 'grant');
+    };
+  }
+  
+  function setupMatomo(script) {
+    script.onload = () => {
+      if (typeof _paq !== 'undefined') {
+        _paq.push(['setConsentGiven']);
+        _paq.push(['trackPageView']);
+      }
+    };
+  }
+  
+  function setupHubSpot(script) {
+    script.onload = () => {
+      if (typeof _hsq !== 'undefined') _hsq.push(['doNotTrack', { track: true }]);
+    };
+  }
+  
+  function setupPlausible(script) {
+    script.setAttribute('data-consent-given', 'true');
+  }
+  
+  function setupHotjar(script) {
+    window.hj = window.hj || function (...args) {
+      (window.hj.q = window.hj.q || []).push(args);
+    };
+    script.onload = () => {
+      if (typeof hj === 'function') hj('consent', 'granted');
+    };
+  }
+  
+  function setupAmplitude(script) {
+    script.onload = () => {
+      if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
+        amplitude.setOptOut(false);
+      }
+    };
+    if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
+      amplitude.setOptOut(true);
+    }
+  }
+  
   window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
+  
 
 
   async function restoreAllowedScripts(preferences) {

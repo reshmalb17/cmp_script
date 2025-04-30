@@ -1793,6 +1793,7 @@ ENCRYPTION AND DECYPTION STARTS
 
       // Always load these
       await loadConsentStyles();
+      
 
       // Hide banners if consent was given
       if (localStorage.getItem("consent-given") === "true") {

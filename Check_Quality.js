@@ -7,7 +7,6 @@
   let currentBannerType = null;
   let country = null;
   let categorizedScripts = null;
-  let initialBlockingEnabled = true;
 
   const suspiciousPatterns = [
     {
@@ -1222,7 +1221,6 @@ ENCRYPTION AND DECYPTION STARTS
         delete existing_Scripts[scriptId];
       }
   
-      initialBlockingEnabled = false;
       localStorage.setItem("consent-given", "true");
   
       if (observer) {
@@ -1248,15 +1246,11 @@ ENCRYPTION AND DECYPTION STARTS
       script.textContent = scriptInfo.content;
     }
   
-    applyOriginalAttributes(script, scriptInfo.originalAttributes);
+    restoreOriginalAttributes(script, scriptInfo.originalAttributes);
     return script;
   }
   
-  function applyOriginalAttributes(script, attributes) {
-    Object.entries(attributes).forEach(([name, value]) => {
-      script.setAttribute(name, value);
-    });
-  }
+ 
   
   function applyScriptSetups(script, src = "") {
     if (!src) return;
@@ -1583,7 +1577,7 @@ ENCRYPTION AND DECYPTION STARTS
 
   document.addEventListener('DOMContentLoaded', initialize);
   async function isCookieExpired() {
-    const isCookieExpired = false;
+    let isCookieExpired = false;
 
     const storedExpiresAtString = localStorage.getItem('consentExpiresAt');
     const isConsentGiven = localStorage.getItem('consent-given');

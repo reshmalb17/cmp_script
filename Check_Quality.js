@@ -966,7 +966,7 @@ ENCRYPTION AND DECYPTION STARTS
       for (const mutation of mutationsList) {
         for (const node of mutation.addedNodes) {
           if (shouldProcessScriptNode(node)) {
-            const { categories, categorySource } = categorizeScript(node);
+            const { categories} = categorizeScript(node);
             if (categories.length > 0) {
               replaceWithPlaceholder(node, categories);
             }
@@ -984,41 +984,37 @@ ENCRYPTION AND DECYPTION STARTS
     }
     
     function categorizeScript(node) {
-      let categories = [];
-      let categorySource = 'unknown';
+      const categories = [];
     
       if (node.src) {
-        const normalizedSrc = normalizeUrl(node.src);
-        const matched = normalizedCategorized.find(s => s.normalizedSrc === normalizedSrc);
-        if (matched) {
-          categories = matched.categories;
-          categorySource = 'server';
-        } else {
-          const patternCategory = findCategoryByPattern(node.src);
-          if (patternCategory) {
-            categories = [patternCategory];
-            categorySource = 'pattern';
-          }
-        }
-      } else {
-        const content = node.textContent.trim().replace(/\s+/g, '');
-        if (content) {
-          const matched = normalizedCategorized.find(s => s.normalizedContent === content);
-          if (matched) {
-            categories = matched.categories;
-            categorySource = 'server';
-          } else {
-            const patternCategory = findCategoryByPattern(node.textContent);
-            if (patternCategory) {
-              categories = [patternCategory];
-              categorySource = 'pattern';
-            }
-          }
-        }
+        return { categories: categorizeBySrc(node.src) };
       }
     
-      return { categories, categorySource };
+      const content = node.textContent.trim().replace(/\s+/g, '');
+      if (content) {
+        return { categories: categorizeByContent(node.textContent, content) };
+      }
+    
+      return { categories };
     }
+    
+    function categorizeBySrc(src) {
+      const normalizedSrc = normalizeUrl(src);
+      const matched = normalizedCategorized.find(s => s.normalizedSrc === normalizedSrc);
+      if (matched) return matched.categories;
+    
+      const patternCategory = findCategoryByPattern(src);
+      return patternCategory ? [patternCategory] : [];
+    }
+    
+    function categorizeByContent(rawContent, normalizedContent) {
+      const matched = normalizedCategorized.find(s => s.normalizedContent === normalizedContent);
+      if (matched) return matched.categories;
+    
+      const patternCategory = findCategoryByPattern(rawContent);
+      return patternCategory ? [patternCategory] : [];
+    }
+    
     
     function replaceWithPlaceholder(node, categories) {
       const placeholder = createPlaceholder(node, categories.join(','));
@@ -1275,7 +1271,7 @@ ENCRYPTION AND DECYPTION STARTS
     if (!src) return;
   
     if (/googletagmanager\.com\/gtag\/js/.test(src)) setupGoogleAnalytics(script);
-    else if (/clarity\.ms/.test(src)) setupClarity(script);
+    else if (/clarity\.ms/.test(src)) setupClarity();
     else if (/connect\.facebook\.net/.test(src)) setupFacebookPixel(script);
     else if (/matomo\.cloud/.test(src)) setupMatomo(script);
     else if (/hs-scripts\.com/.test(src)) setupHubSpot(script);
@@ -1300,11 +1296,16 @@ ENCRYPTION AND DECYPTION STARTS
       }
     };
   }
-  
   function setupClarity() {
-    window.clarity = window.clarity || function (...args) {
-      (window.clarity.q = window.clarity.q || []).push(args);
-    };
+    if (!window.clarity) {
+      window.clarity = function (...args) {
+        window.clarity.q.push(args);
+      };
+      window.clarity.q = [];
+    } else if (!window.clarity.q) {
+      window.clarity.q = [];
+    }
+  
     window.clarity.consent = true;
   }
   
@@ -1334,13 +1335,22 @@ ENCRYPTION AND DECYPTION STARTS
   }
   
   function setupHotjar(script) {
-    window.hj = window.hj || function (...args) {
-      (window.hj.q = window.hj.q || []).push(args);
-    };
+    if (!window.hj) {
+      window.hj = function (...args) {
+        window.hj.q.push(args);
+      };
+      window.hj.q = [];
+    } else if (!window.hj.q) {
+      window.hj.q = [];
+    }
+  
     script.onload = () => {
-      if (typeof hj === 'function') hj('consent', 'granted');
+      if (typeof hj === 'function') {
+        hj('consent', 'granted');
+      }
     };
   }
+  
   
   function setupAmplitude(script) {
     script.onload = () => {
@@ -1358,159 +1368,129 @@ ENCRYPTION AND DECYPTION STARTS
 
 
   async function restoreAllowedScripts(preferences) {
-
-    const normalizedPrefs = Object.fromEntries(
-      Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
-    );
-
+    const normalizedPrefs = normalizePreferences(preferences);
     const scriptIdsToRestore = Object.keys(existing_Scripts);
-
+  
     for (const scriptId of scriptIdsToRestore) {
       const scriptInfo = existing_Scripts[scriptId];
-      if (!scriptInfo) continue; // Should not happen, but safety check
-
-      // Find the placeholder in the DOM
-      const placeholder = document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
+      if (!scriptInfo) continue;
+  
+      const placeholder = findPlaceholder(scriptId);
       if (!placeholder) {
-        // Clean up the entry if the placeholder is gone
         delete existing_Scripts[scriptId];
         continue;
       }
-
-      // Determine if the script is allowed based on its categories and current preferences
+  
       const isAllowed = scriptInfo.category.some(cat => normalizedPrefs[cat] === true);
-
-
-      if (isAllowed) {
-        // Check if a script with this src already exists in the DOM (prevent duplicates)
-        if (scriptInfo.src) {
-          // More specific check: Look for scripts with the same src that are NOT placeholders
-          const existingScript = document.querySelector(`script[src="${scriptInfo.src}"]:not([type='text/plain'])`);
-          if (existingScript && existingScript !== placeholder) {
-            // Remove the placeholder if the script already exists elsewhere
-            if (placeholder.parentNode) {
-              placeholder.parentNode.removeChild(placeholder);
-            }
-            delete existing_Scripts[scriptId]; // Clean up the reference
-            continue; // Move to the next script
-          }
-        }
-
-
-        const script = document.createElement("script");
-
-        // Restore core properties
-        script.type = scriptInfo.type; // Restore original type
-        if (scriptInfo.async) script.async = true;
-        if (scriptInfo.defer) script.defer = true;
-        script.setAttribute("data-category", scriptInfo.category.join(',')); // Keep category info if needed
-
-        // Restore src or content
-        if (scriptInfo.src) {
-          script.src = scriptInfo.src;
-
-          // Special handling for GA or other consent-aware scripts
-          const gtagPattern = /googletagmanager\.com\/gtag\/js/i;
-          if (gtagPattern.test(scriptInfo.src)) {
-            function updateGAConsent() {
-              if (typeof gtag === "function") {
-                gtag('consent', 'update', {
-                  'ad_storage': normalizedPrefs.marketing ? 'granted' : 'denied',
-                  'analytics_storage': normalizedPrefs.analytics ? 'granted' : 'denied',
-                  'ad_personalization': normalizedPrefs.marketing ? 'granted' : 'denied', // Adjust based on your categories
-                  'ad_user_data': normalizedPrefs.marketing ? 'granted' : 'denied'      // Adjust based on your categories
-                });
-              } else {
-              }
-            }
-            // Update on load
-            script.onload = () => {
-              updateGAConsent();
-
-            };
-            script.onerror = () => {
-            }
-
-            updateGAConsent();
-          } else {
-            // Restore other attributes for non-GA scripts immediately or on load
-            Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-              script.setAttribute(name, value);
-            });
-          }
-
-
-
-          const amplitudePattern = /amplitude|amplitude.com/i;
-          if (amplitudePattern.test(scriptInfo.src)) {
-
-            function updateAmplitudeConsent() {
-              if (typeof amplitude !== "undefined" && amplitude.getInstance) {
-                const instance = amplitude.getInstance();
-
-                if (!normalizedPrefs.analytics) {
-                  // Disable tracking completely
-                  instance.setOptOut(true);
-                } else {
-                  instance.setOptOut(false);
-                }
-
-                // Optional: Set consent preferences as user properties
-                instance.setUserProperties({
-                  consent_analytics: normalizedPrefs.analytics,
-                  consent_marketing: normalizedPrefs.marketing,
-                  consent_personalization: normalizedPrefs.personalization || false
-                });
-              } else {
-              }
-            }
-
-            // Hook into script load
-            script.onload = () => {
-              updateAmplitudeConsent();
-            };
-
-            script.onerror = () => {
-            };
-
-            // Try early update just in case
-            updateAmplitudeConsent();
-          }
-
-
-
-
-
-
-        } else {
-          script.textContent = scriptInfo.content;
-          // Restore other attributes for inline scripts
-          Object.entries(scriptInfo.originalAttributes).forEach(([name, value]) => {
-            script.setAttribute(name, value);
-          });
-        }
-
-        // Replace the placeholder with the restored script
-        if (placeholder.parentNode) {
-          placeholder.parentNode.replaceChild(script, placeholder);
-        } else {
-          document.head.appendChild(script); // Fallback: append to head
-        }
-
-        // Remove the script info from our tracking object *after* successful restoration
+      if (!isAllowed) {
+        validatePlaceholder(placeholder);
+        continue;
+      }
+  
+      if (shouldSkipDueToExistingScript(scriptInfo, placeholder)) {
         delete existing_Scripts[scriptId];
-
+        continue;
+      }
+  
+      const restoredScript = buildScriptElement(scriptInfo, normalizedPrefs);
+  
+      if (placeholder.parentNode) {
+        placeholder.parentNode.replaceChild(restoredScript, placeholder);
       } else {
-        // Ensure the node in the DOM is still a placeholder (it should be)
-        if (placeholder.tagName !== 'SCRIPT' || placeholder.type !== 'text/plain') {
-          // Optionally, try to re-block it here if necessary, though ideally,
-          // reblockDisallowedScripts would handle this later if consent changes.
-        }
+        document.head.appendChild(restoredScript);
+      }
+  
+      delete existing_Scripts[scriptId];
+    }
+  }
+  
+  function normalizePreferences(preferences) {
+    return Object.fromEntries(
+      Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
+    );
+  }
+  
+  function findPlaceholder(scriptId) {
+    return document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
+  }
+  
+  function validatePlaceholder(placeholder) {
+    if (placeholder.tagName !== 'SCRIPT' || placeholder.type !== 'text/plain') {
+      // Placeholder is not valid anymore, optionally re-block
+    }
+  }
+  
+  function shouldSkipDueToExistingScript(scriptInfo, placeholder) {
+    if (scriptInfo.src) {
+      const existingScript = document.querySelector(`script[src="${scriptInfo.src}"]:not([type='text/plain'])`);
+      if (existingScript && existingScript !== placeholder) {
+        placeholder.parentNode?.removeChild(placeholder);
+        return true;
       }
     }
-
+    return false;
   }
-
+  
+  function buildScriptElement(scriptInfo, normalizedPrefs) {
+    const script = document.createElement("script");
+    script.type = scriptInfo.type;
+    if (scriptInfo.async) script.async = true;
+    if (scriptInfo.defer) script.defer = true;
+    script.setAttribute("data-category", scriptInfo.category.join(','));
+  
+    if (scriptInfo.src) {
+      script.src = scriptInfo.src;
+      handleSpecialCases(script, scriptInfo, normalizedPrefs);
+    } else {
+      script.textContent = scriptInfo.content;
+      restoreOriginalAttributes(script, scriptInfo.originalAttributes);
+    }
+  
+    return script;
+  }
+  
+  function restoreOriginalAttributes(script, attributes) {
+    Object.entries(attributes).forEach(([name, value]) => {
+      script.setAttribute(name, value);
+    });
+  }
+  
+  function handleSpecialCases(script, scriptInfo, normalizedPrefs) {
+    const src = scriptInfo.src;
+    if (/googletagmanager\.com\/gtag\/js/i.test(src)) {
+      script.onload = () => updateGAConsent(normalizedPrefs);
+      updateGAConsent(normalizedPrefs);
+    } else if (/amplitude|amplitude.com/i.test(src)) {
+      script.onload = () => updateAmplitudeConsent(normalizedPrefs);
+      updateAmplitudeConsent(normalizedPrefs);
+    } else {
+      restoreOriginalAttributes(script, scriptInfo.originalAttributes);
+    }
+  }
+  
+  function updateGAConsent(prefs) {
+    if (typeof gtag === "function") {
+      gtag('consent', 'update', {
+        'ad_storage': prefs.marketing ? 'granted' : 'denied',
+        'analytics_storage': prefs.analytics ? 'granted' : 'denied',
+        'ad_personalization': prefs.marketing ? 'granted' : 'denied',
+        'ad_user_data': prefs.marketing ? 'granted' : 'denied'
+      });
+    }
+  }
+  
+  function updateAmplitudeConsent(prefs) {
+    if (typeof amplitude !== "undefined" && amplitude.getInstance) {
+      const instance = amplitude.getInstance();
+      instance.setOptOut(!prefs.analytics);
+      instance.setUserProperties({
+        consent_analytics: prefs.analytics,
+        consent_marketing: prefs.marketing,
+        consent_personalization: prefs.personalization || false
+      });
+    }
+  }
+  
 
 
   /* INITIALIZATION */
@@ -1944,12 +1924,6 @@ ENCRYPTION AND DECYPTION STARTS
       return img;
     };
   }
-
-
-
-
-
-
 
 })();
 

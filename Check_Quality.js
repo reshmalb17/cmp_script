@@ -1,10 +1,9 @@
 (async function () {
-    const existing_Scripts = {}; // Change to object/map instead of array
-    let scriptIdCounter = 0; // Add this line
+    const existing_Scripts = {};
+    let scriptIdCounter = 0;
     let isLoadingState = false;
     let consentState = {};
     let observer;
-    let isInitialized = false;
     let currentBannerType = null;
     let country = null;
     let categorizedScripts = null;
@@ -78,24 +77,16 @@
     };
   
   
-       /**
-    ENCRYPTION AND DECYPTION ENDS
-  
-   /*LOCATION DETECTION AND BANNER TYPE STARTS*/
-  
-   /*LOCATION DETECTION AND BANNER TYPE ENDS*/
-   // Function to check if token is expired
+
    function isTokenExpired(token) {
-      try {
+      
           const [payloadBase64] = token.split('.');
           const payload = JSON.parse(atob(payloadBase64));
           
           if (!payload.exp) return true;
           
           return payload.exp < Math.floor(Date.now() / 1000);
-      } catch (error) {
-          return true;
-      }
+      
   }
   
    // Function to clean hostname
@@ -130,15 +121,13 @@
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            // credentials: 'include'
         });
   
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+        if (!response.ok) {           
             return null;
         }
   
-        const data = await response.json();
+    const data = await response.json();
         // Changed to check for bannerType instead of scripts
         if (!data.bannerType) {
             return null;
@@ -146,6 +135,7 @@
       country =data.country;
         return data;
     } catch (error) {
+
         return null;
     }
   }
@@ -205,305 +195,185 @@
       
   /*BANNER */
   
-  async function attachBannerHandlers() {
-      const consentBanner = document.getElementById("consent-banner");
-      const ccpaBanner = document.getElementById("initial-consent-banner");
-      const mainBanner = document.getElementById("main-banner");
-      const mainConsentBanner = document.getElementById("main-consent-banner");
-      const simpleBanner = document.getElementById("simple-consent-banner");
-      const simpleAcceptButton = document.getElementById("simple-accept");
-      const simpleRejectButton = document.getElementById("simple-reject");
-    
-      // Button elements
-      const toggleConsentButton = document.getElementById("toggle-consent-btn");
-      const newToggleConsentButton = document.getElementById("new-toggle-consent-btn");
-      const acceptButton = document.getElementById("accept-btn");
-      const declineButton = document.getElementById("decline-btn");
-      const preferencesButton = document.getElementById("preferences-btn");
-      const savePreferencesButton = document.getElementById("save-preferences-btn");
-      const saveCCPAPreferencesButton = document.getElementById("save-btn");
-      const cancelButton = document.getElementById("cancel-btn");
-      const closeConsentButton = document.getElementById("close-consent-banner");
-      const doNotShareLink = document.getElementById("do-not-share-link");
-      doNotShareLink? "true":"false";
-    
-      // Checkbox elements
-      const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]')
-      const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]')
-      const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]')
-      const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]')
-      const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
-      if (necessaryCheckbox) {
-        necessaryCheckbox.checked = true;              // Always checked
-        necessaryCheckbox.disabled = true;             // Prevent user from unchecking
+async function attachBannerHandlers() {
+    const qs = (selector) => document.querySelector(selector);
+    const qid = (id) => document.getElementById(id);
+  
+    const elements = {
+      banners: {
+        consent: qid("consent-banner"),
+        ccpa: qid("initial-consent-banner"),
+        main: qid("main-banner"),
+        mainConsent: qid("main-consent-banner"),
+        simple: qid("simple-consent-banner"),
+      },
+      buttons: {
+        simpleAccept: qid("simple-accept"),
+        simpleReject: qid("simple-reject"),
+        toggleConsent: qid("toggle-consent-btn"),
+        newToggleConsent: qid("new-toggle-consent-btn"),
+        accept: qid("accept-btn"),
+        decline: qid("decline-btn"),
+        preferences: qid("preferences-btn"),
+        savePreferences: qid("save-preferences-btn"),
+        saveCCPA: qid("save-btn"),
+        cancel: qid("cancel-btn"),
+        close: qid("close-consent-banner"),
+        doNotShareLink: qid("do-not-share-link"),
+      },
+      checkboxes: {
+        necessary: qs('[data-consent-id="necessary-checkbox"]'),
+        marketing: qs('[data-consent-id="marketing-checkbox"]'),
+        personalization: qs('[data-consent-id="personalization-checkbox"]'),
+        analytics: qs('[data-consent-id="analytics-checkbox"]'),
+        doNotShare: qs('[data-consent-id="do-not-share-checkbox"]'),
       }
-      // Initialize banner visibility based on user location
-      initializeBannerVisibility();
-    
-      if (simpleBanner) {
-        showBanner(simpleBanner);
-    
-        if (simpleAcceptButton) {
-          simpleAcceptButton.addEventListener("click", async function(e) {
-            e.preventDefault();
-            const preferences = {
-              Necessary: true,
-              Marketing: true,
-              Personalization: true,
-              Analytics: true,
-              ccpa: { DoNotShare: false }
-            };
-            
-              await saveConsentState(preferences);
-              await restoreAllowedScripts(preferences);
-               hideBanner(simpleBanner);
-              localStorage.setItem("consent-given", "true");
-            
-            });
-          }
-        
-    
-        if (simpleRejectButton) {
-          simpleRejectButton.addEventListener("click", async function(e) {
-            e.preventDefault();
-            const preferences = {
-              Necessary: true,
-              Marketing: false,
-              Personalization: false,
-              Analytics: false,
-              ccpa: { DoNotShare: false }
-            };
-            await saveConsentState(preferences);
-            checkAndBlockNewScripts();
-            hideBanner(simpleBanner);
-            localStorage.setItem("consent-given", "true");
-          });
-        }
-      }
-      
-    
-      if (toggleConsentButton) {
-        toggleConsentButton.addEventListener("click", async function(e) {
-            e.preventDefault();
-    
-            
-            const consentBanner = document.getElementById("consent-banner");
-            const ccpaBanner = document.getElementById("initial-consent-banner");
-            const simpleBanner = document.getElementById("simple-consent-banner");
-         
-    
-            // Show the appropriate banner based on bannerType
-            if (currentBannerType === 'GDPR') {
-                showBanner(consentBanner); // Show GDPR banner
-                hideBanner(ccpaBanner); // Hide CCPA banner
-            } else if (currentBannerType === 'CCPA') {
-                showBanner(ccpaBanner); // Show CCPA banner
-                hideBanner(consentBanner); // Hide GDPR banner
-            } else {
-                showBanner(consentBanner); // Default to showing GDPR banner
-                hideBanner(ccpaBanner);
-            }
-        });
+    };
+  
+    const { banners, buttons, checkboxes } = elements;
+  
+    if (checkboxes.necessary) {
+      checkboxes.necessary.checked = true;
+      checkboxes.necessary.disabled = true;
     }
-    
-    if (newToggleConsentButton) {
-      newToggleConsentButton.addEventListener("click", async function(e) {
-        e.preventDefault();
-    
-        const consentBanner = document.getElementById("consent-banner");
-        const ccpaBanner = document.getElementById("initial-consent-banner");
-    
-        // Show the appropriate banner based on bannerType
-        if (currentBannerType === 'GDPR') {
-          showBanner(consentBanner); // Show GDPR banner
-          hideBanner(ccpaBanner); // Hide CCPA banner
-        } else if (currentBannerType === 'CCPA') {
-          showBanner(ccpaBanner); // Show CCPA banner
-          hideBanner(consentBanner); // Hide GDPR banner
-        } else {
-          showBanner(consentBanner); // Default to showing GDPR banner
-          hideBanner(ccpaBanner);
-        }
+  
+    const buildPreferences = ({ marketing = false, personalization = false, analytics = false, doNotShare = false }) => ({
+      Necessary: true,
+      Marketing: marketing,
+      Personalization: personalization,
+      Analytics: analytics,
+      ccpa: { DoNotShare: doNotShare }
+    });
+  
+    const setupClick = (btn, fn) => btn?.addEventListener("click", fn);
+  
+    initializeBannerVisibility();
+  
+    // Handlers
+    setupClick(buttons.simpleAccept, async (e) => {
+      e.preventDefault();
+      const prefs = buildPreferences({ marketing: true, personalization: true, analytics: true });
+      await saveConsentState(prefs);
+      await restoreAllowedScripts(prefs);
+      hideBanner(banners.simple);
+      localStorage.setItem("consent-given", "true");
+    });
+  
+    setupClick(buttons.simpleReject, async (e) => {
+      e.preventDefault();
+      const prefs = buildPreferences();
+      await saveConsentState(prefs);
+      checkAndBlockNewScripts();
+      hideBanner(banners.simple);
+      localStorage.setItem("consent-given", "true");
+    });
+  
+    const toggleBanner = () => {
+      if (currentBannerType === 'CCPA') {
+        showBanner(banners.ccpa);
+        hideBanner(banners.consent);
+      } else {
+        showBanner(banners.consent);
+        hideBanner(banners.ccpa);
+      }
+    };
+  
+    setupClick(buttons.toggleConsent, (e) => {
+      e.preventDefault();
+      toggleBanner();
+    });
+  
+    setupClick(buttons.newToggleConsent, (e) => {
+      e.preventDefault();
+      toggleBanner();
+    });
+  
+    setupClick(buttons.doNotShareLink, (e) => {
+      e.preventDefault();
+      hideBanner(banners.ccpa);
+      showBanner(banners.mainConsent);
+    });
+  
+    setupClick(buttons.close, (e) => {
+      e.preventDefault();
+      hideBanner(banners.mainConsent);
+    });
+  
+    setupClick(buttons.accept, async (e) => {
+      e.preventDefault();
+      const prefs = buildPreferences({ marketing: true, personalization: true, analytics: true });
+      await saveConsentState(prefs);
+      await acceptAllCookies();
+      hideBanner(banners.consent);
+      hideBanner(banners.main);
+    });
+  
+    setupClick(buttons.decline, async (e) => {
+      e.preventDefault();
+      const prefs = buildPreferences();
+      await saveConsentState(prefs);
+      await blockAllCookies();
+      hideBanner(banners.consent);
+      hideBanner(banners.main);
+    });
+  
+    setupClick(buttons.preferences, (e) => {
+      e.preventDefault();
+      hideBanner(banners.consent);
+      showBanner(banners.main);
+    });
+  
+    setupClick(buttons.savePreferences, async (e) => {
+      e.preventDefault();
+      const prefs = buildPreferences({
+        marketing: checkboxes.marketing?.checked,
+        personalization: checkboxes.personalization?.checked,
+        analytics: checkboxes.analytics?.checked
       });
-    }
-    
-      if (doNotShareLink) {
-        
-        doNotShareLink.addEventListener("click", function(e) {
-          
-          e.preventDefault();
-          hideBanner(ccpaBanner); // Hide CCPA banner if it's open
-          showBanner(mainConsentBanner); // Show main consent banner
-        });
+      try {
+        await saveConsentState(prefs);
+        await restoreAllowedScripts(prefs);
+      } catch {}
+      hideBanner(banners.consent);
+      hideBanner(banners.main);
+    });
+  
+    setupClick(buttons.saveCCPA, async (e) => {
+      e.preventDefault();
+      const doNotShare = checkboxes.doNotShare?.checked || false;
+      const prefs = buildPreferences({
+        marketing: !doNotShare,
+        personalization: !doNotShare,
+        analytics: !doNotShare,
+        doNotShare
+      });
+  
+      if (doNotShare) {
+        await blockAllCookies();
+        await saveConsentState(prefs);
+      } else {
+        await unblockAllCookiesAndTools();
       }
-    
-    
-      if (closeConsentButton) {
-        closeConsentButton.addEventListener("click", function(e) {
-          e.preventDefault();
-          hideBanner(document.getElementById("main-consent-banner")); // Hide the main consent banner
-        });
-      }
-      // Accept button handler
-      if (acceptButton) {
-        acceptButton.addEventListener("click", async function(e) {
-          e.preventDefault();
-          const preferences = {
-            Necessary: true,
-            Marketing: true,
-            Personalization: true,
-            Analytics: true,
-            ccpa: { DoNotShare: false }
-          };
-          await saveConsentState(preferences);
-         await acceptAllCookies();
-          hideBanner(consentBanner);
-          hideBanner(mainBanner);
-        });
-      }
-    
-      // Decline button handler
-      if (declineButton) {
-        declineButton.addEventListener("click", async function(e) {
-          e.preventDefault();
-          const preferences = {
-            Necessary: true,
-            Marketing: false,
-            Personalization: false,
-            Analytics: false,
-            ccpa: { DoNotShare: false }
-          };
-          await saveConsentState(preferences);
-          await blockAllCookies();
-          hideBanner(consentBanner);
-          hideBanner(mainBanner);
-        });
-      }
-    
-      // Preferences button handler
-      if (preferencesButton) {
-        preferencesButton.addEventListener("click", function(e) {
-          e.preventDefault();
-          hideBanner(consentBanner);
-          showBanner(mainBanner);
-        });
-      }
-    
-      if (savePreferencesButton) {
-        savePreferencesButton.addEventListener("click", async function(e) {
-          e.preventDefault();
-          const preferences = {
-            Necessary: true, // Always true
-            Marketing: marketingCheckbox?.checked || false,
-            Personalization: personalizationCheckbox?.checked || false,
-            Analytics: analyticsCheckbox?.checked || false,
-             ccpa: {
-                DoNotShare : false
-             }
-            
-          };
-          try{
-              await saveConsentState(preferences);
-              await restoreAllowedScripts(preferences);
-          }catch(error){
-          }
-          
-        
-          hideBanner(consentBanner);
-              hideBanner(mainBanner);
-        });
-      }
-    
-      if (saveCCPAPreferencesButton) {
-        saveCCPAPreferencesButton.addEventListener("click", async function(e) {
-          e.preventDefault();
-          const doNotShare = doNotShareCheckbox.checked;
-          const preferences = {
-            Necessary: true, // Always true
-            Marketing: !doNotShare,
-            Personalization: !doNotShare,
-            Analytics: !doNotShare,
-            ccpa:{
-              DoNotShare: doNotShare
-            }
-              // Set doNotShare based on checkbox
-          };
-       
-          
-          // Block or unblock scripts based on the checkbox state
-          if (doNotShare) {
-            await blockAllCookies();
-           
-            await saveConsentState(preferences);
-          } else {
-            await unblockAllCookiesAndTools();        
-           
-              
-           
-          }
-         
-        
-          hideBanner(ccpaBanner);
-          hideBanner(mainConsentBanner);
-        });
-      }
-    
-      // Cancel button handler
-      if (cancelButton) {
-        cancelButton.addEventListener("click", function(e) {
-          e.preventDefault();
   
+      hideBanner(banners.ccpa);
+      hideBanner(banners.mainConsent);
+    });
   
-    
-      
-            // Get references to checkboxes again inside this handler for safety
-            const consentBanner = document.getElementById("consent-banner"); // Ensure consentBanner is accessible
-            const mainBanner = document.getElementById("main-banner");       // Ensure mainBanner is accessible
-            const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
-            const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]');
-            const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]');
-      
-            // Uncheck optional checkboxes
-            if (marketingCheckbox) marketingCheckbox.checked = false;
-            if (personalizationCheckbox) personalizationCheckbox.checked = false;
-            if (analyticsCheckbox) analyticsCheckbox.checked = false;
-      
-            // Define preferences as declined (only Necessary is true)
-            const preferences = {
-              Necessary: true,
-              Marketing: false,
-              Personalization: false,
-              Analytics: false,
-              ccpa:{
-                DoNotShare: true
-              }
-              // Note: DoNotShare status isn't typically managed here, it has its own flow
-            };
-      
-            // Save the declined state
-             saveConsentState(preferences); 
-             reblockDisallowedScripts(preferences);
-            localStorage.setItem("consent-given", "true"); // Mark consent as handled
-    
-               
-            
-            hideBanner(consentBanner); 
-            hideBanner(mainBanner);    
-          });
+    setupClick(buttons.cancel, (e) => {
+      e.preventDefault();
+      ["marketing", "personalization", "analytics"].forEach((key) => {
+        if (checkboxes[key]) checkboxes[key].checked = false;
+      });
   
+      const prefs = buildPreferences({ doNotShare: true });
+      saveConsentState(prefs);
+      reblockDisallowedScripts(prefs);
+      localStorage.setItem("consent-given", "true");
+      hideBanner(banners.consent);
+      hideBanner(banners.main);
+    });
+  }
   
-  
-  
-  
-  
-  
-  
-          hideBanner(consentBanner);
-          hideBanner(mainBanner);
-        }
-        
-      
-   }
       
     
   async function initializeBannerVisibility() {

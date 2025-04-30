@@ -590,15 +590,6 @@ ENCRYPTION AND DECYPTION STARTS
   }
    
 
-  // Helper: Convert ArrayBuffer → base64
-  function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  }
 
 
 
@@ -1536,50 +1527,6 @@ ENCRYPTION AND DECYPTION STARTS
   }
 
 
-  function blockAllInitialRequests() {
-    const originalFetch = window.fetch;
-    window.fetch = function (...args) {
-      const url = args[0];
-      if (initialBlockingEnabled && isSuspiciousResource(url)) {
-
-        return Promise.resolve(new Response(null, { status: 204 }));
-      }
-      return originalFetch.apply(this, args);
-    };
-
-    const originalXHR = window.XMLHttpRequest;
-    window.XMLHttpRequest = function () {
-      const xhr = new originalXHR();
-      const originalOpen = xhr.open;
-
-      xhr.open = function (method, url) {
-        if (initialBlockingEnabled && isSuspiciousResource(url)) {
-
-          return;
-        }
-        return originalOpen.apply(xhr, arguments);
-      };
-      return xhr;
-    };
-
-    const originalImage = window.Image;
-    const originalSetAttribute = Element.prototype.setAttribute;
-    window.Image = function (...args) {
-      const img = new originalImage(...args);
-      img.setAttribute = function (name, value) {
-        if (name === 'src' && initialBlockingEnabled && isSuspiciousResource(value)) {
-
-          return;
-        }
-        return originalSetAttribute.apply(this, arguments);
-      };
-      return img;
-    };
-  }
-
-
-
-
 
   async function loadConsentStyles() {
     try {
@@ -1771,6 +1718,9 @@ ENCRYPTION AND DECYPTION STARTS
     }
     return btoa(binary);
   }
+
+
+  
   async function updatePreferenceForm(preferences) {
 
 
@@ -1869,61 +1819,6 @@ ENCRYPTION AND DECYPTION STARTS
   // Add to your window exports
   window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
   window.updatePreferenceForm = updatePreferenceForm;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  function blockAllInitialRequests() {
-    const originalFetch = window.fetch;
-    window.fetch = function (...args) {
-      const url = args[0];
-      if (initialBlockingEnabled && isSuspiciousResource(url)) {
-
-        return Promise.resolve(new Response(null, { status: 204 }));
-      }
-      return originalFetch.apply(this, args);
-    };
-
-    const originalXHR = window.XMLHttpRequest;
-    window.XMLHttpRequest = function () {
-      const xhr = new originalXHR();
-      const originalOpen = xhr.open;
-
-      xhr.open = function (method, url) {
-        if (initialBlockingEnabled && isSuspiciousResource(url)) {
-
-          return;
-        }
-        return originalOpen.apply(xhr, arguments);
-      };
-      return xhr;
-    };
-
-    const originalImage = window.Image;
-    const originalSetAttribute = Element.prototype.setAttribute;
-    window.Image = function (...args) {
-      const img = new originalImage(...args);
-      img.setAttribute = function (name, value) {
-        if (name === 'src' && initialBlockingEnabled && isSuspiciousResource(value)) {
-
-          return;
-        }
-        return originalSetAttribute.apply(this, arguments);
-      };
-      return img;
-    };
-  }
 
 })();
 

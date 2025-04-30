@@ -7,7 +7,6 @@
   let currentBannerType = null;
   let country = null;
   let categorizedScripts = null;
-
   const suspiciousPatterns = [
     {
       pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview|amplitude|amplitude.com/i,
@@ -22,10 +21,6 @@
       category: "Personalization"
     }
   ];
-
-  /**
-ENCRYPTION AND DECYPTION STARTS
-*/
   const EncryptionUtils = {
     /**
      * Generates a new encryption key and IV
@@ -52,7 +47,6 @@ ENCRYPTION AND DECYPTION STARTS
       );
     },
 
-
     async encrypt(data, key, iv) {
       const encoder = new TextEncoder();
       const encodedData = encoder.encode(data);
@@ -75,10 +69,7 @@ ENCRYPTION AND DECYPTION STARTS
     }
   };
 
-
-
   function isTokenExpired(token) {
-
     const [payloadBase64] = token.split('.');
     const payload = JSON.parse(atob(payloadBase64));
 
@@ -88,14 +79,12 @@ ENCRYPTION AND DECYPTION STARTS
 
   }
 
-  // Function to clean hostname
   async function cleanHostname(hostname) {
     let cleaned = hostname.replace(/^www\./, '');
     cleaned = cleaned.split('.')[0];
     return cleaned;
   }
 
-  // Function to generate or get visitor ID
   async function getOrCreateVisitorId() {
     let visitorId = localStorage.getItem('visitorId');
     if (!visitorId) {
@@ -111,7 +100,6 @@ ENCRYPTION AND DECYPTION STARTS
       if (!sessionToken) {
         return null;
       }
-
       const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
       const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`, {
         method: 'GET',
@@ -121,36 +109,30 @@ ENCRYPTION AND DECYPTION STARTS
           'Accept': 'application/json'
         },
       });
-
       if (!response.ok) {
         return null;
       }
-
       const data = await response.json();
-      // Changed to check for bannerType instead of scripts
       if (!data.bannerType) {
         return null;
       }
       country = data.country;
       return data;
     } catch (error) {
-
+console.log(error)
       return null;
     }
   }
 
   function getClientIdentifier() {
-    return window.location.hostname; // Use hostname as the unique client identifier
+    return window.location.hostname; 
   }
 
   async function reblockDisallowedScripts(consentState) {
-
     const allScripts = document.querySelectorAll("script[data-category]");
-
     allScripts.forEach(script => {
       const categoriesAttr = script.getAttribute("data-category");
       if (!categoriesAttr) return;
-
       const categories = categoriesAttr.split(",").map(c => c.trim());
       const shouldBlock = categories.some(category => {
         const key = category.charAt(0).toUpperCase() + category.slice(1);
@@ -158,17 +140,12 @@ ENCRYPTION AND DECYPTION STARTS
       });
 
       if (shouldBlock) {
-        // External script
         if (script.src && !script.hasAttribute("data-original-src")) {
           const originalSrc = script.src;
-
-          // Prevent duplicate by checking if another script already blocked it
           const alreadyBlocked = document.querySelector(`script[data-original-src="${originalSrc}"]`);
           if (alreadyBlocked) return;
-
           script.setAttribute("data-original-src", originalSrc);
           script.removeAttribute("src");
-
           blockedScripts.push({
             async: script.async,
             defer: script.defer,
@@ -191,8 +168,7 @@ ENCRYPTION AND DECYPTION STARTS
     });
   }
 
-
-  /*BANNER */
+  
 
   async function attachBannerHandlers() {
     const qs = (selector) => document.querySelector(selector);
@@ -245,10 +221,7 @@ ENCRYPTION AND DECYPTION STARTS
     });
 
     const setupClick = (btn, fn) => btn?.addEventListener("click", fn);
-
     initializeBannerVisibility();
-
-    // Handlers
     setupClick(buttons.simpleAccept, async (e) => {
       e.preventDefault();
       const prefs = buildPreferences({ marketing: true, personalization: true, analytics: true });
@@ -373,45 +346,36 @@ ENCRYPTION AND DECYPTION STARTS
     });
   }
 
-
-
   async function initializeBannerVisibility() {
     const locationData = await detectLocationAndGetBannerType();
     currentBannerType = locationData?.bannerType;
     country = locationData?.country;
     const consentGiven = localStorage.getItem("consent-given");
-    const consentBanner = document.getElementById("consent-banner"); // GDPR banner
-    const ccpaBanner = document.getElementById("initial-consent-banner"); // CCPA banner
+    const consentBanner = document.getElementById("consent-banner"); 
+    const ccpaBanner = document.getElementById("initial-consent-banner");
     const mainConsentBanner = document.getElementById("main-consent-banner");
-
     if (consentGiven === "true") {
       hideBanner(consentBanner);
       hideBanner(ccpaBanner);
       return;
     }
-    // Show the appropriate banner based on location
-    if (currentBannerType === "CCPA") {
-      showBanner(ccpaBanner); // Show CCPA banner
-      hideBanner(consentBanner); // Hide GDPR banner
+     if (currentBannerType === "CCPA") {
+      showBanner(ccpaBanner); 
+      hideBanner(consentBanner); 
       hideBanner(mainConsentBanner);
     } else {
-      showBanner(consentBanner); // Default to showing GDPR banner
+      showBanner(consentBanner); 
       hideBanner(ccpaBanner);
     }
   }
 
-
   function initializeBanner() {
-
-
-    // Wait for DOM to be fully loaded
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', attachBannerHandlers);
     } else {
       attachBannerHandlers();
     }
   }
-
   function showBanner(banner) {
     if (banner) {
       banner.style.display = "block";
@@ -419,7 +383,6 @@ ENCRYPTION AND DECYPTION STARTS
       banner.classList.remove("hidden");
     }
   }
-
   function hideBanner(banner) {
     if (banner) {
       banner.style.display = "none";
@@ -427,33 +390,15 @@ ENCRYPTION AND DECYPTION STARTS
       banner.classList.add("hidden");
     }
   }
-
-
-  /*BANNER ENDS*/
-
-  /*CONSENT STATE*/
-
-
-
-
-  /*CONSENT  SAVING TO LOCALSTORAGE STARTS*/
-  // Fetches ONLY cookie expiration - WARNING: NOT RECOMMENDED for ccpa.js.
-  // Fetches ONLY cookie expiration - WARNING: NOT RECOMMENDED for this script.
-  // Expiration duration should ideally be injected by the backend using site owner context.
   async function fetchCookieExpirationDays() {
-
     const sessionToken = localStorage.getItem("visitorSessionToken");
-
     if (!sessionToken) {
       console.warn("fetchCookieExpirationDays: No visitor session token found.");
       return "180";
     }
-
     try {
-
       const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
       const apiUrl = `https://cb-server.web-8fb.workers.dev/api/app-data?siteName=${encodeURIComponent(siteName)}`;
-
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
@@ -465,25 +410,17 @@ ENCRYPTION AND DECYPTION STARTS
       if (!response.ok) {       
         return "180";
       }
-
-      // Expect backend to return { cookieExpiration: "..." or null }
-      const data = await response.json();
-
-      // Check if the expected property exists and is not null
+      const data = await response.json();    
       if (data && data.cookieExpiration !== null && data.cookieExpiration !== undefined) {
-        console.log("fetchCookieExpirationDays: Received expiration value:", data.cookieExpiration);
-        // Return the value (should be string or null based on backend)
         return String(data.cookieExpiration);
       } else {
-        console.warn("fetchCookieExpirationDays: 'cookieExpiration' was null or missing in response.", data);
-        // Fallback if value is explicitly null or missing
-        return null; // Or return default like "180"
+        console.warn("fetchCookieExpirationDays: 'cookieExpiration' was null or missing in response.", data);       
+        return null; 
       }
 
     } catch (error) {
       console.error("fetchCookieExpirationDays: Network or parsing error:", error);
-      // Fallback on network/fetch error
-      return null; // Or return default like "180" on error
+           return null; 
     }
   }
 
@@ -587,11 +524,6 @@ ENCRYPTION AND DECYPTION STARTS
       console.error("Error in saveConsentState:", error);
     }
   }
-   
-
-
-
-
   function buildConsentPreferences(preferences, country, timestamp) {
     return {
       Necessary: true,
@@ -664,12 +596,6 @@ ENCRYPTION AND DECYPTION STARTS
       bannerType: currentBannerType
     };
   }
-
-
-  /*CONSENT  SAVING TO LOCALSTORAGE AND SERVER ENDS*/
-
-
-  /*Blocking and unblocking */
   function getScriptKey(script) {
     return script.src?.trim() || script.textContent?.trim() || "";
   }
@@ -734,52 +660,40 @@ ENCRYPTION AND DECYPTION STARTS
     });
   }
 
-
   function normalizeUrl(url) {
     return url?.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
   }
 
   function createPlaceholder(originalScript, category = "uncategorized") {
     const placeholder = document.createElement("script");
-    const uniqueId = `consentbit-script-${scriptIdCounter++}`; // Generate a unique ID
-
-    placeholder.type = "text/plain"; // Keep it non-executable
-    placeholder.setAttribute("data-consentbit-id", uniqueId); // Store the unique ID
+    const uniqueId = `consentbit-script-${scriptIdCounter++}`; 
+    placeholder.type = "text/plain"; 
+    placeholder.setAttribute("data-consentbit-id", uniqueId); 
     placeholder.setAttribute("data-category", category);
-
     const scriptInfo = {
       id: uniqueId,
-      category: category.split(',').map(c => c.trim().toLowerCase()), // Store categories as an array
+      category: category.split(',').map(c => c.trim().toLowerCase()), 
       async: originalScript.async,
       defer: originalScript.defer,
-      type: originalScript.type || "text/javascript", // Default type if missing
+      type: originalScript.type || "text/javascript", 
       originalAttributes: {}
     };
-
-    // Store original src or content
+ 
     if (originalScript.src) {
       scriptInfo.src = originalScript.src;
-      placeholder.setAttribute("data-original-src", originalScript.src); // Also keep for reference if needed
+      placeholder.setAttribute("data-original-src", originalScript.src);
     } else {
       scriptInfo.content = originalScript.textContent || "";
-      // Storing large inline scripts might be memory intensive, consider alternatives if needed
-      // placeholder.textContent = originalScript.textContent; // Keep content if needed for inline restoration
-    }
-
-    // Store other relevant attributes
+         }
     for (const attr of originalScript.attributes) {
       if (!['src', 'type', 'async', 'defer', 'data-category', 'data-consentbit-id'].includes(attr.name)) {
         scriptInfo.originalAttributes[attr.name] = attr.value;
-        placeholder.setAttribute(`data-original-${attr.name}`, attr.value); // Optional: keep original attrs on placeholder
+        placeholder.setAttribute(`data-original-${attr.name}`, attr.value); 
       }
     }
-
-    // Add script info to our map
     existing_Scripts[uniqueId] = scriptInfo;
-
     return placeholder;
   }
-
   function findCategoryByPattern(text) {
     for (const { pattern, category } of suspiciousPatterns) {
       if (pattern.test(text)) {
@@ -787,46 +701,30 @@ ENCRYPTION AND DECYPTION STARTS
       }
     }
     return null;
-
   }
-
-
   async function loadCategorizedScripts() {
     try {
-      // Get session token from localStorage
       const sessionToken = localStorage.getItem('visitorSessionToken');
       if (!sessionToken) {
         return [];
       }
-
-      // Get or generate visitorId
       let visitorId = localStorage.getItem('visitorId');
       if (!visitorId) {
         visitorId = crypto.randomUUID();
         localStorage.setItem('visitorId', visitorId);
       }
-
-      // Get site name from hostname
       const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-
-      // Generate encryption key and IV
       const { key, iv } = await EncryptionUtils.generateKey();
-
-      // Prepare request data
       const requestData = {
         siteName: siteName,
         visitorId: visitorId,
         userAgent: navigator.userAgent
       };
-
-      // Encrypt the request data
       const encryptedRequest = await EncryptionUtils.encrypt(
         JSON.stringify(requestData),
         key,
         iv
       );
-
-      // Send the encrypted request
       const response = await fetch('https://cb-server.web-8fb.workers.dev/api/cmp/script-category', {
         method: 'POST',
         headers: {
@@ -846,22 +744,17 @@ ENCRYPTION AND DECYPTION STARTS
       if (!response.ok) {
         return [];
       }
-
       const data = await response.json();
-
-      // Decrypt the response data
       if (data.encryptedData) {
         const responseKey = await EncryptionUtils.importKey(
           new Uint8Array(data.key),
           ['decrypt']
         );
-
         const decryptedData = await EncryptionUtils.decrypt(
           data.encryptedData,
           responseKey,
           new Uint8Array(data.iv)
         );
-
         const responseObj = JSON.parse(decryptedData);
         categorizedScripts = responseObj.scripts || [];
         return responseObj.scripts || [];
@@ -874,15 +767,11 @@ ENCRYPTION AND DECYPTION STARTS
     }
   }
 
-
   async function scanAndBlockScripts() {
-
-    const scripts = document.querySelectorAll("script[src]:not([type='text/plain']):not([data-consentbit-id])"); // Select only executable scripts without our ID
-    const inlineScripts = document.querySelectorAll("script:not([src]):not([type='text/plain']):not([data-consentbit-id])"); // Select only executable inline scripts without our ID
-    const categorizedScriptsList = categorizedScripts || await loadCategorizedScripts(); // Use cached if available
-
+    const scripts = document.querySelectorAll("script[src]:not([type='text/plain']):not([data-consentbit-id])"); 
+    const inlineScripts = document.querySelectorAll("script:not([src]):not([type='text/plain']):not([data-consentbit-id])"); 
+    const categorizedScriptsList = categorizedScripts || await loadCategorizedScripts(); 
     const normalizedCategorized = categorizedScriptsList?.map(s => {
-      // Simple normalization and category extraction for comparison
       const scriptElement = document.createElement('div');
       scriptElement.innerHTML = s.content || '';
       const scriptTag = scriptElement.querySelector('script');
@@ -890,27 +779,20 @@ ENCRYPTION AND DECYPTION STARTS
       return {
         ...s,
         normalizedSrc: normalizeUrl(s.src),
-        normalizedContent: (s.content || '').trim().replace(/\s+/g, ''), // More robust content normalization
+        normalizedContent: (s.content || '').trim().replace(/\s+/g, ''), 
         categories: categories
       };
-    }) || []; // Ensure it's an array
-
-
-    // Block external scripts
+    }) || []; 
     scripts.forEach(script => {
       const normalizedSrc = normalizeUrl(script.src);
       const matched = normalizedCategorized.find(s => s.normalizedSrc && s.normalizedSrc === normalizedSrc);
       let scriptCategories = matched?.categories || [];
-
-      // If not found by server list, try pattern matching
       if (!matched) {
         const patternCategory = findCategoryByPattern(script.src);
         if (patternCategory) {
-          scriptCategories = [patternCategory]; // Pattern provides a single category
+          scriptCategories = [patternCategory]; 
         }
       }
-
-      // Only block if categorized (either by server or pattern)
       if (scriptCategories.length > 0) {
         const placeholder = createPlaceholder(script, scriptCategories.join(','));
         if (placeholder && script.parentNode) {
@@ -918,26 +800,17 @@ ENCRYPTION AND DECYPTION STARTS
         }
       }
     });
-
-    // Block inline scripts
     inlineScripts.forEach(script => {
-      const content = script.textContent.trim().replace(/\s+/g, ''); // Normalize content
-      // Skip empty inline scripts
+      const content = script.textContent.trim().replace(/\s+/g, '');
       if (!content) return;
-
-      // Find based on normalized content (less reliable for inline)
       const matched = normalizedCategorized.find(s => s.normalizedContent && s.normalizedContent === content);
       let scriptCategories = matched?.categories || [];
-
-      // If not found by server list, try pattern matching
       if (!matched) {
         const patternCategory = findCategoryByPattern(script.textContent); // Match raw content
         if (patternCategory) {
           scriptCategories = [patternCategory];
         }
       }
-
-      // Only block if categorized
       if (scriptCategories.length > 0) {
         const placeholder = createPlaceholder(script, scriptCategories.join(','));
         if (placeholder && script.parentNode) {
@@ -945,8 +818,6 @@ ENCRYPTION AND DECYPTION STARTS
         }
       }
     });
-
-    // Setup MutationObserver after initial scan (if not already observing)
     if (!observer) {
       observer = new MutationObserver(handleMutations);
       observer.observe(document.documentElement, { childList: true, subtree: true });
@@ -974,17 +845,14 @@ ENCRYPTION AND DECYPTION STARTS
     }
     
     function categorizeScript(node) {
-      const categories = [];
-    
+      const categories = [];    
       if (node.src) {
         return { categories: categorizeBySrc(node.src) };
-      }
-    
+      }    
       const content = node.textContent.trim().replace(/\s+/g, '');
       if (content) {
         return { categories: categorizeByContent(node.textContent, content) };
-      }
-    
+      }    
       return { categories };
     }
     
@@ -1003,118 +871,75 @@ ENCRYPTION AND DECYPTION STARTS
     
       const patternCategory = findCategoryByPattern(rawContent);
       return patternCategory ? [patternCategory] : [];
-    }
-    
+    }   
     
     function replaceWithPlaceholder(node, categories) {
       const placeholder = createPlaceholder(node, categories.join(','));
       if (placeholder && node.parentNode) {
         node.parentNode.replaceChild(placeholder, node);
       }
-    }
-    
+    }    
   }
   async function acceptAllCookies() {
-
     const allAllowedPreferences = {
       Necessary: true,
       Marketing: true,
       Personalization: true,
       Analytics: true,
-
-      ccpa: { DoNotShare: false } // Example: Assuming accepting all implies sharing is okay
-    };
-
-    // 1. Save the "accept all" consent state
-    // Ensure saveConsentState uses the correct structure expected by your backend/logic
-    await saveConsentState(allAllowedPreferences); // Pass the full preference object
-
-    // 2. Update the preference form display (if visible)
-    await updatePreferenceForm(allAllowedPreferences);
-
-    // 3. Restore all scripts based on the new preferences
-    // restoreAllowedScripts will now unblock everything based on the map
+      ccpa: { DoNotShare: false } 
+    };   
+    await saveConsentState(allAllowedPreferences); 
+    await updatePreferenceForm(allAllowedPreferences);   
     await restoreAllowedScripts(allAllowedPreferences);
-
-    // 4. Disconnect the observer *if* desired.
-    // If accepting all means no further dynamic blocking is needed.
-    // However, if the user can later change preferences back, you might *not* want to disconnect it.
-    // Consider the user flow. For now, let's keep it as potentially disconnecting.
     if (observer) {
       observer.disconnect();
-      observer = null; // Clear the observer variable
+      observer = null; 
     }
-
-    // 5. Hide banners
     hideBanner(document.getElementById("consent-banner"));
-    hideBanner(document.getElementById("initial-consent-banner")); // CCPA
-    hideBanner(document.getElementById("main-banner")); // GDPR Preferences
-    hideBanner(document.getElementById("main-consent-banner")); // CCPA Preferences
+    hideBanner(document.getElementById("initial-consent-banner")); 
+    hideBanner(document.getElementById("main-banner")); 
+    hideBanner(document.getElementById("main-consent-banner")); 
     hideBanner(document.getElementById("simple-consent-banner"));
-
-    localStorage.setItem("consent-given", "true"); // Mark consent as handled
-
-  }
-  // Make sure it's globally accessible if called from HTML etc.
+    localStorage.setItem("consent-given", "true"); 
+    }
   window.acceptAllCookies = acceptAllCookies;
   async function blockAllCookies() {
-
     const rejectNonNecessaryPreferences = {
       Necessary: true,
       Marketing: false,
       Personalization: false,
       Analytics: false,
-
       ccpa: { DoNotShare: true }
     };
-
     await saveConsentState(rejectNonNecessaryPreferences);
-
     await updatePreferenceForm(rejectNonNecessaryPreferences);
-
     await restoreAllowedScripts(rejectNonNecessaryPreferences);
 
-
     if (!observer) {
-
       await scanAndBlockScripts();
-    }
-
-
-    // 5. Hide banners
+       }
     hideBanner(document.getElementById("consent-banner"));
-    hideBanner(document.getElementById("initial-consent-banner")); // CCPA
-    hideBanner(document.getElementById("main-banner")); // GDPR Preferences
-    hideBanner(document.getElementById("main-consent-banner")); // CCPA Preferences
+    hideBanner(document.getElementById("initial-consent-banner")); 
+    hideBanner(document.getElementById("main-banner")); 
+    hideBanner(document.getElementById("main-consent-banner"));
     hideBanner(document.getElementById("simple-consent-banner"));
-
-    localStorage.setItem("consent-given", "true"); // Mark consent as handled
-
+    localStorage.setItem("consent-given", "true"); 
   }
-  // Make sure it's globally accessible if called from HTML etc.
   window.blockAllCookies = blockAllCookies;
-
   window.blockAllCookies = blockAllCookies;
   window.acceptAllCookies = acceptAllCookies;
-
   async function loadConsentState() {
-
     if (isLoadingState) {
       return;
     }
     isLoadingState = true;
-
     try {
       const consentGiven = localStorage.getItem("consent-given");
-
       if (consentGiven === "true") {
         try {
           const savedPreferences = localStorage.getItem("consent-preferences");
-
           if (savedPreferences) {
             const parsedPrefs = JSON.parse(savedPreferences);
-
-            // Create a key from the stored key data
             const key = await crypto.subtle.importKey(
               'raw',
               new Uint8Array(parsedPrefs.key),
@@ -1122,17 +947,12 @@ ENCRYPTION AND DECYPTION STARTS
               false,
               ['decrypt']
             );
-
-            // Decrypt using the same format as encryption
             const decryptedData = await crypto.subtle.decrypt(
               { name: 'AES-GCM', iv: new Uint8Array(parsedPrefs.iv) },
               key,
               new Uint8Array(parsedPrefs.encryptedData)
             );
-
             const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
-
-            // Update consentState
             consentState = {
               Necessary: true,
               Marketing: preferences.Marketing || false,
@@ -1142,11 +962,7 @@ ENCRYPTION AND DECYPTION STARTS
                 DoNotShare: preferences.ccpa?.DoNotShare || false
               }
             };
-
-            // Update form using updatePreferenceForm
             await updatePreferenceForm(consentState);
-
-            // Restore allowed scripts based on preferences
             await restoreAllowedScripts(consentState);
           }
         } catch (error) {
@@ -1184,9 +1000,6 @@ ENCRYPTION AND DECYPTION STARTS
 
     return consentState;
   }
-
-
-
   async function unblockAllCookiesAndTools() {
     try {
       const allAllowedPreferences = {
@@ -1195,11 +1008,9 @@ ENCRYPTION AND DECYPTION STARTS
         Personalization: true,
         Analytics: true,
         ccpa: { DoNotShare: false }
-      };
-  
+      };  
       await saveConsentState(allAllowedPreferences);
-      await updatePreferenceForm(allAllowedPreferences);
-  
+      await updatePreferenceForm(allAllowedPreferences);  
       for (const scriptId of Object.keys(existing_Scripts)) {
         const scriptInfo = existing_Scripts[scriptId];
         if (!scriptInfo) continue;
@@ -1208,8 +1019,7 @@ ENCRYPTION AND DECYPTION STARTS
         if (!placeholder) {
           delete existing_Scripts[scriptId];
           continue;
-        }
-  
+        }  
         const script = createRestoredScript(scriptInfo);
         applyScriptSetups(script, scriptInfo.src);
         if (placeholder.parentNode) {
@@ -1217,12 +1027,9 @@ ENCRYPTION AND DECYPTION STARTS
         } else {
           document.head.appendChild(script);
         }
-  
         delete existing_Scripts[scriptId];
-      }
-  
-      localStorage.setItem("consent-given", "true");
-  
+      }  
+      localStorage.setItem("consent-given", "true");  
       if (observer) {
         observer.disconnect();
         observer = null;
@@ -1244,13 +1051,10 @@ ENCRYPTION AND DECYPTION STARTS
       script.src = scriptInfo.src;
     } else {
       script.textContent = scriptInfo.content;
-    }
-  
+    }  
     restoreOriginalAttributes(script, scriptInfo.originalAttributes);
     return script;
-  }
-  
- 
+  }  
   
   function applyScriptSetups(script, src = "") {
     if (!src) return;
@@ -1263,9 +1067,7 @@ ENCRYPTION AND DECYPTION STARTS
     else if (/plausible\.io/.test(src)) setupPlausible(script);
     else if (/static\.hotjar\.com/.test(src)) setupHotjar(script);
     else if (/cdn\.(eu\.)?amplitude\.com/.test(src)) setupAmplitude(script);
-  }
-  
-  // Setup Functions
+  }  
   function setupGoogleAnalytics(script) {
     script.onload = () => {
       if (typeof gtag === 'function') {
@@ -1307,18 +1109,15 @@ ENCRYPTION AND DECYPTION STARTS
         _paq.push(['trackPageView']);
       }
     };
-  }
-  
+  }  
   function setupHubSpot(script) {
     script.onload = () => {
       if (typeof _hsq !== 'undefined') _hsq.push(['doNotTrack', { track: true }]);
     };
   }
-  
-  function setupPlausible(script) {
+    function setupPlausible(script) {
     script.setAttribute('data-consent-given', 'true');
-  }
-  
+  }  
   function setupHotjar(script) {
     if (!window.hj) {
       window.hj = function (...args) {
@@ -1334,9 +1133,7 @@ ENCRYPTION AND DECYPTION STARTS
         hj('consent', 'granted');
       }
     };
-  }
-  
-  
+  }  
   function setupAmplitude(script) {
     script.onload = () => {
       if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
@@ -1346,12 +1143,8 @@ ENCRYPTION AND DECYPTION STARTS
     if (typeof amplitude !== 'undefined' && typeof amplitude.setOptOut === 'function') {
       amplitude.setOptOut(true);
     }
-  }
-  
+  }  
   window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
-  
-
-
   async function restoreAllowedScripts(preferences) {
     const normalizedPrefs = normalizePreferences(preferences);
     const scriptIdsToRestore = Object.keys(existing_Scripts);
@@ -1414,8 +1207,7 @@ ENCRYPTION AND DECYPTION STARTS
       }
     }
     return false;
-  }
-  
+  }  
   function buildScriptElement(scriptInfo, normalizedPrefs) {
     const script = document.createElement("script");
     script.type = scriptInfo.type;
@@ -1429,17 +1221,14 @@ ENCRYPTION AND DECYPTION STARTS
     } else {
       script.textContent = scriptInfo.content;
       restoreOriginalAttributes(script, scriptInfo.originalAttributes);
-    }
-  
+    }  
     return script;
-  }
-  
+  }  
   function restoreOriginalAttributes(script, attributes) {
     Object.entries(attributes).forEach(([name, value]) => {
       script.setAttribute(name, value);
     });
-  }
-  
+  }  
   function handleSpecialCases(script, scriptInfo, normalizedPrefs) {
     const src = scriptInfo.src;
     if (/googletagmanager\.com\/gtag\/js/i.test(src)) {
@@ -1462,8 +1251,7 @@ ENCRYPTION AND DECYPTION STARTS
         'ad_user_data': prefs.marketing ? 'granted' : 'denied'
       });
     }
-  }
-  
+  }  
   function updateAmplitudeConsent(prefs) {
     if (typeof amplitude !== "undefined" && amplitude.getInstance) {
       const instance = amplitude.getInstance();
@@ -1474,25 +1262,15 @@ ENCRYPTION AND DECYPTION STARTS
         consent_personalization: prefs.personalization || false
       });
     }
-  }
-  
-
-
-  /* INITIALIZATION */
+  } 
   async function getVisitorSessionToken() {
     try {
-      // Check if we have a valid token in localStorage first
       const existingToken = localStorage.getItem('visitorSessionToken');
       if (existingToken && !isTokenExpired(existingToken)) {
         return existingToken;
       }
-
-      // Get or create visitor ID
       const visitorId = await getOrCreateVisitorId();
-
-      // Get cleaned site name
       const siteName = await cleanHostname(window.location.hostname);
-
       const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
         method: 'POST',
         headers: {
@@ -1504,24 +1282,17 @@ ENCRYPTION AND DECYPTION STARTS
           siteName: siteName
         })
       });
-
       if (!response.ok) {
         throw new Error(`Failed to get visitor session token: ${response.status}`);
       }
-
       const data = await response.json();
-
-      // Store the new token
       localStorage.setItem('visitorSessionToken', data.token);
-
       return data.token;
     } catch (error) {
+      console.log(error);
       return null;
     }
   }
-
-
-
   async function loadConsentStyles() {
     try {
       const link = document.createElement("link");
@@ -1532,18 +1303,13 @@ ENCRYPTION AND DECYPTION STARTS
       link2.rel = "stylesheet";
       link2.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@8c69a0b/consentbit.css";
       document.head.appendChild(link2);
-
-
-      // Add error handling
       link.onerror = function () {
       };
-
-      // Add load confirmation
       link.onload = function () {
       };
-
       document.head.appendChild(link);
     } catch (error) {
+      console.log(error);
     }
   }
   window.loadConsentStyles = loadConsentStyles;
@@ -1574,88 +1340,57 @@ ENCRYPTION AND DECYPTION STARTS
   window.normalizeUrl = normalizeUrl;
   window.blockAllInitialRequests = blockAllInitialRequests;
   window.reblockDisallowedScripts = reblockDisallowedScripts;
-
   document.addEventListener('DOMContentLoaded', initialize);
   async function isCookieExpired() {
     let isCookieExpired = false;
-
     const storedExpiresAtString = localStorage.getItem('consentExpiresAt');
     const isConsentGiven = localStorage.getItem('consent-given');
     if (storedExpiresAtString && isConsentGiven) {
       const expiresAtTimestamp = parseInt(storedExpiresAtString, 10);
-
       const currentTimestamp = Date.now();
       if (currentTimestamp > expiresAtTimestamp) {
         console.log("Consent has expired.");
         isCookieExpired = !isCookieExpired;
       }
       if (isCookieExpired) {
-
         localStorage.removeItem("consent-given");
         localStorage.removeItem("consent-preferences");
         localStorage.removeItem('consentExpiresAt');
         localStorage.removeItem('consentExpirationDays');
         return true;
       }
-
-      return false;
-
-
+       return false;
     }
   }
 
   async function loadAndApplySavedPreferences() {
-
-    if (isLoadingState) {
-
-      return;
-    }
+    if (isLoadingState) {return; }
     isLoadingState = true;
-
     try {
       const consentGiven = localStorage.getItem("consent-given");
-
-
-
       if (consentGiven === "true") {
-
-
-
-
-
         const savedPreferences = localStorage.getItem("consent-preferences");
         if (savedPreferences) {
           try {
             const parsedPrefs = JSON.parse(savedPreferences);
-
-            // Ensure we have a proper 256-bit key
             const keyData = new Uint8Array(parsedPrefs.key);
-            if (keyData.length !== 32) { // 256 bits = 32 bytes
+            if (keyData.length !== 32) { 
               throw new Error("Invalid key length");
             }
-
-            // Import the key
             const key = await crypto.subtle.importKey(
               'raw',
               keyData,
-              { name: 'AES-GCM', length: 256 }, // Specify the key length
+              { name: 'AES-GCM', length: 256 }, 
               false,
               ['decrypt']
             );
-
-            // Convert base64 encrypted data back to ArrayBuffer
             const encryptedData = base64ToArrayBuffer(parsedPrefs.encryptedData);
-
             const decryptedData = await crypto.subtle.decrypt(
               { name: 'AES-GCM', iv: new Uint8Array(parsedPrefs.iv) },
               key,
               encryptedData
             );
-
-
             const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
-
-            // Normalize preferences structure
             const normalizedPreferences = {
               Necessary: true,
               Marketing: preferences.Marketing || false,
@@ -1665,26 +1400,18 @@ ENCRYPTION AND DECYPTION STARTS
                 DoNotShare: preferences.ccpa?.DoNotShare || false
               }
             };
-
-            // Update form
             await updatePreferenceForm(normalizedPreferences);
-
-            // Unblock allowed scripts
             await restoreAllowedScripts(normalizedPreferences);
-
             return normalizedPreferences;
           } catch (error) {
-            localStorage.removeItem("consent-preferences");
+            console.log(error);
           }
         }
       }
-
     } catch (error) {
     } finally {
       isLoadingState = false;
     }
-
-    // Default preferences if nothing was loaded
     return {
       Necessary: true,
       Marketing: false,
@@ -1694,7 +1421,6 @@ ENCRYPTION AND DECYPTION STARTS
     };
   }
   window.isCookieExpired = isCookieExpired;
-  // Helper functions for base64 conversion
   function base64ToArrayBuffer(base64) {
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);
@@ -1703,7 +1429,6 @@ ENCRYPTION AND DECYPTION STARTS
     }
     return bytes.buffer;
   }
-
   function arrayBufferToBase64(buffer) {
     const bytes = new Uint8Array(buffer);
     let binary = '';
@@ -1711,51 +1436,34 @@ ENCRYPTION AND DECYPTION STARTS
       binary += String.fromCharCode(bytes[i]);
     }
     return btoa(binary);
-  }
-
-
-  
+  }  
   async function updatePreferenceForm(preferences) {
-
-
-    // Get checkbox elements
     const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]');
     const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
     const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]');
     const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]');
     const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
-
     if (!necessaryCheckbox && !marketingCheckbox && !personalizationCheckbox &&
       !analyticsCheckbox && !doNotShareCheckbox) {
       return;
     }
-    // Update necessary checkbox
     if (necessaryCheckbox) {
       necessaryCheckbox.checked = true;
-      necessaryCheckbox.disabled = true; // Always disabled
+      necessaryCheckbox.disabled = true; 
     }
-
-    // Update other checkboxes
     if (marketingCheckbox) {
       marketingCheckbox.checked = Boolean(preferences.Marketing);
     }
-
     if (personalizationCheckbox) {
       personalizationCheckbox.checked = Boolean(preferences.Personalization);
     }
-
     if (analyticsCheckbox) {
       analyticsCheckbox.checked = Boolean(preferences.Analytics);
     }
-
     if (doNotShareCheckbox) {
       doNotShareCheckbox.checked = Boolean(preferences.ccpa?.DoNotShare);
     }
-
-
   }
-
-  // Modify initialize function
   async function initialize() {
 
     try {
@@ -1764,8 +1472,6 @@ ENCRYPTION AND DECYPTION STARTS
         setTimeout(initialize, 2000);
         return;
       }
-
-      // Store token in localStorage if not already there
       if (!localStorage.getItem('visitorSessionToken')) {
         localStorage.setItem('visitorSessionToken', token);
       }
@@ -1774,28 +1480,16 @@ ENCRYPTION AND DECYPTION STARTS
       const preferences = await loadAndApplySavedPreferences();
       const banner = await detectLocationAndGetBannerType();
       if (banner.bannerType === 'GDPR') {
-        // Only proceed with normal initialization if no preferences
         if (!preferences || !localStorage.getItem("consent-given")) {
           await scanAndBlockScripts();
-          await initializeBannerVisibility();
-        }
+          await initializeBannerVisibility();        }
       }
       else if (banner.bannerType === 'CCPA') {
         if (!preferences || !localStorage.getItem("consent-given")) {
-
           await initializeBannerVisibility();
-
         }
-
-      }
-
-
-
-      // Always load these
+       }    
       await loadConsentStyles();
-      
-
-      // Hide banners if consent was given
       if (localStorage.getItem("consent-given") === "true") {
         hideBanner(document.getElementById("consent-banner"));
         hideBanner(document.getElementById("initial-consent-banner"));
@@ -1803,18 +1497,13 @@ ENCRYPTION AND DECYPTION STARTS
         hideBanner(document.getElementById("main-consent-banner"));
         hideBanner(document.getElementById("simple-consent-banner"));
       }
-
       attachBannerHandlers();
     } catch (error) {
 
       setTimeout(initialize, 2000);
     }
-
   }
-  // Add to your window exports
   window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
   window.updatePreferenceForm = updatePreferenceForm;
 
 })();
-
-

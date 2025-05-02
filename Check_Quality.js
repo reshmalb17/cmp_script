@@ -569,6 +569,7 @@ console.log(error)
 
       localStorage.setItem("consent-policy-version", "1.2");
     } catch (error) {
+      console.warn(error);
     }
   }
   function buildPayload({ clientId, encryptedVisitorId, encryptedPreferences, encryptionKey, policyVersion, timestamp, country }) {
@@ -993,6 +994,7 @@ console.log(error)
         Analytics: false,
         ccpa: { DoNotShare: false }
       };
+      console.warn(error);
       await updatePreferenceForm(consentState);
     } finally {
       isLoadingState = false;
@@ -1289,7 +1291,7 @@ console.log(error)
       localStorage.setItem('visitorSessionToken', data.token);
       return data.token;
     } catch (error) {
-      console.log(error);
+      console.warn(error);
       return null;
     }
   }
@@ -1409,6 +1411,7 @@ console.log(error)
         }
       }
     } catch (error) {
+      console.warn(error)
     } finally {
       isLoadingState = false;
     }
@@ -1499,6 +1502,7 @@ console.log(error)
       }
       attachBannerHandlers();
     } catch (error) {
+      console.warn(error);
 
       setTimeout(initialize, 2000);
     }

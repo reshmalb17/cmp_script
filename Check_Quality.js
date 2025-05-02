@@ -967,6 +967,7 @@ console.log(error)
             await restoreAllowedScripts(consentState);
           }
         } catch (error) {
+          console.warn(error);
           consentState = {
             Necessary: true,
             Marketing: false,
@@ -977,6 +978,8 @@ console.log(error)
           await updatePreferenceForm(consentState);
         }
       } else {
+        console.warn(error);
+
         consentState = {
           Necessary: true,
           Marketing: false,
@@ -987,6 +990,8 @@ console.log(error)
         await updatePreferenceForm(consentState);
       }
     } catch (error) {
+      console.warn(error);
+
       consentState = {
         Necessary: true,
         Marketing: false,
@@ -994,7 +999,6 @@ console.log(error)
         Analytics: false,
         ccpa: { DoNotShare: false }
       };
-      console.warn(error);
       await updatePreferenceForm(consentState);
     } finally {
       isLoadingState = false;

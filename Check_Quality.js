@@ -244,9 +244,11 @@ console.log(error)
       if (currentBannerType === 'CCPA') {
         showBanner(banners.ccpa);
         hideBanner(banners.consent);
+        hideBanner(banners.main);
       } else {
         showBanner(banners.consent);
         hideBanner(banners.ccpa);
+        hideBanner(banners.main);
       }
     };
 
@@ -443,6 +445,11 @@ console.log(error)
   
     try {
       const fetchedExpirationStr = await fetchCookieExpirationDays();
+      if (fetchedExpirationStr === "") {
+        fetchedExpirationStr = null; 
+      }
+  
+
       const expirationDaysStr = fetchedExpirationStr ?? CONSENTBIT_CCPA_CONFIG.cookieExpirationDays.toString();
       const expirationDays = parseInt(expirationDaysStr, 10);
   

@@ -244,11 +244,9 @@ console.log(error)
       if (currentBannerType === 'CCPA') {
         showBanner(banners.ccpa);
         hideBanner(banners.consent);
-        hideBanner(banners.main);
       } else {
         showBanner(banners.consent);
         hideBanner(banners.ccpa);
-        hideBanner(banners.main);
       }
     };
 

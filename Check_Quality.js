@@ -282,7 +282,7 @@ console.log(error)
 
     setupClick(buttons.decline, async (e) => {
       e.preventDefault();
-      const prefs = buildPreferences();
+      const prefs = buildPreferences({});
       await saveConsentState(prefs);
       await blockAllCookies();
       hideBanner(banners.consent);

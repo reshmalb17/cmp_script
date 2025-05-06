@@ -1344,7 +1344,7 @@ console.log(error)
   window.isScriptAlreadyBlocked = isScriptAlreadyBlocked;
   window.findCategoryByPattern = findCategoryByPattern;
   window.normalizeUrl = normalizeUrl;
-  window.blockAllInitialRequests = blockAllInitialRequests;
+ 
   window.reblockDisallowedScripts = reblockDisallowedScripts;
   document.addEventListener('DOMContentLoaded', initialize);
   async function isCookieExpired() {

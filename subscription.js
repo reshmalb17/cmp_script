@@ -161,7 +161,7 @@ console.log(error)
           const placeholder = createPlaceholder(script, categoriesAttr);
           if (placeholder) {
             script.parentNode.replaceChild(placeholder, script);
-            existing_Scripts.push(placeholder);
+            //existing_Scripts.push(placeholder);
           }
         }
       }
@@ -629,14 +629,13 @@ console.log(error)
     return null;
   }
 
-  function isScriptAlreadyBlocked(script) {
-    const key = getScriptKey(script);
-    return existing_Scripts.some((s) => {
-      const existingKey = s.getAttribute("data-original-src")?.trim() || s.textContent?.trim();
-      return key === existingKey;
-    });
-  }
-
+ function isScriptAlreadyBlocked(script) {
+  const key = getScriptKey(script);
+  return Object.values(existing_Scripts).some((scriptInfo) => {
+    const existingKey = scriptInfo.src?.trim() || scriptInfo.content?.trim();
+    return key === existingKey;
+  });
+}
   async function checkAndBlockNewScripts() {
     const categorizedScripts = await loadCategorizedScripts();
     const allScripts = Array.from(document.querySelectorAll("script"));
@@ -664,7 +663,7 @@ console.log(error)
       const placeholder = createPlaceholder(script, category);
       if (placeholder) {
         script.parentNode.replaceChild(placeholder, script);
-        existing_Scripts.push(placeholder);
+      //  existing_Scripts.push(placeholder);
       }
     });
   }
@@ -921,6 +920,7 @@ console.log(error)
       ccpa: { DoNotShare: true }
     };
     await saveConsentState(rejectNonNecessaryPreferences);
+
     await updatePreferenceForm(rejectNonNecessaryPreferences);
     await restoreAllowedScripts(rejectNonNecessaryPreferences);
 
@@ -1024,6 +1024,7 @@ console.log(error)
         ccpa: { DoNotShare: false }
       };  
       await saveConsentState(allAllowedPreferences);
+        window.consentState = normalizePreferences(allAllowedPreferences);
       await updatePreferenceForm(allAllowedPreferences);  
       for (const scriptId of Object.keys(existing_Scripts)) {
         const scriptInfo = existing_Scripts[scriptId];
@@ -1161,6 +1162,7 @@ console.log(error)
   window.unblockAllCookiesAndTools = unblockAllCookiesAndTools;
   async function restoreAllowedScripts(preferences) {
     const normalizedPrefs = normalizePreferences(preferences);
+    window.consentState = normalizedPrefs;
     const scriptIdsToRestore = Object.keys(existing_Scripts);
   
     for (const scriptId of scriptIdsToRestore) {
@@ -1197,10 +1199,17 @@ console.log(error)
   }
   
   function normalizePreferences(preferences) {
-    return Object.fromEntries(
-      Object.entries(preferences).map(([key, value]) => [key.toLowerCase(), value])
-    );
+  const norm = {};
+  for (const key in preferences) {
+    if (typeof preferences[key] === 'object' && preferences[key] !== null) {
+      norm[key.toLowerCase()] = normalizePreferences(preferences[key]);
+    } else {
+      norm[key.toLowerCase()] = preferences[key];
+    }
   }
+  return norm;
+}
+ 
   
   function findPlaceholder(scriptId) {
     return document.querySelector(`script[data-consentbit-id="${scriptId}"]`);
@@ -1243,40 +1252,46 @@ console.log(error)
       script.setAttribute(name, value);
     });
   }  
-  function handleSpecialCases(script, scriptInfo, normalizedPrefs) {
-    const src = scriptInfo.src;
-    if (/googletagmanager\.com\/gtag\/js/i.test(src)) {
-      script.onload = () => updateGAConsent(normalizedPrefs);
-      updateGAConsent(normalizedPrefs);
-    } else if (/amplitude|amplitude.com/i.test(src)) {
-      script.onload = () => updateAmplitudeConsent(normalizedPrefs);
-      updateAmplitudeConsent(normalizedPrefs);
-    } else {
-      restoreOriginalAttributes(script, scriptInfo.originalAttributes);
-    }
+function handleSpecialCases(script, scriptInfo, normalizedPrefs) {
+  const src = scriptInfo.src || '';
+  if (/googletagmanager\.com\/gtag\/js/i.test(src)) {
+    script.onload = () => updateGAConsent(normalizedPrefs);
+    updateGAConsent(normalizedPrefs);
+  } else if (/amplitude|amplitude.com/i.test(src)) {
+    script.onload = () => updateAmplitudeConsent(normalizedPrefs);
+    updateAmplitudeConsent(normalizedPrefs);
+  } else if (/facebook|fbevents/i.test(src)) {
+    script.onload = () => updateFacebookConsent(normalizedPrefs);
+    updateFacebookConsent(normalizedPrefs);
+  } else {
+    restoreOriginalAttributes(script, scriptInfo.originalAttributes);
   }
-  
-  function updateGAConsent(prefs) {
-    if (typeof gtag === "function") {
-      gtag('consent', 'update', {
-        'ad_storage': prefs.marketing ? 'granted' : 'denied',
-        'analytics_storage': prefs.analytics ? 'granted' : 'denied',
-        'ad_personalization': prefs.marketing ? 'granted' : 'denied',
-        'ad_user_data': prefs.marketing ? 'granted' : 'denied'
-      });
-    }
-  }  
-  function updateAmplitudeConsent(prefs) {
-    if (typeof amplitude !== "undefined" && amplitude.getInstance) {
-      const instance = amplitude.getInstance();
-      instance.setOptOut(!prefs.analytics);
-      instance.setUserProperties({
-        consent_analytics: prefs.analytics,
-        consent_marketing: prefs.marketing,
-        consent_personalization: prefs.personalization || false
-      });
-    }
-  } 
+}
+function updateGAConsent(prefs) {
+  if (typeof gtag === "function") {
+    gtag('consent', 'update', {
+      'ad_storage': prefs.marketing ? 'granted' : 'denied',
+      'analytics_storage': prefs.analytics ? 'granted' : 'denied'    
+    });
+  }
+}
+
+function updateAmplitudeConsent(prefs) {
+  if (typeof amplitude !== "undefined" && amplitude.getInstance) {
+    const instance = amplitude.getInstance();
+    instance.setOptOut(!prefs.analytics);
+    instance.setUserProperties({
+      consent_analytics: prefs.analytics,
+      consent_marketing: prefs.marketing,
+      consent_personalization: prefs.personalization || false
+    });
+  }
+}
+function updateFacebookConsent(prefs) {
+  if (typeof fbq === 'function') {
+    fbq('consent', prefs.marketing ? 'grant' : 'revoke');
+  }
+}
   async function getVisitorSessionToken() {
     try {
       const existingToken = localStorage.getItem('visitorSessionToken');
@@ -1387,6 +1402,7 @@ console.log(error)
       const consentGiven = localStorage.getItem("consent-given");
       if (consentGiven === "true") {
         const savedPreferences = localStorage.getItem("consent-preferences");
+
         if (savedPreferences) {
           try {
             const parsedPrefs = JSON.parse(savedPreferences);
@@ -1408,7 +1424,7 @@ console.log(error)
               encryptedData
             );
             const preferences = JSON.parse(new TextDecoder().decode(decryptedData));
-            const normalizedPreferences = {
+            const normalizedPreferencesData = {
               Necessary: true,
               Marketing: preferences.Marketing || false,
               Personalization: preferences.Personalization || false,
@@ -1417,9 +1433,11 @@ console.log(error)
                 DoNotShare: preferences.ccpa?.DoNotShare || false
               }
             };
-            await updatePreferenceForm(normalizedPreferences);
-            await restoreAllowedScripts(normalizedPreferences);
-            return normalizedPreferences;
+
+            await updatePreferenceForm(normalizedPreferencesData);
+            await restoreAllowedScripts(normalizedPreferencesData);
+            window.consentState = normalizePreferences(normalizedPreferencesData);
+            return normalizedPreferencesData;
           } catch (error) {
             console.log(error);
           }
@@ -1430,13 +1448,16 @@ console.log(error)
     } finally {
       isLoadingState = false;
     }
-    return {
-      Necessary: true,
-      Marketing: false,
-      Personalization: false,
-      Analytics: false,
-      ccpa: { DoNotShare: false }
-    };
+
+    const defaultPreferences = {
+  Necessary: true,
+  Marketing: false,
+  Personalization: false,
+  Analytics: false,
+  ccpa: { DoNotShare: false }
+};
+window.consentState = normalizePreferences(defaultPreferences);
+return defaultPreferences;
   }
   window.isCookieExpired = isCookieExpired;
   function base64ToArrayBuffer(base64) {
@@ -1520,13 +1541,17 @@ console.log(error)
     const selectors = [
       '.consentbit-gdpr-banner-div',
       '.consentbit-preference-div',
-      '.consentbit-change-preference'
+      '.consentbit-change-preference',
     ];
     
     selectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(element => element.remove());
-    });
+                const elements = document.querySelectorAll(selector);
+                console.log(`Found ${elements.length} elements for selector: ${selector}`);
+                elements.forEach(el => {
+                    console.log("Removing element:", el);
+                    el.remove();
+                });
+            });
   }
 
   function isStagingHostname() {

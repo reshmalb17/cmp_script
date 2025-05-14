@@ -1535,55 +1535,65 @@ console.log(error)
   }
 
 
-  async function initialize() {
-
-    try {
-      const token = await getVisitorSessionToken();
-      if (!token) {
-        setTimeout(initialize, 2000);
-        return;
-      }
-      if (!localStorage.getItem('visitorSessionToken')) {
-        localStorage.setItem('visitorSessionToken', token);
-      }
-   // Check publishing status before proceeding
-      const canPublish = await checkPublishingStatus();
-      if (!canPublish) {
-        if (!isStagingHostname()) {
-          // Remove consent elements if not on staging and no publishing permission
-          removeConsentElements();
-        }
-        console.warn("Site does not have publishing permissions. CMP will not be initialized.");
-        return;
-      }
-      await isCookieExpired();
-      const preferences = await loadAndApplySavedPreferences();
-      const banner = await detectLocationAndGetBannerType();
-      if (banner.bannerType === 'GDPR') {
-        if (!preferences || !localStorage.getItem("consent-given")) {
-          await scanAndBlockScripts();
-          await initializeBannerVisibility();        }
-      }
-      else if (banner.bannerType === 'CCPA') {
-        if (!preferences || !localStorage.getItem("consent-given")) {
-          await initializeBannerVisibility();
-        }
-       }    
-      await loadConsentStyles();
-      if (localStorage.getItem("consent-given") === "true") {
-        hideBanner(document.getElementById("consent-banner"));
-        hideBanner(document.getElementById("initial-consent-banner"));
-        hideBanner(document.getElementById("main-banner"));
-        hideBanner(document.getElementById("main-consent-banner"));
-        hideBanner(document.getElementById("simple-consent-banner"));
-      }
-      attachBannerHandlers();
-    } catch (error) {
-      console.warn(error);
-
+async function initialize() {
+  try {
+    const token = await getVisitorSessionToken();
+    if (!token) {
       setTimeout(initialize, 2000);
+      return;
     }
+    if (!localStorage.getItem('visitorSessionToken')) {
+      localStorage.setItem('visitorSessionToken', token);
+    }
+
+    // Check publishing status before proceeding
+    const canPublish = await checkPublishingStatus();
+    const isStaging = isStagingHostname();
+
+    // If it's not staging and can't publish, remove elements and exit
+    if (!canPublish && !isStaging) {
+      removeConsentElements();
+      console.warn("Site does not have publishing permissions. CMP will not be initialized.");
+      return;
+    }
+
+    // For staging domains or domains with publishing permission, proceed with initialization
+    await isCookieExpired();
+    const preferences = await loadAndApplySavedPreferences();
+    const banner = await detectLocationAndGetBannerType();
+
+    // Initialize banner visibility regardless of publishing status for staging
+    if (banner?.bannerType === 'GDPR') {
+      if (!preferences || !localStorage.getItem("consent-given")) {
+        await scanAndBlockScripts();
+        await initializeBannerVisibility();
+      }
+    } else if (banner?.bannerType === 'CCPA') {
+      if (!preferences || !localStorage.getItem("consent-given")) {
+        await initializeBannerVisibility();
+      }
+    }
+
+    await loadConsentStyles();
+    
+    // Only hide banners if consent is given
+    if (localStorage.getItem("consent-given") === "true") {
+      hideBanner(document.getElementById("consent-banner"));
+      hideBanner(document.getElementById("initial-consent-banner"));
+      hideBanner(document.getElementById("main-banner"));
+      hideBanner(document.getElementById("main-consent-banner"));
+      hideBanner(document.getElementById("simple-consent-banner"));
+    }
+
+    // Always attach handlers for staging domains
+    if (isStaging || canPublish) {
+      attachBannerHandlers();
+    }
+  } catch (error) {
+    console.warn("Initialization error:", error);
+    setTimeout(initialize, 2000);
   }
+} 
   window.loadAndApplySavedPreferences = loadAndApplySavedPreferences;
   window.updatePreferenceForm = updatePreferenceForm;
 

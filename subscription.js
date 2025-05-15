@@ -300,14 +300,19 @@ console.log(error)
 
     setupClick(buttons.savePreferences, async (e) => {
       e.preventDefault();
+      
       const prefs = buildPreferences({
         marketing: checkboxes.marketing?.checked,
         personalization: checkboxes.personalization?.checked,
         analytics: checkboxes.analytics?.checked
       });
+
       try {
         await saveConsentState(prefs);
         await restoreAllowedScripts(prefs);
+        if (typeof gtag === "function") {
+  updateGAConsent(normalizePreferences(prefs));
+}
       } catch { }
       hideBanner(banners.consent);
       hideBanner(banners.main);
@@ -316,6 +321,7 @@ console.log(error)
     setupClick(buttons.saveCCPA, async (e) => {
       e.preventDefault();
       const doNotShare = checkboxes.doNotShare?.checked || false;
+
       const prefs = buildPreferences({
         marketing: !doNotShare,
         personalization: !doNotShare,
@@ -329,7 +335,9 @@ console.log(error)
       } else {
         await unblockAllCookiesAndTools();
       }
-
+   if (typeof gtag === "function") {
+  updateGAConsent(normalizePreferences(prefs));
+}
       hideBanner(banners.ccpa);
       hideBanner(banners.mainConsent);
     });
@@ -519,7 +527,7 @@ console.log(error)
         }
       };
   
-      await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
+   const response=   await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -527,6 +535,9 @@ console.log(error)
         },
         body: JSON.stringify(payload),
       });
+      if(response.ok){
+        await storeEncryptedConsent(encryptedPreferences, key, iv, timestamp);
+      }
   
     } catch (error) {
       console.error("Error in saveConsentState:", error);
@@ -1175,6 +1186,9 @@ console.log(error)
   async function restoreAllowedScripts(preferences) {
     const normalizedPrefs = normalizePreferences(preferences);
     window.consentState = normalizedPrefs;
+    if (typeof gtag === "function") {
+     updateGAConsent(normalizePreferences(normalizedPrefs));
+    }
     const scriptIdsToRestore = Object.keys(existing_Scripts);
   
     for (const scriptId of scriptIdsToRestore) {

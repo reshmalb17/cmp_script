@@ -8,10 +8,10 @@
   let country = null;
   let categorizedScripts = null;
   const suspiciousPatterns = [
-    {
-      pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview|amplitude|amplitude.com/i,
-      category: "Analytics"
-    },
+   {
+  pattern: /collect|plausible.io|googletagmanager|google-analytics|gtag|analytics|zoho|track|metrics|pageview|stat|trackpageview|amplitude|amplitude.com|clarity|clarity.ms/i,
+  category: "Analytics"
+},
     {
       pattern: /facebook|meta|fbevents|linkedin|twitter|pinterest|tiktok|snap|reddit|quora|outbrain|taboola|sharethrough|matomo/i,
       category: "Marketing"
@@ -1255,6 +1255,12 @@ console.log(error)
 function handleSpecialCases(script, scriptInfo, normalizedPrefs) {
   const src = scriptInfo.src || '';
   if (/googletagmanager\.com\/gtag\/js/i.test(src)) {
+      if (typeof gtag === "function") {
+    gtag('consent', 'update', {
+      'ad_storage':  'denied',
+      'analytics_storage':'denied'    
+    });
+  }
     script.onload = () => updateGAConsent(normalizedPrefs);
     updateGAConsent(normalizedPrefs);
   } else if (/amplitude|amplitude.com/i.test(src)) {

@@ -896,6 +896,12 @@ console.log(error)
       Analytics: true,
       ccpa: { DoNotShare: false } 
     };   
+    if (typeof gtag === "function") {
+    gtag('consent', 'update', {
+      'ad_storage': 'granted',
+      'analytics_storage': 'granted'
+    });
+  }
     await saveConsentState(allAllowedPreferences); 
     await updatePreferenceForm(allAllowedPreferences);   
     await restoreAllowedScripts(allAllowedPreferences);
@@ -919,6 +925,12 @@ console.log(error)
       Analytics: false,
       ccpa: { DoNotShare: true }
     };
+    if (typeof gtag === "function") {
+    gtag('consent', 'update', {
+      'ad_storage': 'denied',
+      'analytics_storage': 'denied'
+    });
+  }
     await saveConsentState(rejectNonNecessaryPreferences);
 
     await updatePreferenceForm(rejectNonNecessaryPreferences);
@@ -1258,7 +1270,9 @@ function handleSpecialCases(script, scriptInfo, normalizedPrefs) {
       if (typeof gtag === "function") {
     gtag('consent', 'update', {
       'ad_storage':  'denied',
-      'analytics_storage':'denied'    
+      'analytics_storage':'denied' ,
+        'ad_user_data': 'denied', // Or 'denied'
+       'ad_personalization': 'denied' // Or 'denied'   
     });
   }
     script.onload = () => updateGAConsent(normalizedPrefs);

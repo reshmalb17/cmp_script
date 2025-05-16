@@ -1,4 +1,5 @@
 
+   (function() {
 const blockAllTools = () => {
   // --- Google Analytics / gtag / GTM ---
   window.dataLayer = window.dataLayer || [];
@@ -99,3 +100,5 @@ const initConsentManager = async (cdnUrl) => {
 
 // Usage: pass your CDN URL
 initConsentManager('https://cdn.jsdelivr.net/gh/reshmalb17/cmp_script@65ada01/subscription.js');
+
+   })();

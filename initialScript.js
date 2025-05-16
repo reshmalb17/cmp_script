@@ -1,4 +1,4 @@
-<script>
+( function(){
 // Google Analytics / gtag / GTM
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
@@ -75,10 +75,10 @@ window.hj = window.hj || function(){(window.hj.q = window.hj.q || []).push(argum
 window.hj('consent', false);
 
 // Loader for your main consent script
-(function() {
+(async function() {
   var script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/gh/reshmalb17/cmp_script@65ada01/subscription.js'; // <-- your CDN link here
   script.async = true;
   document.head.appendChild(script);
 })();
-</script>
+})();

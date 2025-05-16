@@ -167,8 +167,60 @@ console.log(error)
       }
     });
   }
-
   
+
+async function  clearNonEssentialCookies() {
+  const cookiesToDelete = [
+    // Google Analytics
+    '_ga', '_ga_GC14HDWQWB', '_gid', '_gat',
+    // HubSpot
+    'hubspotutk', '__hssc', '__hssrc', '__hstc',
+    // Clarity
+    '_clck', '_clsk',
+    // Contentsquare
+    '_cs_c', '_cs_id', '_cs_s',
+    // Matomo
+    '_pk_id', '_pk_ses',
+    // Yandex Metrica
+    '_ym_d', '_ym_isad', '_ym_uid',
+    // Hotjar (example)
+    '_hjSessionUser', '_hjSession', '_hjIncludedInSessionSample',
+    // Heap
+    'heapanalytics',
+    // Amplitude
+    'amplitude_id', 'amp_*',
+    // Plausible
+    'plausible_ignore',
+    // HP5 (hypothetical, from your list)
+    '_hp5_event_props.2322860303', '_hp5_let.2322860303', '_hp5_meta.2322860303',
+    // Yandex Metrica (from your list)
+    '_ym_d', '_ym_isad', '_ym_uid',
+    // Yandex Metrica (other possible)
+    '_ym_visorc',
+    // Yandex Metrica (ph)
+    'ph_phc_MjdYQjeV92ykThMcKPLQ',
+    // Add more as needed...
+  ];
+
+  const domains = [
+    window.location.hostname,
+    '.' + window.location.hostname.replace(/^www\./, '')
+  ];
+
+  cookiesToDelete.forEach(name => {
+    domains.forEach(domain => {
+      deleteCookie(name, domain);
+      deleteCookie(name); // Try without domain too
+    });
+  });
+}
+
+function deleteCookie(name, domain, path = "/") {
+  document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=" + path + ";";
+  if (domain) {
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=" + path + "; domain=" + domain + ";";
+  }
+}
 
   async function attachBannerHandlers() {
     const qs = (selector) => document.querySelector(selector);
@@ -946,7 +998,7 @@ console.log(error)
 
     await updatePreferenceForm(rejectNonNecessaryPreferences);
     await restoreAllowedScripts(rejectNonNecessaryPreferences);
-
+    await clearNonEssentialCookies(); 
     if (!observer) {
       await scanAndBlockScripts();
        }
@@ -957,7 +1009,6 @@ console.log(error)
     hideBanner(document.getElementById("simple-consent-banner"));
     localStorage.setItem("consent-given", "true"); 
   }
-  window.blockAllCookies = blockAllCookies;
   window.blockAllCookies = blockAllCookies;
   window.acceptAllCookies = acceptAllCookies;
   async function loadConsentState() {
@@ -1404,8 +1455,10 @@ function updateFacebookConsent(prefs) {
   window.checkPublishingStatus = checkPublishingStatus;
   window.removeConsentElements = removeConsentElements;
   window.isStagingHostname = isStagingHostname;
- 
+ window.showAllBanners=showAllBanners;
+ window.hideAllBanners=hideAllBanners;
   window.reblockDisallowedScripts = reblockDisallowedScripts;
+  window.clearNonEssentialCookies=clearNonEssentialCookies;
   document.addEventListener('DOMContentLoaded', initialize);
   async function isCookieExpired() {
     let isCookieExpired = false;
@@ -1543,7 +1596,6 @@ return defaultPreferences;
     try {
       const sessionToken = localStorage.getItem('visitorSessionToken');
       if (!sessionToken) {
-        console.warn("checkPublishingStatus: No visitor session token found.");
         return false;
       }
 
@@ -1559,14 +1611,12 @@ return defaultPreferences;
       });
 
       if (!response.ok) {
-        console.warn("checkPublishingStatus: Failed to get publishing status");
         return false;
       }
 
       const data = await response.json();
       return data.canPublishToCustomDomain === true;
     } catch (error) {
-      console.error("checkPublishingStatus: Error checking publishing status:", error);
       return false;
     }
   }
@@ -1576,6 +1626,9 @@ return defaultPreferences;
       '.consentbit-gdpr-banner-div',
       '.consentbit-preference-div',
       '.consentbit-change-preference',
+      '.consentbit-ccpa-banner-div',
+       '.consentbit-ccpa_preference',
+
     ];
     
     selectors.forEach(selector => {
@@ -1592,10 +1645,27 @@ return defaultPreferences;
     const hostname = window.location.hostname;
     return hostname.includes('.webflow.io') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
   }
-
+function hideAllBanners(){
+   hideBanner(document.getElementById("consent-banner"));
+      hideBanner(document.getElementById("initial-consent-banner"));
+      hideBanner(document.getElementById("main-banner"));
+      hideBanner(document.getElementById("main-consent-banner"));
+      hideBanner(document.getElementById("simple-consent-banner"));
+}
+function showAllBanners(){
+   showBanner(document.getElementById("consent-banner"));
+      showBanner(document.getElementById("initial-consent-banner"));
+      showBanner(document.getElementById("main-banner"));
+      showBanner(document.getElementById("main-consent-banner"));
+      showBanner(document.getElementById("simple-consent-banner"));
+}
 
 async function initialize() {
+  hideAllBanners();
   try {
+
+
+
     const token = await getVisitorSessionToken();
     if (!token) {
       setTimeout(initialize, 2000);
@@ -1612,7 +1682,6 @@ async function initialize() {
     // If it's not staging and can't publish, remove elements and exit
     if (!canPublish && !isStaging) {
       removeConsentElements();
-      console.warn("Site does not have publishing permissions. CMP will not be initialized.");
       return;
     }
 
@@ -1620,7 +1689,6 @@ async function initialize() {
     await isCookieExpired();
     const preferences = await loadAndApplySavedPreferences();
     const banner = await detectLocationAndGetBannerType();
-
     // Initialize banner visibility regardless of publishing status for staging
     if (banner?.bannerType === 'GDPR') {
       if (!preferences || !localStorage.getItem("consent-given")) {
@@ -1634,8 +1702,7 @@ async function initialize() {
     }
 
     await loadConsentStyles();
-    
-    // Only hide banners if consent is given
+   
     if (localStorage.getItem("consent-given") === "true") {
       hideBanner(document.getElementById("consent-banner"));
       hideBanner(document.getElementById("initial-consent-banner"));

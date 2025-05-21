@@ -1,6 +1,5 @@
-
+<script>
 (function() {
-  // Helper functions for cookies
   function setCookie(name, value, days) {
     let expires = "";
     if (days) {
@@ -16,7 +15,6 @@
     if (parts.length === 2) return parts.pop().split(';').shift();
   }
 
-  // Block GA scripts by changing their type
   function blockGAScripts() {
     var scripts = document.querySelectorAll('script[src*="googletagmanager.com/gtag/js"], script[src*="google-analytics.com/analytics.js"]');
     scripts.forEach(function(script) {
@@ -27,12 +25,10 @@
     });
   }
 
-  // Restore GA scripts on consent
   function enableGAScripts() {
     var scripts = document.querySelectorAll('script[data-blocked-by-consent="true"]');
     scripts.forEach(function(oldScript) {
       var newScript = document.createElement('script');
-      // Copy attributes
       for (var i = 0; i < oldScript.attributes.length; i++) {
         var attr = oldScript.attributes[i];
         if (attr.name === 'type') {
@@ -41,7 +37,6 @@
           newScript.setAttribute(attr.name, attr.value);
         }
       }
-      // Copy inline content if any
       if (oldScript.innerHTML) {
         newScript.innerHTML = oldScript.innerHTML;
       }
@@ -49,7 +44,6 @@
     });
   }
 
-  // Show/hide banner
   function showBanner() {
     var banner = document.getElementById('consent-banner');
     if (banner) banner.style.display = 'flex';
@@ -74,7 +68,8 @@
   // Accept button
   var acceptBtn = document.getElementById('accept-btn');
   if (acceptBtn) {
-    acceptBtn.onclick = function() {
+    acceptBtn.onclick = function(e) {
+      e.preventDefault();
       setCookie('cookie_consent_ga', 'yes', 365);
       enableGAScripts();
       hideBanner();
@@ -84,7 +79,8 @@
   // Decline button
   var declineBtn = document.getElementById('decline-btn');
   if (declineBtn) {
-    declineBtn.onclick = function() {
+    declineBtn.onclick = function(e) {
+      e.preventDefault();
       setCookie('cookie_consent_ga', 'no', 365);
       blockGAScripts();
       hideBanner();
@@ -106,3 +102,4 @@
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
+</script>

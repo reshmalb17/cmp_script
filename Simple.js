@@ -1,5 +1,6 @@
+document.addEventListener('DOMContentLoaded', function() {
+ 
 
-(function() {
   // Helper to set a cookie
   function setConsentCookie(name, value, days) {
     let expires = "";
@@ -132,4 +133,4 @@
     });
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
-})();
+});

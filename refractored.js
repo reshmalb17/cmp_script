@@ -995,12 +995,7 @@ function deleteCookie(name, domain, path = "/") {
       'analytics_storage': 'granted'
     });
   }
-setConsentState({
-  analytics: true,
-  marketing: true,
-  personalization: true
-  // ...add more as needed
-});
+setConsentState(allAllowedPreferences);
     await saveConsentState(allAllowedPreferences); 
     await updatePreferenceForm(allAllowedPreferences);   
     await restoreAllowedScripts(allAllowedPreferences);
@@ -1030,12 +1025,7 @@ setConsentState({
       'analytics_storage': 'denied'
     });
   }
-  setConsentState({
-  analytics: false,
-  marketing: false,
-  personalization: false
-  // ...add more as needed
-});
+  setConsentState(rejectNonNecessaryPreferences);
     await saveConsentState(rejectNonNecessaryPreferences);
 
     await updatePreferenceForm(rejectNonNecessaryPreferences);

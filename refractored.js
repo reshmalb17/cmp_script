@@ -18,26 +18,29 @@ function setConsentCookie(name, value, days) {
   }
   document.cookie = name + "=" + value + expires + "; path=/";
 }
-
 function enableGAScripts() {
-  var scripts = document.querySelectorAll(
-    'script[type="text/plain"][src*="googletagmanager.com/gtag/js"], script[type="text/plain"][src*="google-analytics.com/analytics.js"]'
-  );
-  scripts.forEach(function(oldScript) {
-    var newScript = document.createElement('script');
-    for (var i = 0; i < oldScript.attributes.length; i++) {
-      var attr = oldScript.attributes[i];
-      if (attr.name === 'type') {
-        newScript.type = 'text/javascript';
-      } else {
-        newScript.setAttribute(attr.name, attr.value);
+  var enable = function() {
+    var scripts = document.querySelectorAll('script[type="text/plain"][src*="googletagmanager.com/gtag/js"], script[type="text/plain"][src*="google-analytics.com/analytics.js"]');
+    scripts.forEach(function(oldScript) {
+      var newScript = document.createElement('script');
+      for (var i = 0; i < oldScript.attributes.length; i++) {
+        var attr = oldScript.attributes[i];
+        if (attr.name === 'type') {
+          newScript.type = 'text/javascript';
+        } else {
+          newScript.setAttribute(attr.name, attr.value);
+        }
       }
-    }
-    if (oldScript.innerHTML) {
-      newScript.innerHTML = oldScript.innerHTML;
-    }
-    oldScript.parentNode.replaceChild(newScript, oldScript);
-  });
+      if (oldScript.innerHTML) {
+        newScript.innerHTML = oldScript.innerHTML;
+      }
+      oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
+  };
+  enable();
+  // Also enable for scripts added later
+  var observer = new MutationObserver(enable);
+  observer.observe(document.head, { childList: true, subtree: true });
 }
 function blockGAScripts() {
   var scripts = document.querySelectorAll(

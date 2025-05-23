@@ -18,6 +18,38 @@ function setConsentCookie(name, value, days) {
   }
   document.cookie = name + "=" + value + expires + "; path=/";
 }
+
+function enableGAScripts() {
+  var scripts = document.querySelectorAll(
+    'script[type="text/plain"][src*="googletagmanager.com/gtag/js"], script[type="text/plain"][src*="google-analytics.com/analytics.js"]'
+  );
+  scripts.forEach(function(oldScript) {
+    var newScript = document.createElement('script');
+    for (var i = 0; i < oldScript.attributes.length; i++) {
+      var attr = oldScript.attributes[i];
+      if (attr.name === 'type') {
+        newScript.type = 'text/javascript';
+      } else {
+        newScript.setAttribute(attr.name, attr.value);
+      }
+    }
+    if (oldScript.innerHTML) {
+      newScript.innerHTML = oldScript.innerHTML;
+    }
+    oldScript.parentNode.replaceChild(newScript, oldScript);
+  });
+}
+function blockGAScripts() {
+  var scripts = document.querySelectorAll(
+    'script[src*="googletagmanager.com/gtag/js"], script[src*="google-analytics.com/analytics.js"]'
+  );
+  scripts.forEach(function(script) {
+    if (script.type !== 'text/plain') {
+      script.type = 'text/plain';
+      script.setAttribute('data-blocked-by-consent', 'true');
+    }
+  });
+}
 function getConsentCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -359,6 +391,7 @@ function deleteCookie(name, domain, path = "/") {
     setupClick(buttons.accept, async (e) => {
       e.preventDefault();
       const prefs = buildPreferences({ marketing: true, personalization: true, analytics: true });
+     enableGAScripts();
       await saveConsentState(prefs);
       await acceptAllCookies();
       hideBanner(banners.consent);
@@ -368,6 +401,7 @@ function deleteCookie(name, domain, path = "/") {
     setupClick(buttons.decline, async (e) => {
       e.preventDefault();
       const prefs = buildPreferences({});
+      blockGAScripts();
       await saveConsentState(prefs);
       await blockAllCookies();
       hideBanner(banners.consent);
@@ -981,6 +1015,8 @@ function deleteCookie(name, domain, path = "/") {
       }
     }    
   }
+
+
   async function acceptAllCookies() {
     const allAllowedPreferences = {
       Necessary: true,
@@ -1697,6 +1733,11 @@ async function initialize() {
   var analytics = getConsentCookie('cb-consent-analytics_storage') === 'true';
   var marketing = getConsentCookie('cb-consent-marketing_storage') === 'true';
   var personalization = getConsentCookie('cb-consent-personalization_storage') === 'true';
+   if (analytics) {
+    enableGAScripts();
+  } else {
+    blockGAScripts();
+  }
 
   setConsentState({
     analytics: analytics,

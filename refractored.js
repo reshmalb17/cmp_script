@@ -16,7 +16,11 @@ function setConsentCookie(name, value, days) {
     date.setTime(date.getTime() + (days*24*60*60*1000));
     expires = "; expires=" + date.toUTCString();
   }
-  document.cookie = name + "=" + value + expires + "; path=/";
+  let cookieString = name + "=" + value + expires + "; path=/; SameSite=Lax";
+  if (location.protocol === 'https:') {
+    cookieString += "; Secure";
+  }
+  document.cookie = cookieString;
 }
 function enableGAScripts() {
   var enable = function() {
@@ -391,15 +395,16 @@ function deleteCookie(name, domain, path = "/") {
       hideBanner(banners.mainConsent);
     });
 
-    setupClick(buttons.accept, async (e) => {
-      e.preventDefault();
-      const prefs = buildPreferences({ marketing: true, personalization: true, analytics: true });
-     enableGAScripts();
-      await saveConsentState(prefs);
-      await acceptAllCookies();
-      hideBanner(banners.consent);
-      hideBanner(banners.main);
-    });
+   setupClick(buttons.accept, async (e) => {
+  e.preventDefault();
+  const prefs = buildPreferences({ marketing: true, personalization: true, analytics: true });
+  setConsentState({analytics: true, marketing: true, personalization: true});
+  enableGAScripts();
+  await saveConsentState(prefs);
+  await acceptAllCookies();
+  hideBanner(banners.consent);
+  hideBanner(banners.main);
+});
 
     setupClick(buttons.decline, async (e) => {
       e.preventDefault();

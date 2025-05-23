@@ -144,6 +144,14 @@
         acceptAll();
       };
     }
+     // Accept button
+    var toggleBtn = document.getElementById('toggle-consent-btn');
+    if (toggleBtn) {
+      toggleBtn.onclick = function(e) {
+        e.preventDefault();
+        showBanner();
+      };
+    }
 
     // Decline button
     var declineBtn = document.getElementById('decline-btn');

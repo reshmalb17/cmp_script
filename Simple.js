@@ -67,7 +67,7 @@
       setConsentCookie(
         'cb-consent-' + category.toLowerCase() + '_storage',
         preferences[category] ? 'true' : 'false',
-        cookieDays || 365
+        cookieDays || 180
       );
     });
     updateGtagConsent(preferences);
@@ -525,6 +525,22 @@
           e.preventDefault();
           hideBanner(banners.main);
           showBanner(banners.consent);
+        };
+      }
+      // Toggle consent button
+      const toggleConsentBtn = qid('toggle-consent-btn');
+      if (toggleConsentBtn) {
+        toggleConsentBtn.onclick = function(e) {
+          e.preventDefault();
+          // Show the main consent banner (GDPR or CCPA based on location)
+          if (locationData && locationData.bannerType === "CCPA") {
+            showBanner(banners.ccpa);
+            hideBanner(banners.consent);
+          } else {
+            showBanner(banners.consent);
+            hideBanner(banners.ccpa);
+          }
+          hideBanner(banners.main);
         };
       }
       // Load consent styles after banners are shown

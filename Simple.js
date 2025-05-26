@@ -67,7 +67,7 @@
       setConsentCookie(
         'cb-consent-' + category.toLowerCase() + '_storage',
         preferences[category] ? 'true' : 'false',
-        cookieDays || 180
+        cookieDays || 365
       );
     });
     updateGtagConsent(preferences);
@@ -248,14 +248,23 @@
         key,
         encoder.encode(JSON.stringify(preferences))
       );
+      const encryptedVisitorId = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        encoder.encode(visitorId)
+      );
       const rawKey = await crypto.subtle.exportKey("raw", key);
       const b64Key = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
       const b64IV = btoa(String.fromCharCode(...iv));
       const b64EncryptedPreferences = btoa(String.fromCharCode(...new Uint8Array(encryptedPreferences)));
+      const b64EncryptedVisitorId = btoa(String.fromCharCode(...new Uint8Array(encryptedVisitorId)));
 
       const payload = {
         clientId,
-        visitorId,
+        visitorId: {
+          encryptedVisitorId: b64EncryptedVisitorId,
+          encryptionKey: { key: b64Key, iv: b64IV }
+        },
         preferences: {
           encryptedPreferences: b64EncryptedPreferences,
           encryptionKey: { key: b64Key, iv: b64IV }

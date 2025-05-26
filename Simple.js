@@ -541,6 +541,7 @@
       if (toggleConsentBtn) {
         toggleConsentBtn.onclick = function(e) {
           e.preventDefault();
+          localStorage.removeItem('consent-given');
           // Show the main consent banner (GDPR or CCPA based on location)
           if (locationData && locationData.bannerType === "CCPA") {
             showBanner(banners.ccpa);

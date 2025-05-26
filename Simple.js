@@ -1,3 +1,31 @@
+/*
+Minimal HTML structure for consent banners and preferences panel:
+
+<!-- Consent Banner (GDPR) -->
+<div id="consent-banner" class="consent-banner" style="display:none;">
+  <p>This site uses cookies. <button id="preferences-btn">Preferences</button></p>
+  <button id="accept-btn">Accept</button>
+  <button id="decline-btn">Reject</button>
+</div>
+
+<!-- CCPA Banner -->
+<div id="initial-consent-banner" class="consent-banner" style="display:none;">
+  <p>We use cookies. <a href="#" id="do-not-share-link">Do Not Sell or Share My Personal Information</a></p>
+  <button id="accept-btn">Accept</button>
+</div>
+
+<!-- Preferences Panel -->
+<div id="main-banner" class="consent-preferences" style="display:none;">
+  <h3>Cookie Preferences</h3>
+  <label><input type="checkbox" data-consent-id="necessary-checkbox" checked disabled> Necessary</label><br>
+  <label><input type="checkbox" data-consent-id="analytics-checkbox"> Analytics</label><br>
+  <label><input type="checkbox" data-consent-id="marketing-checkbox"> Marketing</label><br>
+  <label><input type="checkbox" data-consent-id="personalization-checkbox"> Personalization</label><br>
+  <button id="save-preferences-btn">Save Preferences</button>
+  <button id="cancel-btn">Cancel</button>
+</div>
+*/
+
 (function () {
   // --- Helper functions ---
   function setConsentCookie(name, value, days) {
@@ -63,8 +91,12 @@
     }
   }
   function setConsentState(preferences, cookieDays) {
-    Object.keys(preferences).forEach(function(category) {
-      setConsentCookie('cb-consent-' + category.toLowerCase() + '_storage', preferences[category] ? 'true' : 'false', cookieDays || 365);
+    ['Analytics', 'Marketing', 'Personalization'].forEach(function(category) {
+      setConsentCookie(
+        'cb-consent-' + category.toLowerCase() + '_storage',
+        preferences[category] ? 'true' : 'false',
+        cookieDays || 365
+      );
     });
     updateGtagConsent(preferences);
   }

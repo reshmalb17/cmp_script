@@ -137,37 +137,48 @@
     cleaned = cleaned.split('.')[0];
     return cleaned;
   }
-  async function getVisitorSessionToken() {
-    try {
-      const existingToken = localStorage.getItem('visitorSessionToken');
-      if (existingToken && !isTokenExpired(existingToken)) {
-        return existingToken;
-      }
-      const visitorId = await getOrCreateVisitorId();
-      const siteName = await cleanHostname(window.location.hostname);
-      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          visitorId: visitorId,
-          userAgent: navigator.userAgent,
-          siteName: siteName
-        })
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to get visitor session token: ${response.status}`);
-      }
-      const data = await response.json();
-      localStorage.setItem('visitorSessionToken', data.token);
-      return data.token;
-    } catch (error) {
-      console.warn(error);
+async function getVisitorSessionToken() {
+  try {
+    const existingToken = localStorage.getItem('visitorSessionToken');
+    if (existingToken && !isTokenExpired(existingToken)) {
+      return existingToken;
+    }
+
+    // --- Restrict API calls to max 5 ---
+    let callCount = parseInt(localStorage.getItem('visitorTokenApiCallCount') || '0', 10);
+    if (callCount >= 5) {
+      console.warn('Maximum visitor token API calls reached.');
       return null;
     }
-  }
 
+    const visitorId = await getOrCreateVisitorId();
+    const siteName = await cleanHostname(window.location.hostname);
+    const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        visitorId: visitorId,
+        userAgent: navigator.userAgent,
+        siteName: siteName
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to get visitor session token: ${response.status}`);
+    }
+    const data = await response.json();
+    localStorage.setItem('visitorSessionToken', data.token);
+
+    // Increment the call count
+    localStorage.setItem('visitorTokenApiCallCount', (callCount + 1).toString());
+
+    return data.token;
+  } catch (error) {
+    console.warn(error);
+    return null;
+  }
+}
   // --- Advanced: Fetch cookie expiration days from server ---
   async function fetchCookieExpirationDays() {
     const sessionToken = localStorage.getItem("visitorSessionToken");
@@ -248,23 +259,14 @@
         key,
         encoder.encode(JSON.stringify(preferences))
       );
-      const encryptedVisitorId = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv },
-        key,
-        encoder.encode(visitorId)
-      );
       const rawKey = await crypto.subtle.exportKey("raw", key);
       const b64Key = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
       const b64IV = btoa(String.fromCharCode(...iv));
       const b64EncryptedPreferences = btoa(String.fromCharCode(...new Uint8Array(encryptedPreferences)));
-      const b64EncryptedVisitorId = btoa(String.fromCharCode(...new Uint8Array(encryptedVisitorId)));
 
       const payload = {
         clientId,
-        visitorId: {
-          encryptedVisitorId: b64EncryptedVisitorId,
-          encryptionKey: { key: b64Key, iv: b64IV }
-        },
+        visitorId,
         preferences: {
           encryptedPreferences: b64EncryptedPreferences,
           encryptionKey: { key: b64Key, iv: b64IV }
@@ -494,7 +496,7 @@
       // Preferences button (show preferences panel)
       const preferencesBtn = qid('preferences-btn');
       if (preferencesBtn) {
-        preferencesBtn.onclick = function(e) {
+        preferencesBtn.onclick = function(e) {f
           e.preventDefault();
           hideBanner(banners.consent);
           showBanner(banners.main);
@@ -541,7 +543,6 @@
       if (toggleConsentBtn) {
         toggleConsentBtn.onclick = function(e) {
           e.preventDefault();
-          localStorage.removeItem('consent-given');
           // Show the main consent banner (GDPR or CCPA based on location)
           if (locationData && locationData.bannerType === "CCPA") {
             showBanner(banners.ccpa);

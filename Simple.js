@@ -432,6 +432,7 @@ async function getVisitorSessionToken() {
       toggleConsentBtn.onclick = function(e) {
         e.preventDefault();
         console.log('Toggle consent button clicked!');
+        console.log('Current consent state:', localStorage.getItem("consent-given"));
         
         // Find banner elements
         const consentBanner = document.getElementById("consent-banner");
@@ -444,15 +445,46 @@ async function getVisitorSessionToken() {
           main: !!mainBanner
         });
         
+        // Check current banner visibility before changes
+        if (consentBanner) {
+          console.log('Consent banner current style:', {
+            display: consentBanner.style.display,
+            classList: Array.from(consentBanner.classList),
+            hidden: consentBanner.hidden
+          });
+        }
+        
         // Force show appropriate banner
         if (locationData && locationData.bannerType === "CCPA" && ccpaBanner) {
           console.log('Attempting to show CCPA banner');
           hideAllBanners();
           showBanner(ccpaBanner);
+          console.log('CCPA banner after show:', {
+            display: ccpaBanner.style.display,
+            classList: Array.from(ccpaBanner.classList)
+          });
         } else if (consentBanner) {
           console.log('Attempting to show GDPR consent banner');
           hideAllBanners();
           showBanner(consentBanner);
+          console.log('Consent banner after show:', {
+            display: consentBanner.style.display,
+            classList: Array.from(consentBanner.classList)
+          });
+          
+          // Force display with additional methods if needed
+          consentBanner.style.display = "block";
+          consentBanner.style.visibility = "visible";
+          consentBanner.hidden = false;
+          consentBanner.classList.remove("hidden");
+          consentBanner.classList.add("show-banner");
+          
+          console.log('Consent banner final state:', {
+            display: consentBanner.style.display,
+            visibility: consentBanner.style.visibility,
+            classList: Array.from(consentBanner.classList),
+            hidden: consentBanner.hidden
+          });
         } else {
           console.error('No suitable banner found to display');
         }

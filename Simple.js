@@ -285,19 +285,13 @@
         return;
       }
 
-      console.log("Starting encryption with hardcoded keys...");
+      console.log("Starting encryption of entire payload with hardcoded keys...");
 
-      // Encrypt visitorId and preferences using hardcoded keys
-      const encryptedVisitorId = await encryptWithHardcodedKey(visitorId);
-      const encryptedPreferences = await encryptWithHardcodedKey(JSON.stringify(preferences));
-
-      console.log("Encryption completed successfully");
-
-      // Prepare the payload according to server expectations
-      const payload = {
+      // Prepare the complete payload first
+      const fullPayload = {
         clientId,
-        visitorId: encryptedVisitorId, // encrypted string
-        encryptedPreferences: encryptedPreferences, // encrypted string
+        visitorId,
+        preferences, // Raw preferences object, not encrypted individually
         policyVersion,
         timestamp,
         country: country || "IN",
@@ -312,12 +306,19 @@
         }
       };
 
-      console.log('Sending payload to server:', {
-        clientId: payload.clientId,
-        hasEncryptedVisitorId: !!payload.visitorId,
-        hasEncryptedPreferences: !!payload.encryptedPreferences,
-        bannerType: payload.bannerType,
-        country: payload.country
+      // Encrypt the entire payload as one encrypted string
+      const encryptedPayload = await encryptWithHardcodedKey(JSON.stringify(fullPayload));
+
+      console.log("Full payload encryption completed successfully");
+
+      // Send only the encrypted payload
+      const requestBody = {
+        encryptedData: encryptedPayload
+      };
+
+      console.log('Sending encrypted payload to server:', {
+        hasEncryptedData: !!requestBody.encryptedData,
+        encryptedDataLength: requestBody.encryptedData.length
       });
 
       const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
@@ -326,7 +327,7 @@
           "Content-Type": "application/json",
           "Authorization": `Bearer ${sessionToken}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

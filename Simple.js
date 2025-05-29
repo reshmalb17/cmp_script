@@ -144,8 +144,8 @@ async function getVisitorSessionToken() {
       return existingToken;
     }
 
-    // --- Restrict API calls to max 5 ---
-    let callCount = parseInt(localStorage.getItem('visitorTokenApiCallCount') || '0', 10);
+    // --- Restrict API calls to max 5 using cookies ---
+    let callCount = parseInt(getConsentCookie('visitorTokenApiCallCount') || '0', 10);
     if (callCount >= 5) {
       console.warn('Maximum visitor token API calls reached.');
       return null;
@@ -170,8 +170,8 @@ async function getVisitorSessionToken() {
     const data = await response.json();
     localStorage.setItem('visitorSessionToken', data.token);
 
-    // Increment the call count
-    localStorage.setItem('visitorTokenApiCallCount', (callCount + 1).toString());
+    // Increment the call count in cookie (expires in 1 year)
+    setConsentCookie('visitorTokenApiCallCount', callCount + 1, 365);
 
     return data.token;
   } catch (error) {
@@ -496,7 +496,7 @@ async function getVisitorSessionToken() {
       // Preferences button (show preferences panel)
       const preferencesBtn = qid('preferences-btn');
       if (preferencesBtn) {
-        preferencesBtn.onclick = function(e) {f
+        preferencesBtn.onclick = function(e) {
           e.preventDefault();
           hideBanner(banners.consent);
           showBanner(banners.main);

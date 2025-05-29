@@ -576,16 +576,34 @@ async function getVisitorSessionToken() {
       if (toggleConsentBtn) {
         toggleConsentBtn.onclick = function(e) {
           e.preventDefault();
-          // Show the main consent banner (GDPR or CCPA based on location)
+          
+          console.log('Toggle consent button clicked'); // Debug log
+          console.log('Available banners:', {
+            consent: !!banners.consent,
+            ccpa: !!banners.ccpa,
+            main: !!banners.main
+          }); // Debug log
+          
+          // Force show the appropriate banner regardless of consent state
           if (locationData && locationData.bannerType === "CCPA") {
-            showBanner(banners.ccpa);
+            console.log('Showing CCPA banner'); // Debug log
+            // Show CCPA banner
             hideBanner(banners.consent);
+            hideBanner(banners.main);
+            showBanner(banners.ccpa);
           } else {
-            showBanner(banners.consent);
+            console.log('Showing GDPR consent banner'); // Debug log
+            // Show GDPR consent banner
             hideBanner(banners.ccpa);
+            hideBanner(banners.main);
+            showBanner(banners.consent);
           }
-          hideBanner(banners.main);
+          
+          // Update preference form with current preferences
+          updatePreferenceForm(getConsentPreferences());
         };
+      } else {
+        console.log('Toggle consent button not found!'); // Debug log
       }
       // Load consent styles after banners are shown
       loadConsentStyles();

@@ -306,6 +306,10 @@
         }
       };
 
+      console.log("Full payload before encryption:", fullPayload);
+      console.log("ClientId value:", clientId);
+      console.log("VisitorId value:", visitorId);
+
       // Encrypt the entire payload as one encrypted string
       const encryptedPayload = await encryptWithHardcodedKey(JSON.stringify(fullPayload));
 

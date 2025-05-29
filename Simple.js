@@ -1,4 +1,8 @@
 (function () {
+  // --- Hardcoded Encryption Keys (matching server) ---
+  const ENCRYPTION_KEY = "t95w6oAeL1hr0rrtCGKok/3GFNwxzfLxiWTETfZurpI="; // Base64 encoded 256-bit key
+  const ENCRYPTION_IV = "yVSYDuWajEid8kDz"; // Base64 encoded 128-bit IV
+
   // --- Helper functions ---
   function setConsentCookie(name, value, days) {
     let expires = "";
@@ -111,6 +115,48 @@
     showBanner(document.getElementById("simple-consent-banner"));
   }
 
+  // --- Encryption Helper Functions ---
+  function base64ToUint8Array(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  function uint8ArrayToBase64(bytes) {
+    return btoa(String.fromCharCode(...bytes));
+  }
+
+  async function importHardcodedKey() {
+    const keyBytes = base64ToUint8Array(ENCRYPTION_KEY);
+    return crypto.subtle.importKey(
+      "raw",
+      keyBytes,
+      { name: "AES-GCM" },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  }
+
+  async function encryptWithHardcodedKey(data) {
+    try {
+      const key = await importHardcodedKey();
+      const iv = base64ToUint8Array(ENCRYPTION_IV);
+      const encoder = new TextEncoder();
+      const encryptedBuffer = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        encoder.encode(data)
+      );
+      return uint8ArrayToBase64(new Uint8Array(encryptedBuffer));
+    } catch (error) {
+      console.error("Encryption error:", error);
+      throw error;
+    }
+  }
+
   // --- Advanced: Visitor session token generation ---
   function isTokenExpired(token) {
     if (!token) return true;
@@ -137,40 +183,37 @@
     cleaned = cleaned.split('.')[0];
     return cleaned;
   }
-async function getVisitorSessionToken() {
-  try {
-    const existingToken = localStorage.getItem('visitorSessionToken');
-    if (existingToken && !isTokenExpired(existingToken)) {
-      return existingToken;
+  async function getVisitorSessionToken() {
+    try {
+      const existingToken = localStorage.getItem('visitorSessionToken');
+      if (existingToken && !isTokenExpired(existingToken)) {
+        return existingToken;
+      }
+    
+      const visitorId = await getOrCreateVisitorId();
+      const siteName = await cleanHostname(window.location.hostname);
+      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          visitorId: visitorId,
+          userAgent: navigator.userAgent,
+          siteName: siteName
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to get visitor session token: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.token;
+    } catch (error) {
+      console.warn(error);
+      return null;
     }
-  
-
-    const visitorId = await getOrCreateVisitorId();
-    const siteName = await cleanHostname(window.location.hostname);
-    const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        visitorId: visitorId,
-        userAgent: navigator.userAgent,
-        siteName: siteName
-      })
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to get visitor session token: ${response.status}`);
-    }
-    const data = await response.json();
-   
-   
-
-    return data.token;
-  } catch (error) {
-    console.warn(error);
-    return null;
   }
-}
+
   // --- Advanced: Fetch cookie expiration days from server ---
   async function fetchCookieExpirationDays() {
     const sessionToken = localStorage.getItem("visitorSessionToken");
@@ -236,55 +279,31 @@ async function getVisitorSessionToken() {
       const policyVersion = "1.2";
       const timestamp = new Date().toISOString();
       const sessionToken = localStorage.getItem("visitorSessionToken");
-      if (!sessionToken) return;
+      
+      if (!sessionToken) {
+        console.error("No session token available");
+        return;
+      }
 
-      // Encryption
-      const key = await crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 },
-        true,
-        ["encrypt", "decrypt"]
-      );
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encoder = new TextEncoder();
-      const encryptedPreferences = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv },
-        key,
-        encoder.encode(JSON.stringify(preferences))
-      );
-      const rawKey = await crypto.subtle.exportKey("raw", key);
-      const b64Key = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
-      const b64IV = btoa(String.fromCharCode(...iv));
-      const b64EncryptedPreferences = btoa(String.fromCharCode(...new Uint8Array(encryptedPreferences)));
+      console.log("Starting encryption with hardcoded keys...");
 
-      // Debug logging
-      console.log('Encryption Debug:', {
-        keyLength: b64Key.length,
-        ivLength: b64IV.length,
-        encryptedLength: b64EncryptedPreferences.length,
-        hasKey: !!b64Key,
-        hasIV: !!b64IV
-      });
+      // Encrypt visitorId and preferences using hardcoded keys
+      const encryptedVisitorId = await encryptWithHardcodedKey(visitorId);
+      const encryptedPreferences = await encryptWithHardcodedKey(JSON.stringify(preferences));
 
-      // Try different payload structures
+      console.log("Encryption completed successfully");
+
+      // Prepare the payload according to server expectations
       const payload = {
         clientId,
-        visitorId,
-        encryptedPreferences: b64EncryptedPreferences,
-        encryptionKey: b64Key,
-        encryptionIV: b64IV,
-        preferences: {
-          encryptedPreferences: b64EncryptedPreferences,
-          encryptionKey: {
-            key: b64Key,
-            iv: b64IV
-          }
-        },
+        visitorId: encryptedVisitorId, // encrypted string
+        encryptedPreferences: encryptedPreferences, // encrypted string
         policyVersion,
         timestamp,
-        country,
-        bannerType: preferences.bannerType,
-        expiresAtTimestamp: Date.now() + (cookieDays * 24 * 60 * 60 * 1000),
-        expirationDurationDays: cookieDays,
+        country: country || "IN",
+        bannerType: preferences.bannerType || "GDPR",
+        expiresAtTimestamp: Date.now() + ((cookieDays || 365) * 24 * 60 * 60 * 1000),
+        expirationDurationDays: cookieDays || 365,
         metadata: {
           userAgent: navigator.userAgent,
           language: navigator.language,
@@ -293,8 +312,13 @@ async function getVisitorSessionToken() {
         }
       };
 
-      // Debug log the complete payload as JSON
-      console.log('Complete Payload JSON:', JSON.stringify(payload, null, 2));
+      console.log('Sending payload to server:', {
+        clientId: payload.clientId,
+        hasEncryptedVisitorId: !!payload.visitorId,
+        hasEncryptedPreferences: !!payload.encryptedPreferences,
+        bannerType: payload.bannerType,
+        country: payload.country
+      });
 
       const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
         method: "POST",
@@ -312,55 +336,12 @@ async function getVisitorSessionToken() {
           statusText: response.statusText,
           body: errorText
         });
-        
-        // Try alternative payload structure if first attempt fails
-        console.log('Trying alternative payload structure...');
-        const alternativePayload = {
-          clientId,
-          visitorId,
-          encryptedPreferences: b64EncryptedPreferences,
-          key: b64Key,
-          iv: b64IV,
-          policyVersion,
-          timestamp,
-          country,
-          bannerType: preferences.bannerType,
-          expiresAtTimestamp: Date.now() + (cookieDays * 24 * 60 * 60 * 1000),
-          expirationDurationDays: cookieDays,
-          metadata: {
-            userAgent: navigator.userAgent,
-            language: navigator.language,
-            platform: navigator.userAgentData?.platform || "unknown",
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-          }
-        };
-        
-        console.log('Alternative Payload JSON:', JSON.stringify(alternativePayload, null, 2));
-        
-        const retryResponse = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${sessionToken}`,
-          },
-          body: JSON.stringify(alternativePayload),
-        });
-        
-        if (!retryResponse.ok) {
-          const retryErrorText = await retryResponse.text();
-          console.error('Retry also failed:', {
-            status: retryResponse.status,
-            statusText: retryResponse.statusText,
-            body: retryErrorText
-          });
-          throw new Error(`Server error: ${retryResponse.status} ${retryResponse.statusText}`);
-        }
-        
-        console.log('Alternative payload worked!');
-        return;
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
       }
 
-      console.log('Consent saved successfully');
+      const result = await response.json();
+      console.log('Consent saved successfully:', result);
+      
     } catch (error) {
       console.error("Error in saveConsentStateToServer:", error);
     }
@@ -715,4 +696,4 @@ async function getVisitorSessionToken() {
       });
     }
   }
-})();
+})(); 

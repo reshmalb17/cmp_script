@@ -264,12 +264,24 @@ async function getVisitorSessionToken() {
       const b64IV = btoa(String.fromCharCode(...iv));
       const b64EncryptedPreferences = btoa(String.fromCharCode(...new Uint8Array(encryptedPreferences)));
 
+      // Debug logging
+      console.log('Encryption Debug:', {
+        keyLength: b64Key.length,
+        ivLength: b64IV.length,
+        encryptedLength: b64EncryptedPreferences.length,
+        hasKey: !!b64Key,
+        hasIV: !!b64IV
+      });
+
       const payload = {
         clientId,
         visitorId,
         preferences: {
           encryptedPreferences: b64EncryptedPreferences,
-          encryptionKey: { key: b64Key, iv: b64IV }
+          encryptionKey: {
+            key: b64Key,
+            iv: b64IV
+          }
         },
         policyVersion,
         timestamp,
@@ -285,7 +297,16 @@ async function getVisitorSessionToken() {
         }
       };
 
-      await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
+      // Debug log the payload structure
+      console.log('Payload Debug:', {
+        hasPreferences: !!payload.preferences,
+        hasEncryptionKey: !!payload.preferences.encryptionKey,
+        hasKey: !!payload.preferences.encryptionKey.key,
+        hasIV: !!payload.preferences.encryptionKey.iv,
+        encryptionKeyStructure: payload.preferences.encryptionKey
+      });
+
+      const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -293,6 +314,18 @@ async function getVisitorSessionToken() {
         },
         body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
+
+      console.log('Consent saved successfully');
     } catch (error) {
       console.error("Error in saveConsentStateToServer:", error);
     }

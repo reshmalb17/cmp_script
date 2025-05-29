@@ -143,13 +143,7 @@ async function getVisitorSessionToken() {
     if (existingToken && !isTokenExpired(existingToken)) {
       return existingToken;
     }
-
-    // --- Restrict API calls to max 5 using cookies ---
-    let callCount = parseInt(getConsentCookie('visitorTokenApiCallCount') || '0', 10);
-    if (callCount >= 5) {
-      console.warn('Maximum visitor token API calls reached.');
-      return null;
-    }
+  
 
     const visitorId = await getOrCreateVisitorId();
     const siteName = await cleanHostname(window.location.hostname);
@@ -168,10 +162,8 @@ async function getVisitorSessionToken() {
       throw new Error(`Failed to get visitor session token: ${response.status}`);
     }
     const data = await response.json();
-    localStorage.setItem('visitorSessionToken', data.token);
-
-    // Increment the call count in cookie (expires in 1 year)
-    setConsentCookie('visitorTokenApiCallCount', callCount + 1, 365);
+   
+   
 
     return data.token;
   } catch (error) {
@@ -273,9 +265,13 @@ async function getVisitorSessionToken() {
         hasIV: !!b64IV
       });
 
+      // Try different payload structures
       const payload = {
         clientId,
         visitorId,
+        encryptedPreferences: b64EncryptedPreferences,
+        encryptionKey: b64Key,
+        encryptionIV: b64IV,
         preferences: {
           encryptedPreferences: b64EncryptedPreferences,
           encryptionKey: {
@@ -297,14 +293,8 @@ async function getVisitorSessionToken() {
         }
       };
 
-      // Debug log the payload structure
-      console.log('Payload Debug:', {
-        hasPreferences: !!payload.preferences,
-        hasEncryptionKey: !!payload.preferences.encryptionKey,
-        hasKey: !!payload.preferences.encryptionKey.key,
-        hasIV: !!payload.preferences.encryptionKey.iv,
-        encryptionKeyStructure: payload.preferences.encryptionKey
-      });
+      // Debug log the complete payload as JSON
+      console.log('Complete Payload JSON:', JSON.stringify(payload, null, 2));
 
       const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
         method: "POST",
@@ -322,7 +312,52 @@ async function getVisitorSessionToken() {
           statusText: response.statusText,
           body: errorText
         });
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        
+        // Try alternative payload structure if first attempt fails
+        console.log('Trying alternative payload structure...');
+        const alternativePayload = {
+          clientId,
+          visitorId,
+          encryptedPreferences: b64EncryptedPreferences,
+          key: b64Key,
+          iv: b64IV,
+          policyVersion,
+          timestamp,
+          country,
+          bannerType: preferences.bannerType,
+          expiresAtTimestamp: Date.now() + (cookieDays * 24 * 60 * 60 * 1000),
+          expirationDurationDays: cookieDays,
+          metadata: {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: navigator.userAgentData?.platform || "unknown",
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          }
+        };
+        
+        console.log('Alternative Payload JSON:', JSON.stringify(alternativePayload, null, 2));
+        
+        const retryResponse = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${sessionToken}`,
+          },
+          body: JSON.stringify(alternativePayload),
+        });
+        
+        if (!retryResponse.ok) {
+          const retryErrorText = await retryResponse.text();
+          console.error('Retry also failed:', {
+            status: retryResponse.status,
+            statusText: retryResponse.statusText,
+            body: retryErrorText
+          });
+          throw new Error(`Server error: ${retryResponse.status} ${retryResponse.statusText}`);
+        }
+        
+        console.log('Alternative payload worked!');
+        return;
       }
 
       console.log('Consent saved successfully');

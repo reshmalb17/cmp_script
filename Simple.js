@@ -27,8 +27,13 @@
     scripts.forEach(function(script) {
       var category = script.getAttribute('data-category');
       if (category && category.toLowerCase() !== 'necessary' && script.type !== 'text/plain') {
-        script.type = 'text/plain';
-        script.setAttribute('data-blocked-by-consent', 'true');
+        // Handle comma-separated categories
+        var categories = category.split(',').map(function(cat) { return cat.trim(); });
+        var shouldBlock = categories.some(function(cat) { return cat.toLowerCase() !== 'necessary'; });
+        if (shouldBlock) {
+          script.type = 'text/plain';
+          script.setAttribute('data-blocked-by-consent', 'true');
+        }
       }
     });
   }
@@ -36,7 +41,12 @@
     var scripts = document.querySelectorAll('script[type="text/plain"][data-category]');
     scripts.forEach(function(oldScript) {
       var category = oldScript.getAttribute('data-category');
-      if (allowedCategories.includes(category)) {
+      // Handle comma-separated categories
+      var categories = category.split(',').map(function(cat) { return cat.trim(); });
+      var shouldEnable = categories.some(function(cat) { 
+        return allowedCategories.includes(cat); 
+      });
+      if (shouldEnable) {
         var newScript = document.createElement('script');
         for (var i = 0; i < oldScript.attributes.length; i++) {
           var attr = oldScript.attributes[i];

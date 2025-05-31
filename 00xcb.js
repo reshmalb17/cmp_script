@@ -647,16 +647,13 @@
       // Do Not Share (CCPA)
       const doNotShareBtn = qid('do-not-share-link');
       if (doNotShareBtn) {
-        doNotShareBtn.onclick = async function(e) {
+        doNotShareBtn.onclick = function(e) {
           e.preventDefault();
-          // Block all scripts and save false preferences
-          const preferences = { Analytics: false, Marketing: false, Personalization: false, bannerType: locationData ? locationData.bannerType : undefined };
-          setConsentState(preferences, cookieDays);
-          blockScriptsByCategory();
+          // Show main consent banner
+          const mainConsentBanner = document.getElementById('main-consent-banner');
+          showBanner(mainConsentBanner);
+          // Hide CCPA banner
           hideBanner(banners.ccpa);
-          localStorage.setItem("consent-given", "true");
-          await saveConsentStateToServer(preferences, cookieDays);
-          updatePreferenceForm(preferences);
         };
       }
       
@@ -698,20 +695,12 @@
             blockScriptsByCategory();
           }
           
-          // Hide both CCPA banners
+          // Hide both CCPA banners using hideBanner function
           hideBanner(banners.ccpa);
           const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
-          if (ccpaPreferencePanel) {
-            ccpaPreferencePanel.style.display = "none";
-            ccpaPreferencePanel.classList.remove("show-banner");
-            ccpaPreferencePanel.classList.add("hidden");
-          }
+          hideBanner(ccpaPreferencePanel);
           const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
-          if (ccpaBannerDiv) {
-            ccpaBannerDiv.style.display = "none";
-            ccpaBannerDiv.classList.remove("show-banner");
-            ccpaBannerDiv.classList.add("hidden");
-          }
+          hideBanner(ccpaBannerDiv);
           
           // Set consent as given
           localStorage.setItem("consent-given", "true");
@@ -744,20 +733,70 @@
           // Block all scripts
           blockScriptsByCategory();
           
+          // Hide both CCPA banners using hideBanner function
+          hideBanner(banners.ccpa);
+          const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
+          hideBanner(ccpaPreferencePanel);
+          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+          hideBanner(ccpaBannerDiv);
+          
+          // Set consent as given
+          localStorage.setItem("consent-given", "true");
+          
+          // Save to server
+          await saveConsentStateToServer(preferences, cookieDays);
+          
+          // Update preference form
+          updatePreferenceForm(preferences);
+        };
+      }
+      
+      // Save button (CCPA)
+      const saveBtn = qid('save-btn');
+      if (saveBtn) {
+        saveBtn.onclick = async function(e) {
+          e.preventDefault();
+          
+          // Read the do-not-share checkbox value
+          const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+          let preferences;
+          
+          if (doNotShareCheckbox && doNotShareCheckbox.checked) {
+            // Checkbox checked means "Do Not Share" - block all scripts (false values)
+            preferences = { 
+              Analytics: false, 
+              Marketing: false, 
+              Personalization: false,
+              bannerType: locationData ? locationData.bannerType : undefined 
+            };
+          } else {
+            // Checkbox unchecked means "Allow" - enable all scripts (true values)
+            preferences = { 
+              Analytics: true, 
+              Marketing: true, 
+              Personalization: true,
+              bannerType: locationData ? locationData.bannerType : undefined 
+            };
+          }
+          
+          // Save consent state
+          setConsentState(preferences, cookieDays);
+          
+          // Block/enable scripts based on preferences
+          if (preferences.Analytics || preferences.Marketing || preferences.Personalization) {
+            enableScriptsByCategories(Object.keys(preferences).filter(k => preferences[k]));
+          } else {
+            blockScriptsByCategory();
+          }
+          
           // Hide both CCPA banners
           hideBanner(banners.ccpa);
           const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
-          if (ccpaPreferencePanel) {
-            ccpaPreferencePanel.style.display = "none";
-            ccpaPreferencePanel.classList.remove("show-banner");
-            ccpaPreferencePanel.classList.add("hidden");
-          }
+          hideBanner(ccpaPreferencePanel);
           const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
-          if (ccpaBannerDiv) {
-            ccpaBannerDiv.style.display = "none";
-            ccpaBannerDiv.classList.remove("show-banner");
-            ccpaBannerDiv.classList.add("hidden");
-          }
+          hideBanner(ccpaBannerDiv);
+          const mainConsentBanner = document.getElementById('main-consent-banner');
+          hideBanner(mainConsentBanner);
           
           // Set consent as given
           localStorage.setItem("consent-given", "true");
@@ -821,15 +860,9 @@
         ccpaLinkBlock.onclick = function(e) {
           e.preventDefault();
           
-          // Show CCPA banner
+          // Show CCPA banner using showBanner function
           const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
-          if (ccpaBannerDiv) {
-            ccpaBannerDiv.style.display = "block";
-            ccpaBannerDiv.style.visibility = "visible";
-            ccpaBannerDiv.hidden = false;
-            ccpaBannerDiv.classList.remove("hidden");
-            ccpaBannerDiv.classList.add("show-banner");
-          }
+          showBanner(ccpaBannerDiv);
           
           // Also show the CCPA banner if it exists
           showBanner(banners.ccpa);

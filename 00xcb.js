@@ -698,12 +698,19 @@
             blockScriptsByCategory();
           }
           
-          // Hide CCPA preference panel
+          // Hide both CCPA banners
+          hideBanner(banners.ccpa);
           const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
           if (ccpaPreferencePanel) {
             ccpaPreferencePanel.style.display = "none";
             ccpaPreferencePanel.classList.remove("show-banner");
             ccpaPreferencePanel.classList.add("hidden");
+          }
+          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+          if (ccpaBannerDiv) {
+            ccpaBannerDiv.style.display = "none";
+            ccpaBannerDiv.classList.remove("show-banner");
+            ccpaBannerDiv.classList.add("hidden");
           }
           
           // Set consent as given
@@ -716,6 +723,53 @@
           updatePreferenceForm(preferences);
         };
       }
+      
+      // CCPA Preference Decline button
+      const ccpaPreferenceDeclineBtn = document.getElementById('consebit-ccpa-prefrence-decline');
+      if (ccpaPreferenceDeclineBtn) {
+        ccpaPreferenceDeclineBtn.onclick = async function(e) {
+          e.preventDefault();
+          
+          // Decline means block all scripts (all false)
+          const preferences = { 
+            Analytics: false, 
+            Marketing: false, 
+            Personalization: false, 
+            bannerType: locationData ? locationData.bannerType : undefined 
+          };
+          
+          // Save consent state
+          setConsentState(preferences, cookieDays);
+          
+          // Block all scripts
+          blockScriptsByCategory();
+          
+          // Hide both CCPA banners
+          hideBanner(banners.ccpa);
+          const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
+          if (ccpaPreferencePanel) {
+            ccpaPreferencePanel.style.display = "none";
+            ccpaPreferencePanel.classList.remove("show-banner");
+            ccpaPreferencePanel.classList.add("hidden");
+          }
+          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+          if (ccpaBannerDiv) {
+            ccpaBannerDiv.style.display = "none";
+            ccpaBannerDiv.classList.remove("show-banner");
+            ccpaBannerDiv.classList.add("hidden");
+          }
+          
+          // Set consent as given
+          localStorage.setItem("consent-given", "true");
+          
+          // Save to server
+          await saveConsentStateToServer(preferences, cookieDays);
+          
+          // Update preference form
+          updatePreferenceForm(preferences);
+        };
+      }
+      
       // Preferences button (show preferences panel)
       const preferencesBtn = qid('preferences-btn');
       if (preferencesBtn) {
@@ -758,9 +812,30 @@
         cancelBtn.onclick = function(e) {
           e.preventDefault();
           hideBanner(banners.main);
-          showBanner(banners.consent);
+          hideBanner(banners.consent);
         };
       }
+      // CCPA Link Block - Show CCPA Banner
+      const ccpaLinkBlock = document.querySelector('.consentbit-ccpa-linkblock') || document.getElementById('consentbit-ccpa-linkblock');
+      if (ccpaLinkBlock) {
+        ccpaLinkBlock.onclick = function(e) {
+          e.preventDefault();
+          
+          // Show CCPA banner
+          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+          if (ccpaBannerDiv) {
+            ccpaBannerDiv.style.display = "block";
+            ccpaBannerDiv.style.visibility = "visible";
+            ccpaBannerDiv.hidden = false;
+            ccpaBannerDiv.classList.remove("hidden");
+            ccpaBannerDiv.classList.add("show-banner");
+          }
+          
+          // Also show the CCPA banner if it exists
+          showBanner(banners.ccpa);
+        };
+      }
+      
       // Load consent styles after banners are shown
       loadConsentStyles();
     }

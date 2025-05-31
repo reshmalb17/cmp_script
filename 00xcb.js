@@ -254,16 +254,39 @@
     }
   }
 
+  // --- Manual override for testing purposes ---
+  function getTestLocationOverride() {
+    // Check if there's a manual override in localStorage for testing
+    const override = localStorage.getItem('test_location_override');
+    if (override) {
+      try {
+        return JSON.parse(override);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
   // --- Advanced: Detect location and banner type ---
   let country = null;
   async function detectLocationAndGetBannerType() {
     try {
       const sessionToken = localStorage.getItem('visitorSessionToken');
+      console.log('Location detection - Session token exists:', !!sessionToken);
+      
       if (!sessionToken) {
+        console.log('Location detection failed: No session token');
         return null;
       }
+      
       const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-      const response = await fetch(`https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`, {
+      console.log('Location detection - Site name:', siteName);
+      
+      const apiUrl = `https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`;
+      console.log('Location detection - API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${sessionToken}`,
@@ -271,16 +294,31 @@
           'Accept': 'application/json'
         },
       });
+      
+      console.log('Location detection - Response status:', response.status, response.statusText);
+      
       if (!response.ok) {
+        console.log('Location detection failed: Response not ok');
         return null;
       }
+      
       const data = await response.json();
+      console.log('Location detection - Raw response data:', data);
+      
       if (!data.bannerType) {
+        console.log('Location detection failed: No bannerType in response');
         return null;
       }
+      
       country = data.country;
+      console.log('Location detection - Success:', {
+        country: data.country,
+        bannerType: data.bannerType
+      });
+      
       return data;
     } catch (error) {
+      console.log('Location detection - Error:', error);
       return null;
     }
   }
@@ -517,8 +555,15 @@
       });
       
       // Detect which banner to show
-      locationData = await detectLocationAndGetBannerType();
-      console.log('Location detection result:', locationData);
+      const testOverride = getTestLocationOverride();
+      if (testOverride) {
+        console.log('Using test location override:', testOverride);
+        locationData = testOverride;
+        country = testOverride.country;
+      } else {
+        locationData = await detectLocationAndGetBannerType();
+      }
+      console.log('Final location data:', locationData);
       
       const consentGiven = localStorage.getItem("consent-given");
       let cookieDays = await fetchCookieExpirationDays();
@@ -604,12 +649,70 @@
       if (doNotShareBtn) {
         doNotShareBtn.onclick = async function(e) {
           e.preventDefault();
+          // Block all scripts and save false preferences
           const preferences = { Analytics: false, Marketing: false, Personalization: false, bannerType: locationData ? locationData.bannerType : undefined };
           setConsentState(preferences, cookieDays);
           blockScriptsByCategory();
           hideBanner(banners.ccpa);
           localStorage.setItem("consent-given", "true");
           await saveConsentStateToServer(preferences, cookieDays);
+          updatePreferenceForm(preferences);
+        };
+      }
+      
+      // CCPA Preference Accept button
+      const ccpaPreferenceAcceptBtn = document.getElementById('consebit-ccpa-prefrence-accept');
+      if (ccpaPreferenceAcceptBtn) {
+        ccpaPreferenceAcceptBtn.onclick = async function(e) {
+          e.preventDefault();
+          
+          // Read CCPA preference checkbox values
+          const ccpaToggleCheckboxes = document.querySelectorAll('.consentbit-ccpa-prefrence-toggle input[type="checkbox"]');
+          let preferences = { Analytics: true, Marketing: true, Personalization: true }; // Default to true (unblocked)
+          
+          // If checkboxes are checked, it means "Do Not Share" for that category (block scripts)
+          ccpaToggleCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+              // Checkbox checked means DO NOT SHARE (block/false)
+              const checkboxName = checkbox.name || checkbox.getAttribute('data-category') || '';
+              if (checkboxName.toLowerCase().includes('analytics')) {
+                preferences.Analytics = false;
+              } else if (checkboxName.toLowerCase().includes('marketing') || checkboxName.toLowerCase().includes('advertising')) {
+                preferences.Marketing = false;
+              } else if (checkboxName.toLowerCase().includes('personalization') || checkboxName.toLowerCase().includes('functional')) {
+                preferences.Personalization = false;
+              }
+            }
+          });
+          
+          // Add banner type
+          preferences.bannerType = locationData ? locationData.bannerType : undefined;
+          
+          // Save consent state
+          setConsentState(preferences, cookieDays);
+          
+          // Block/enable scripts based on preferences
+          if (preferences.Analytics || preferences.Marketing || preferences.Personalization) {
+            enableScriptsByCategories(Object.keys(preferences).filter(k => preferences[k]));
+          } else {
+            blockScriptsByCategory();
+          }
+          
+          // Hide CCPA preference panel
+          const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
+          if (ccpaPreferencePanel) {
+            ccpaPreferencePanel.style.display = "none";
+            ccpaPreferencePanel.classList.remove("show-banner");
+            ccpaPreferencePanel.classList.add("hidden");
+          }
+          
+          // Set consent as given
+          localStorage.setItem("consent-given", "true");
+          
+          // Save to server
+          await saveConsentStateToServer(preferences, cookieDays);
+          
+          // Update preference form
           updatePreferenceForm(preferences);
         };
       }

@@ -645,44 +645,16 @@
         };
       }
       // Do Not Share (CCPA)
-      const doNotShareBtn = qid('do-not-share-link');
-      if (doNotShareBtn) {
-        doNotShareBtn.onclick = function(e) {
+      const doNotShareLink = qid('do-not-share-link');
+      const ccpaBanner = qid('initial-consent-banner');
+      const mainConsentBanner = qid('main-consent-banner');
+      
+      if (doNotShareLink) {
+        doNotShareLink.addEventListener("click", function(e) {
           e.preventDefault();
-          console.log('Do Not Share clicked');
-          
-          // Find the main consent banner (it has class consentbit-ccpa_preference)
-          const mainConsentBanner = document.getElementById('main-consent-banner');
-          
-          console.log('Main consent banner found:', !!mainConsentBanner);
-          
-          if (mainConsentBanner) {
-            // Remove hidden class and ensure visibility
-            mainConsentBanner.classList.remove("hidden");
-            mainConsentBanner.classList.add("show-banner");
-            mainConsentBanner.style.display = "block";
-            mainConsentBanner.style.visibility = "visible";
-            mainConsentBanner.hidden = false;
-            
-            // Also use showBanner function
-            showBanner(mainConsentBanner);
-            
-            console.log('Main consent banner should now be visible');
-            console.log('Banner classes:', mainConsentBanner.className);
-            console.log('Banner style display:', mainConsentBanner.style.display);
-          } else {
-            console.error('Main consent banner not found!');
-          }
-          
-          // Hide CCPA banner (initial-consent-banner)
-          const ccpaBanner = document.getElementById('initial-consent-banner');
-          if (ccpaBanner) {
-            hideBanner(ccpaBanner);
-            console.log('CCPA banner (initial-consent-banner) hidden');
-          }
-          
-          console.log('Do Not Share handler completed');
-        };
+          hideBanner(ccpaBanner); // Hide CCPA banner if it's open
+          showBanner(mainConsentBanner); // Show main consent banner
+        });
       }
       
       // CCPA Preference Accept button

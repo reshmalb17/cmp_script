@@ -273,7 +273,6 @@
           const retryData = await retryResponse.json();
           // Store token immediately
           localStorage.setItem('visitorSessionToken', retryData.token);
-          tokenRequestInProgress = false;
           return retryData.token;
         }
         
@@ -283,12 +282,13 @@
       const data = await response.json();
       // Store token immediately to prevent timing issues
       localStorage.setItem('visitorSessionToken', data.token);
-      tokenRequestInProgress = false;
       return data.token;
     } catch (error) {
-      tokenRequestInProgress = false;
       console.error('Error getting visitor session token:', error);
       return null;
+    } finally {
+      // Always reset the flag regardless of success or failure
+      tokenRequestInProgress = false;
     }
   }
 

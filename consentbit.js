@@ -1026,7 +1026,6 @@
           // Set consent as given and save to server
           localStorage.setItem("consent-given", "true");
           await saveConsentStateToServer(preferences, cookieDays, false); // Exclude userAgent like decline
-          updatePreferenceForm(preferences);
           
           hideBanner(banners.main);
           hideBanner(banners.consent);

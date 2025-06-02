@@ -997,39 +997,112 @@
       }
       // Cancel button (go back to main banner)
       const cancelBtn = qid('cancel-btn');
+      console.log('Looking for cancel button with ID "cancel-btn":', !!cancelBtn);
       if (cancelBtn) {
+        console.log('Cancel button found and event listener being attached');
         cancelBtn.onclick = async function(e) {
           e.preventDefault();
           
-          // Block all scripts except necessary/essential when cancel is clicked
+          console.log('CANCEL BUTTON CLICKED - Starting script blocking and consent saving...');
+          
+          // STEP 1: Block all scripts except necessary/essential
+          console.log('Step 1: Blocking scripts...');
           blockScriptsByCategory();
           
-          // Uncheck all preference checkboxes
+          // STEP 2: Also block any scripts that are already running by disabling them
+          console.log('Step 2: Disabling active tracking scripts...');
+          // Disable Google Analytics if present
+          if (typeof gtag !== 'undefined') {
+            gtag('consent', 'update', {
+              'analytics_storage': 'denied',
+              'ad_storage': 'denied',
+              'ad_personalization': 'denied',
+              'ad_user_data': 'denied',
+              'personalization_storage': 'denied'
+            });
+            console.log('Google Analytics consent set to denied');
+          }
+          
+          // Disable Google Tag Manager if present
+          if (typeof window.dataLayer !== 'undefined') {
+            window.dataLayer.push({
+              'event': 'consent_denied',
+              'analytics_storage': 'denied',
+              'ad_storage': 'denied'
+            });
+            console.log('Google Tag Manager consent denied event pushed');
+          }
+          
+          // STEP 3: Uncheck all preference checkboxes
+          console.log('Step 3: Unchecking all checkboxes...');
           const analyticsCheckbox = qs('[data-consent-id="analytics-checkbox"]');
           const marketingCheckbox = qs('[data-consent-id="marketing-checkbox"]');
           const personalizationCheckbox = qs('[data-consent-id="personalization-checkbox"]');
           
-          if (analyticsCheckbox) analyticsCheckbox.checked = false;
-          if (marketingCheckbox) marketingCheckbox.checked = false;
-          if (personalizationCheckbox) personalizationCheckbox.checked = false;
+          if (analyticsCheckbox) {
+            analyticsCheckbox.checked = false;
+            console.log('Analytics checkbox unchecked');
+          }
+          if (marketingCheckbox) {
+            marketingCheckbox.checked = false;
+            console.log('Marketing checkbox unchecked');
+          }
+          if (personalizationCheckbox) {
+            personalizationCheckbox.checked = false;
+            console.log('Personalization checkbox unchecked');
+          }
           
-          // Save consent state with all preferences as false (like decline behavior)
+          // STEP 4: Save consent state with all preferences as false (like decline behavior)
+          console.log('Step 4: Saving consent state...');
           const preferences = { 
             Analytics: false, 
             Marketing: false, 
             Personalization: false, 
             bannerType: locationData ? locationData.bannerType : undefined 
           };
+          
+          console.log('Preferences to save:', preferences);
+          
           setConsentState(preferences, cookieDays);
           updateGtagConsent(preferences);
           
-          // Set consent as given and save to server
+          // STEP 5: Set consent as given and save to server
+          console.log('Step 5: Marking consent as given and saving to server...');
           localStorage.setItem("consent-given", "true");
-          await saveConsentStateToServer(preferences, cookieDays, false); // Exclude userAgent like decline
+          console.log('Consent marked as given in localStorage');
           
+          try {
+            await saveConsentStateToServer(preferences, cookieDays, false); // Exclude userAgent like decline
+            console.log('Consent successfully saved to server');
+          } catch (error) {
+            console.error('Failed to save consent to server:', error);
+          }
+          
+          // STEP 6: Hide banners
+          console.log('Step 6: Hiding banners...');
           hideBanner(banners.main);
           hideBanner(banners.consent);
+          
+          console.log('CANCEL BUTTON COMPLETED - All scripts blocked, consent saved as declined');
+          
+          // Verify the state was saved correctly
+          setTimeout(() => {
+            const savedPrefs = getConsentPreferences();
+            console.log('Verification - Saved preferences:', savedPrefs);
+            console.log('Verification - Consent given status:', localStorage.getItem("consent-given"));
+          }, 100);
         };
+      } else {
+        console.error('Cancel button with ID "cancel-btn" NOT FOUND! Please check HTML structure.');
+        // Try alternative selectors as fallback
+        const alternativeCancel = document.querySelector('.cancel-btn') || 
+                                 document.querySelector('[data-action="cancel"]') ||
+                                 document.querySelector('button[name="cancel"]');
+        if (alternativeCancel) {
+          console.log('Found alternative cancel button:', alternativeCancel);
+        } else {
+          console.error('No cancel button found with any common selector');
+        }
       }
       // CCPA Link Block - Show CCPA Banner
       const ccpaLinkBlock = document.querySelector('.consentbit-ccpa-linkblock') || document.getElementById('consentbit-ccpa-linkblock');

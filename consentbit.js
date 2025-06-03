@@ -211,7 +211,6 @@ async  function hideAllBanners(){
     localStorage.removeItem('consent-given');
     localStorage.removeItem('consentExpiresAt');
     localStorage.removeItem('consentExpirationDays');
-    console.log('Visitor session cleared due to server error');
   }
   
   // Add flag to prevent concurrent token requests
@@ -253,7 +252,6 @@ async  function hideAllBanners(){
       if (!response.ok) {
         // Handle 500 errors by clearing stale data and retrying
         if (response.status === 500) {
-          console.log('Server error (500) - clearing visitor data and retrying...');
           clearVisitorSession();
           
           // Generate new visitor ID and retry once
@@ -288,7 +286,6 @@ async  function hideAllBanners(){
       localStorage.setItem('visitorSessionToken', data.token);
       return data.token;
     } catch (error) {
-      console.error('Error getting visitor session token:', error);
       return null;
     } finally {
       // Always reset the flag regardless of success or failure
@@ -340,18 +337,14 @@ async  function hideAllBanners(){
   async function detectLocationAndGetBannerType() {
     try {
       const sessionToken = localStorage.getItem('visitorSessionToken');
-      console.log('Location detection - Session token exists:', !!sessionToken);
       
       if (!sessionToken) {
-        console.log('Location detection failed: No session token');
         return null;
       }
       
       const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
-      console.log('Location detection - Site name:', siteName);
       
       const apiUrl = `https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`;
-      console.log('Location detection - API URL:', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -362,30 +355,20 @@ async  function hideAllBanners(){
         },
       });
       
-      console.log('Location detection - Response status:', response.status, response.statusText);
-      
       if (!response.ok) {
-        console.log('Location detection failed: Response not ok');
         return null;
       }
       
       const data = await response.json();
-      console.log('Location detection - Raw response data:', data);
       
       if (!data.bannerType) {
-        console.log('Location detection failed: No bannerType in response');
         return null;
       }
       
       country = data.country;
-      console.log('Location detection - Success:', {
-        country: data.country,
-        bannerType: data.bannerType
-      });
       
       return data;
     } catch (error) {
-      console.log('Location detection - Error:', error);
       return null;
     }
   }
@@ -589,11 +572,9 @@ async  function hideAllBanners(){
       const token = await getVisitorSessionToken();
       if (!token) {
         // Instead of immediate reload, try clearing session and retry once
-        console.log('No token received, clearing session and retrying...');
         clearVisitorSession();
         const retryToken = await getVisitorSessionToken();
         if (!retryToken) {
-          console.log('Retry failed, reloading page...');
           setTimeout(() => location.reload(), 3000);
           return;
         }
@@ -612,7 +593,6 @@ async  function hideAllBanners(){
         return;
       }
     } catch (error) {
-      console.error('Token initialization failed:', error);
       clearVisitorSession();
       setTimeout(() => location.reload(), 3000);
       return;
@@ -628,22 +608,14 @@ async  function hideAllBanners(){
         main: qid("main-banner")
       };
       
-      console.log('Available banners:', {
-        consent: !!banners.consent,
-        ccpa: !!banners.ccpa,
-        main: !!banners.main
-      });
-      
       // Detect which banner to show
       const testOverride = getTestLocationOverride();
       if (testOverride) {
-        console.log('Using test location override:', testOverride);
         locationData = testOverride;
         country = testOverride.country;
       } else {
         locationData = await detectLocationAndGetBannerType();
       }
-      console.log('Final location data:', locationData);
       
       const consentGiven = localStorage.getItem("consent-given");
       let cookieDays = await fetchCookieExpirationDays();
@@ -655,11 +627,6 @@ async  function hideAllBanners(){
       if (!consentGiven) {
         // Show banner based on location data, or default GDPR banner if no location data
         if (locationData && locationData.bannerType === "CCPA") {
-          console.log('CCPA banner should show:', {
-            locationData: locationData,
-            bannerType: locationData.bannerType,
-            ccpaBannerExists: !!banners.ccpa
-          });
           // CCPA: Unblock all scripts initially (opt-out model)
           enableScriptsByCategories(['Analytics', 'Marketing', 'Personalization']);
           setConsentState({ Analytics: true, Marketing: true, Personalization: true }, cookieDays);
@@ -676,12 +643,6 @@ async  function hideAllBanners(){
           }
         } else {
           // Show GDPR banner (default when no location data or when location indicates GDPR)
-          console.log('GDPR banner should show:', {
-            locationData: locationData,
-            bannerType: locationData ? locationData.bannerType : 'default-GDPR',
-            consentBannerExists: !!banners.consent,
-            reason: locationData ? 'based on location data' : 'default due to no location data'
-          });
           showBanner(banners.consent);
           hideBanner(banners.ccpa);
         }
@@ -750,92 +711,22 @@ async  function hideAllBanners(){
       }
       // Do Not Share (CCPA)
       const doNotShareBtn = qid('do-not-share-link');
-      console.log('Looking for do-not-share-link button:', !!doNotShareBtn);
       if (doNotShareBtn) {
-        console.log('Do-not-share-link button found, attaching event listener');
         doNotShareBtn.onclick = function(e) {
           e.preventDefault();
-          console.log('Do Not Share clicked!');
           
           // Hide initial CCPA banner with FORCE
           const initialBanner = document.getElementById('initial-consent-banner');
           if (initialBanner) {
-            console.log('Hiding initial CCPA banner with force...');
-            console.log('Initial banner BEFORE hiding - display:', window.getComputedStyle(initialBanner).display);
-            console.log('Initial banner BEFORE hiding - visibility:', window.getComputedStyle(initialBanner).visibility);
-            console.log('Initial banner BEFORE hiding - opacity:', window.getComputedStyle(initialBanner).opacity);
-            
             hideBanner(initialBanner);
-            
-            // Check if it actually got hidden
-            setTimeout(() => {
-              console.log('Initial banner AFTER hiding - display:', window.getComputedStyle(initialBanner).display);
-              console.log('Initial banner AFTER hiding - visibility:', window.getComputedStyle(initialBanner).visibility);
-              console.log('Initial banner AFTER hiding - opacity:', window.getComputedStyle(initialBanner).opacity);
-            }, 10);
-            
-            console.log('Initial CCPA banner forcefully hidden');
-          } else {
-            console.log('Initial CCPA banner not found');
           }
           
           // Show main consent banner with force
           const mainBanner = document.getElementById('main-consent-banner');
           if (mainBanner) {
-            console.log('Main consent banner found, forcing visibility...');
-            console.log('Main banner BEFORE showing - display:', window.getComputedStyle(mainBanner).display);
-            console.log('Main banner BEFORE showing - visibility:', window.getComputedStyle(mainBanner).visibility);
-            console.log('Main banner BEFORE showing - opacity:', window.getComputedStyle(mainBanner).opacity);
-            console.log('Main banner BEFORE showing - classes:', mainBanner.className);
-            
             showBanner(mainBanner);
-            
-            // Check if it actually became visible
-            setTimeout(() => {
-              console.log('Main banner AFTER showing - display:', window.getComputedStyle(mainBanner).display);
-              console.log('Main banner AFTER showing - visibility:', window.getComputedStyle(mainBanner).visibility);
-              console.log('Main banner AFTER showing - opacity:', window.getComputedStyle(mainBanner).opacity);
-              console.log('Main banner AFTER showing - classes:', mainBanner.className);
-              console.log('Main banner AFTER showing - offsetParent:', !!mainBanner.offsetParent);
-              
-              // If still not visible, let's see what CSS rules are applied
-              if (window.getComputedStyle(mainBanner).display === 'none') {
-                console.error('CCPA Main banner STILL HIDDEN after showBanner! CSS might be overriding it.');
-                console.log('All CSS rules on main banner:');
-                const styles = window.getComputedStyle(mainBanner);
-                console.log('Computed display:', styles.display);
-                console.log('Computed visibility:', styles.visibility);
-                console.log('Computed opacity:', styles.opacity);
-                console.log('Computed position:', styles.position);
-                console.log('Computed z-index:', styles.zIndex);
-              } else {
-                console.log('✅ CCPA Main banner is now visible!');
-              }
-            }, 10);
-            
-            console.log('Main consent banner forced visible');
-          } else {
-            console.error('main-consent-banner NOT FOUND!');
-            // Debug: show all available consent elements
-            console.log('Available consent elements:');
-            document.querySelectorAll('[id*="consent"], [class*="consent"]').forEach((el, i) => {
-              console.log(`${i + 1}. ${el.tagName} - ID: ${el.id || 'none'} - Classes: ${el.className || 'none'}`);
-            });
           }
-          
-          console.log('Do Not Share handler completed');
         };
-      } else {
-        console.error('Do-not-share-link button NOT FOUND!');
-        // Try alternative selectors
-        const alternativeBtn = document.querySelector('.do-not-share-link') ||
-                              document.querySelector('[data-action="do-not-share"]') ||
-                              document.querySelector('a[href*="do-not-share"]');
-        if (alternativeBtn) {
-          console.log('Found alternative do-not-share button:', alternativeBtn);
-        } else {
-          console.error('No do-not-share button found with any selector');
-        }
       }
       
       // CCPA Preference Accept button
@@ -968,12 +859,48 @@ async  function hideAllBanners(){
           
           // Handle script blocking/unblocking based on checkbox state
           if (doNotShareCheckbox && doNotShareCheckbox.checked) {
-            // Block all scripts except necessary/essential
-            blockScriptsByCategory();
+            // CCPA: Block ALL scripts (ignore data-category for CCPA)
+            const allScripts = document.querySelectorAll('script');
+            allScripts.forEach(function(script) {
+              // Skip scripts that are already blocked or are essential scripts
+              if (script.type !== 'text/plain' && script.src !== '' && !script.hasAttribute('data-essential')) {
+                script.type = 'text/plain';
+                script.setAttribute('data-blocked-by-ccpa', 'true');
+              }
+            });
+            
+            // Also block any inline scripts that aren't essential
+            const inlineScripts = document.querySelectorAll('script:not([src]):not([data-essential])');
+            inlineScripts.forEach(function(script) {
+              if (script.type !== 'text/plain' && script.innerHTML.trim() !== '') {
+                script.type = 'text/plain';
+                script.setAttribute('data-blocked-by-ccpa', 'true');
+              }
+            });
           } else {
-            // Unblock ALL scripts (no category consideration)
-            const allScripts = document.querySelectorAll('script[type="text/plain"][data-blocked-by-consent="true"]');
-            allScripts.forEach(function(oldScript) {
+            // CCPA: Unblock ALL scripts (ignore data-category for CCPA)
+            
+            // Unblock scripts that were blocked by our CCPA logic
+            const ccpaBlockedScripts = document.querySelectorAll('script[data-blocked-by-ccpa="true"]');
+            ccpaBlockedScripts.forEach(function(oldScript) {
+              var newScript = document.createElement('script');
+              for (var i = 0; i < oldScript.attributes.length; i++) {
+                var attr = oldScript.attributes[i];
+                if (attr.name === 'type') {
+                  newScript.type = 'text/javascript';
+                } else if (attr.name !== 'data-blocked-by-ccpa') {
+                  newScript.setAttribute(attr.name, attr.value);
+                }
+              }
+              if (oldScript.innerHTML) {
+                newScript.innerHTML = oldScript.innerHTML;
+              }
+              oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+            
+            // Also unblock any scripts that were blocked by consent logic
+            const consentBlockedScripts = document.querySelectorAll('script[type="text/plain"][data-blocked-by-consent="true"]');
+            consentBlockedScripts.forEach(function(oldScript) {
               var newScript = document.createElement('script');
               for (var i = 0; i < oldScript.attributes.length; i++) {
                 var attr = oldScript.attributes[i];
@@ -1051,20 +978,14 @@ async  function hideAllBanners(){
       }
       // Cancel button (go back to main banner)
       const cancelBtn = qid('cancel-btn');
-      console.log('Looking for cancel button with ID "cancel-btn":', !!cancelBtn);
       if (cancelBtn) {
-        console.log('Cancel button found and event listener being attached');
         cancelBtn.onclick = async function(e) {
           e.preventDefault();
           
-          console.log('CANCEL BUTTON CLICKED - Starting script blocking and consent saving...');
-          
           // STEP 1: Block all scripts except necessary/essential
-          console.log('Step 1: Blocking scripts...');
           blockScriptsByCategory();
           
           // STEP 2: Also block any scripts that are already running by disabling them
-          console.log('Step 2: Disabling active tracking scripts...');
           // Disable Google Analytics if present
           if (typeof gtag !== 'undefined') {
             gtag('consent', 'update', {
@@ -1074,7 +995,6 @@ async  function hideAllBanners(){
               'ad_user_data': 'denied',
               'personalization_storage': 'denied'
             });
-            console.log('Google Analytics consent set to denied');
           }
           
           // Disable Google Tag Manager if present
@@ -1084,30 +1004,24 @@ async  function hideAllBanners(){
               'analytics_storage': 'denied',
               'ad_storage': 'denied'
             });
-            console.log('Google Tag Manager consent denied event pushed');
           }
           
           // STEP 3: Uncheck all preference checkboxes
-          console.log('Step 3: Unchecking all checkboxes...');
           const analyticsCheckbox = qs('[data-consent-id="analytics-checkbox"]');
           const marketingCheckbox = qs('[data-consent-id="marketing-checkbox"]');
           const personalizationCheckbox = qs('[data-consent-id="personalization-checkbox"]');
           
           if (analyticsCheckbox) {
             analyticsCheckbox.checked = false;
-            console.log('Analytics checkbox unchecked');
           }
           if (marketingCheckbox) {
             marketingCheckbox.checked = false;
-            console.log('Marketing checkbox unchecked');
           }
           if (personalizationCheckbox) {
             personalizationCheckbox.checked = false;
-            console.log('Personalization checkbox unchecked');
           }
           
           // STEP 4: Save consent state with all preferences as false (like decline behavior)
-          console.log('Step 4: Saving consent state...');
           const preferences = { 
             Analytics: false, 
             Marketing: false, 
@@ -1115,48 +1029,22 @@ async  function hideAllBanners(){
             bannerType: locationData ? locationData.bannerType : undefined 
           };
           
-          console.log('Preferences to save:', preferences);
-          
           setConsentState(preferences, cookieDays);
           updateGtagConsent(preferences);
           
           // STEP 5: Set consent as given and save to server
-          console.log('Step 5: Marking consent as given and saving to server...');
           localStorage.setItem("consent-given", "true");
-          console.log('Consent marked as given in localStorage');
           
           try {
             await saveConsentStateToServer(preferences, cookieDays, false); // Exclude userAgent like decline
-            console.log('Consent successfully saved to server');
           } catch (error) {
-            console.error('Failed to save consent to server:', error);
+            // Silent error handling
           }
           
           // STEP 6: Hide banners
-          console.log('Step 6: Hiding banners...');
           hideBanner(banners.main);
           hideBanner(banners.consent);
-          
-          console.log('CANCEL BUTTON COMPLETED - All scripts blocked, consent saved as declined');
-          
-          // Verify the state was saved correctly
-          setTimeout(() => {
-            const savedPrefs = getConsentPreferences();
-            console.log('Verification - Saved preferences:', savedPrefs);
-            console.log('Verification - Consent given status:', localStorage.getItem("consent-given"));
-          }, 100);
         };
-      } else {
-        console.error('Cancel button with ID "cancel-btn" NOT FOUND! Please check HTML structure.');
-        // Try alternative selectors as fallback
-        const alternativeCancel = document.querySelector('.cancel-btn') || 
-                                 document.querySelector('[data-action="cancel"]') ||
-                                 document.querySelector('button[name="cancel"]');
-        if (alternativeCancel) {
-          console.log('Found alternative cancel button:', alternativeCancel);
-        } else {
-          console.error('No cancel button found with any common selector');
-        }
       }
       // CCPA Link Block - Show CCPA Banner
       const ccpaLinkBlock = document.getElementById('consentbit-ccpa-linkblock');

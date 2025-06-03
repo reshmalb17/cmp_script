@@ -117,7 +117,7 @@
       banner.classList.add("hidden");
     }
   }
-  function hideAllBanners(){
+async  function hideAllBanners(){
     hideBanner(document.getElementById("consent-banner"));
     hideBanner(document.getElementById("initial-consent-banner"));
     hideBanner(document.getElementById("main-banner"));
@@ -532,8 +532,9 @@
 
   // --- Main ---
   document.addEventListener('DOMContentLoaded', async function() {
+ await   hideAllBanners();
     checkConsentExpiration();
-    hideAllBanners();
+
     let canPublish = false;
     let isStaging = false;
     let locationData = null;
@@ -752,12 +753,31 @@
           e.preventDefault();
           console.log('Do Not Share clicked!');
           
-          // Hide initial CCPA banner
+          // Hide initial CCPA banner with FORCE
           const initialBanner = document.getElementById('initial-consent-banner');
           if (initialBanner) {
-            console.log('Hiding initial CCPA banner...');
+            console.log('Hiding initial CCPA banner with force...');
+            
+            // Aggressively hide the initial banner
+            initialBanner.style.setProperty('display', 'none', 'important');
+            initialBanner.style.setProperty('visibility', 'hidden', 'important');
+            initialBanner.style.setProperty('opacity', '0', 'important');
+            initialBanner.style.setProperty('height', '0', 'important');
+            initialBanner.style.setProperty('max-height', '0', 'important');
+            initialBanner.style.setProperty('overflow', 'hidden', 'important');
+            initialBanner.style.setProperty('position', 'absolute', 'important');
+            initialBanner.style.setProperty('left', '-9999px', 'important');
+            
+            // Add hiding classes and attributes
+            initialBanner.classList.add('hidden', 'd-none', 'hide');
+            initialBanner.classList.remove('show-banner', 'show', 'd-block', 'visible');
+            initialBanner.hidden = true;
+            initialBanner.setAttribute('aria-hidden', 'true');
+            
+            // Also use the hideBanner function
             hideBanner(initialBanner);
-            console.log('Initial CCPA banner hidden');
+            
+            console.log('Initial CCPA banner forcefully hidden');
           } else {
             console.log('Initial CCPA banner not found');
           }
@@ -767,16 +787,87 @@
           if (mainBanner) {
             console.log('Main consent banner found, forcing visibility...');
             
+            // First, remove all potentially hiding CSS properties
+            mainBanner.style.removeProperty('display');
+            mainBanner.style.removeProperty('visibility');
+            mainBanner.style.removeProperty('opacity');
+            mainBanner.style.removeProperty('height');
+            mainBanner.style.removeProperty('max-height');
+            mainBanner.style.removeProperty('overflow');
+            
             // Force visibility with !important to override any CSS
             mainBanner.style.setProperty('display', 'block', 'important');
             mainBanner.style.setProperty('visibility', 'visible', 'important');
             mainBanner.style.setProperty('opacity', '1', 'important');
-            mainBanner.classList.remove('hidden', 'd-none', 'hide');
-            mainBanner.classList.add('show-banner', 'show', 'd-block');
+            mainBanner.style.setProperty('height', 'auto', 'important');
+            mainBanner.style.setProperty('max-height', 'none', 'important');
+            mainBanner.style.setProperty('overflow', 'visible', 'important');
+            mainBanner.style.setProperty('position', 'relative', 'important');
+            mainBanner.style.setProperty('z-index', '9999', 'important');
+            
+            // Remove any hiding classes
+            mainBanner.classList.remove('hidden', 'd-none', 'hide', 'invisible', 'sr-only', 'visually-hidden');
+            mainBanner.classList.add('show-banner', 'show', 'd-block', 'visible');
             mainBanner.hidden = false;
+            mainBanner.setAttribute('aria-hidden', 'false');
             
             // Force a reflow to ensure visibility
             mainBanner.offsetHeight;
+            
+            // Double-check and re-apply if needed
+            setTimeout(() => {
+              if (mainBanner.offsetParent === null) {
+                console.log('Banner still hidden after first attempt, trying again...');
+                mainBanner.style.setProperty('display', 'block', 'important');
+                mainBanner.style.setProperty('visibility', 'visible', 'important');
+                mainBanner.style.setProperty('opacity', '1', 'important');
+              }
+            }, 50);
+            
+            // NUCLEAR OPTION: If banner is still hidden, create and inject custom CSS to override everything
+            setTimeout(() => {
+              if (mainBanner.offsetParent === null || window.getComputedStyle(mainBanner).display === 'none') {
+                console.log('Banner still hidden - applying nuclear CSS override...');
+                
+                // Remove any existing override styles
+                const existingStyle = document.getElementById('main-banner-force-visible');
+                if (existingStyle) {
+                  existingStyle.remove();
+                }
+                
+                // Create a style element with maximum specificity to override everything
+                const style = document.createElement('style');
+                style.id = 'main-banner-force-visible';
+                style.innerHTML = `
+                  #main-consent-banner,
+                  #main-consent-banner.hidden,
+                  #main-consent-banner.d-none,
+                  #main-consent-banner.hide,
+                  .main-consent-banner,
+                  [id="main-consent-banner"] {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    height: auto !important;
+                    max-height: none !important;
+                    overflow: visible !important;
+                    position: relative !important;
+                    z-index: 9999 !important;
+                    width: auto !important;
+                    min-height: 1px !important;
+                  }
+                `;
+                document.head.appendChild(style);
+                
+                // Force another reflow
+                mainBanner.offsetHeight;
+                
+                console.log('Nuclear CSS override applied');
+                console.log('Final banner state - display:', window.getComputedStyle(mainBanner).display);
+                console.log('Final banner state - visibility:', window.getComputedStyle(mainBanner).visibility);
+                console.log('Final banner state - opacity:', window.getComputedStyle(mainBanner).opacity);
+              }
+            }, 100);
             
             console.log('Main consent banner forced visible');
             console.log('Banner display:', mainBanner.style.display);
@@ -1128,7 +1219,7 @@
         }
       }
       // CCPA Link Block - Show CCPA Banner
-      const ccpaLinkBlock = document.querySelector('.consentbit-ccpa-linkblock') || document.getElementById('consentbit-ccpa-linkblock');
+      const ccpaLinkBlock = document.getElementById('consentbit-ccpa-linkblock');
       if (ccpaLinkBlock) {
         ccpaLinkBlock.onclick = function(e) {
           e.preventDefault();

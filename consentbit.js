@@ -745,43 +745,83 @@
       }
       // Do Not Share (CCPA)
       const doNotShareBtn = qid('do-not-share-link');
+      console.log('Looking for do-not-share-link button:', !!doNotShareBtn);
       if (doNotShareBtn) {
+        console.log('Do-not-share-link button found, attaching event listener');
         doNotShareBtn.onclick = function(e) {
           e.preventDefault();
-          console.log('Do Not Share clicked');
+          console.log('Do Not Share clicked - searching for main-consent-banner...');
           
-          // Find the main consent banner (it has class consentbit-ccpa_preference)
-          const mainConsentBanner = document.getElementById('main-consent-banner');
+          // Try multiple ways to find the main consent banner
+          const mainConsentBanner = document.getElementById('main-consent-banner') ||
+                                   document.querySelector('.main-consent-banner') ||
+                                   document.querySelector('.consentbit-ccpa_preference') ||
+                                   document.querySelector('[data-banner="main-consent"]');
           
-          console.log('Main consent banner found:', !!mainConsentBanner);
+          console.log('Main consent banner search results:', {
+            'getElementById("main-consent-banner")': !!document.getElementById('main-consent-banner'),
+            'querySelector(".main-consent-banner")': !!document.querySelector('.main-consent-banner'),
+            'querySelector(".consentbit-ccpa_preference")': !!document.querySelector('.consentbit-ccpa_preference'),
+            'final banner found': !!mainConsentBanner
+          });
           
           if (mainConsentBanner) {
-            // Remove hidden class and ensure visibility
-            mainConsentBanner.classList.remove("hidden");
-            mainConsentBanner.classList.add("show-banner");
+            console.log('Main consent banner found, making it visible...');
+            
+            // Remove any hiding classes
+            mainConsentBanner.classList.remove("hidden", "d-none", "hide");
+            mainConsentBanner.classList.add("show-banner", "show", "d-block");
+            
+            // Force visibility with multiple methods
             mainConsentBanner.style.display = "block";
             mainConsentBanner.style.visibility = "visible";
+            mainConsentBanner.style.opacity = "1";
             mainConsentBanner.hidden = false;
             
             // Also use showBanner function
             showBanner(mainConsentBanner);
             
-            console.log('Main consent banner should now be visible');
-            console.log('Banner classes:', mainConsentBanner.className);
-            console.log('Banner style display:', mainConsentBanner.style.display);
+            console.log('Main consent banner visibility set. Current state:', {
+              'display': mainConsentBanner.style.display,
+              'visibility': mainConsentBanner.style.visibility,
+              'classes': mainConsentBanner.className,
+              'hidden attribute': mainConsentBanner.hidden,
+              'offsetParent': !!mainConsentBanner.offsetParent
+            });
+            
+            // Force a reflow to ensure visibility
+            mainConsentBanner.offsetHeight; // trigger reflow
+            
           } else {
-            console.error('Main consent banner not found!');
+            console.error('Main consent banner NOT FOUND with any selector!');
+            console.log('Available elements on page:');
+            console.log('All IDs containing "consent":', Array.from(document.querySelectorAll('[id*="consent"]')).map(el => el.id));
+            console.log('All classes containing "consent":', Array.from(document.querySelectorAll('[class*="consent"]')).map(el => el.className));
           }
           
           // Hide CCPA banner (initial-consent-banner)
           const ccpaBanner = document.getElementById('initial-consent-banner');
           if (ccpaBanner) {
+            console.log('Hiding initial CCPA banner...');
             hideBanner(ccpaBanner);
             console.log('CCPA banner (initial-consent-banner) hidden');
+          } else {
+            console.log('Initial CCPA banner not found');
           }
           
           console.log('Do Not Share handler completed');
         };
+      } else {
+        console.error('Do-not-share-link button NOT FOUND!');
+        // Try alternative selectors
+        const alternativeBtn = document.querySelector('.do-not-share-link') ||
+                              document.querySelector('[data-action="do-not-share"]') ||
+                              document.querySelector('a[href*="do-not-share"]');
+        if (alternativeBtn) {
+          console.log('Found alternative do-not-share button:', alternativeBtn);
+        } else {
+          console.error('No do-not-share button found with any selector');
+        }
       }
       
       // CCPA Preference Accept button

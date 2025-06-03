@@ -750,63 +750,46 @@
         console.log('Do-not-share-link button found, attaching event listener');
         doNotShareBtn.onclick = function(e) {
           e.preventDefault();
-          console.log('Do Not Share clicked - searching for main-consent-banner...');
+          console.log('Do Not Share clicked!');
           
-          // Try multiple ways to find the main consent banner
-          const mainConsentBanner = document.getElementById('main-consent-banner') ||
-                                   document.querySelector('.main-consent-banner') ||
-                                   document.querySelector('.consentbit-ccpa_preference') ||
-                                   document.querySelector('[data-banner="main-consent"]');
-          
-          console.log('Main consent banner search results:', {
-            'getElementById("main-consent-banner")': !!document.getElementById('main-consent-banner'),
-            'querySelector(".main-consent-banner")': !!document.querySelector('.main-consent-banner'),
-            'querySelector(".consentbit-ccpa_preference")': !!document.querySelector('.consentbit-ccpa_preference'),
-            'final banner found': !!mainConsentBanner
-          });
-          
-          if (mainConsentBanner) {
-            console.log('Main consent banner found, making it visible...');
-            
-            // Remove any hiding classes
-            mainConsentBanner.classList.remove("hidden", "d-none", "hide");
-            mainConsentBanner.classList.add("show-banner", "show", "d-block");
-            
-            // Force visibility with multiple methods
-            mainConsentBanner.style.display = "block";
-            mainConsentBanner.style.visibility = "visible";
-            mainConsentBanner.style.opacity = "1";
-            mainConsentBanner.hidden = false;
-            
-            // Also use showBanner function
-            showBanner(mainConsentBanner);
-            
-            console.log('Main consent banner visibility set. Current state:', {
-              'display': mainConsentBanner.style.display,
-              'visibility': mainConsentBanner.style.visibility,
-              'classes': mainConsentBanner.className,
-              'hidden attribute': mainConsentBanner.hidden,
-              'offsetParent': !!mainConsentBanner.offsetParent
-            });
-            
-            // Force a reflow to ensure visibility
-            mainConsentBanner.offsetHeight; // trigger reflow
-            
-          } else {
-            console.error('Main consent banner NOT FOUND with any selector!');
-            console.log('Available elements on page:');
-            console.log('All IDs containing "consent":', Array.from(document.querySelectorAll('[id*="consent"]')).map(el => el.id));
-            console.log('All classes containing "consent":', Array.from(document.querySelectorAll('[class*="consent"]')).map(el => el.className));
-          }
-          
-          // Hide CCPA banner (initial-consent-banner)
-          const ccpaBanner = document.getElementById('initial-consent-banner');
-          if (ccpaBanner) {
+          // Hide initial CCPA banner
+          const initialBanner = document.getElementById('initial-consent-banner');
+          if (initialBanner) {
             console.log('Hiding initial CCPA banner...');
-            hideBanner(ccpaBanner);
-            console.log('CCPA banner (initial-consent-banner) hidden');
+            hideBanner(initialBanner);
+            console.log('Initial CCPA banner hidden');
           } else {
             console.log('Initial CCPA banner not found');
+          }
+          
+          // Show main consent banner with force
+          const mainBanner = document.getElementById('main-consent-banner');
+          if (mainBanner) {
+            console.log('Main consent banner found, forcing visibility...');
+            
+            // Force visibility with !important to override any CSS
+            mainBanner.style.setProperty('display', 'block', 'important');
+            mainBanner.style.setProperty('visibility', 'visible', 'important');
+            mainBanner.style.setProperty('opacity', '1', 'important');
+            mainBanner.classList.remove('hidden', 'd-none', 'hide');
+            mainBanner.classList.add('show-banner', 'show', 'd-block');
+            mainBanner.hidden = false;
+            
+            // Force a reflow to ensure visibility
+            mainBanner.offsetHeight;
+            
+            console.log('Main consent banner forced visible');
+            console.log('Banner display:', mainBanner.style.display);
+            console.log('Banner classes:', mainBanner.className);
+            console.log('Banner offsetParent (should not be null):', !!mainBanner.offsetParent);
+            
+          } else {
+            console.error('main-consent-banner NOT FOUND!');
+            // Debug: show all available consent elements
+            console.log('Available consent elements:');
+            document.querySelectorAll('[id*="consent"], [class*="consent"]').forEach((el, i) => {
+              console.log(`${i + 1}. ${el.tagName} - ID: ${el.id || 'none'} - Classes: ${el.className || 'none'}`);
+            });
           }
           
           console.log('Do Not Share handler completed');

@@ -648,24 +648,33 @@ async  function hideAllBanners(){
         }
       } else {
         // Consent already given - apply existing preferences
-        if (prefs.Analytics || prefs.Marketing || prefs.Personalization) {
-          enableScriptsByCategories(Object.keys(prefs).filter(k => prefs[k]));
-          updateGtagConsent(prefs);
-          hideBanner(banners.consent);
-          hideBanner(banners.ccpa);
+        if (locationData && locationData.bannerType === "CCPA") {
+          // CCPA: Check donotshare preference
+          if (prefs.Analytics || prefs.Marketing || prefs.Personalization) {
+            // User chose to share - unblock scripts
+            unblockScriptsWithDataCategory();
+          } else {
+            // User chose do not share - block scripts  
+            blockScriptsWithDataCategory();
+          }
         } else {
-          blockScriptsByCategory();
-          updateGtagConsent(prefs);
-          hideBanner(banners.consent);
-          hideBanner(banners.ccpa);
+          // GDPR: Use category-based logic
+          if (prefs.Analytics || prefs.Marketing || prefs.Personalization) {
+            enableScriptsByCategories(Object.keys(prefs).filter(k => prefs[k]));
+          } else {
+            blockScriptsByCategory();
+          }
         }
+        updateGtagConsent(prefs);
+        hideBanner(banners.consent);
+        hideBanner(banners.ccpa);
       }
       // Accept all
       const acceptBtn = qid('accept-btn');
       if (acceptBtn) {
         acceptBtn.onclick = async function(e) {
           e.preventDefault();
-          const preferences = { Analytics: true, Marketing: true, Personalization: true, bannerType: locationData ? locationData.bannerType : undefined };
+          const preferences = { Analytics: true, Marketing: true, Personalization: true, donotshare: false, bannerType: locationData ? locationData.bannerType : undefined };
           setConsentState(preferences, cookieDays);
           // Unblock ALL scripts (no category consideration needed)
           const allScripts = document.querySelectorAll('script[type="text/plain"][data-blocked-by-consent="true"]');
@@ -697,7 +706,7 @@ async  function hideAllBanners(){
       if (declineBtn) {
         declineBtn.onclick = async function(e) {
           e.preventDefault();
-          const preferences = { Analytics: false, Marketing: false, Personalization: false, bannerType: locationData ? locationData.bannerType : undefined };
+          const preferences = { Analytics: false, Marketing: false, Personalization: false, donotshare: true, bannerType: locationData ? locationData.bannerType : undefined };
           setConsentState(preferences, cookieDays);
           // Block ALL scripts except necessary/essential
           blockScriptsByCategory();
@@ -737,7 +746,7 @@ async  function hideAllBanners(){
           
           // Read CCPA preference checkbox values
           const ccpaToggleCheckboxes = document.querySelectorAll('.consentbit-ccpa-prefrence-toggle input[type="checkbox"]');
-          let preferences = { Analytics: true, Marketing: true, Personalization: true }; // Default to true (unblocked)
+          let preferences = { Analytics: true, Marketing: true, Personalization: true, donotshare: false }; // Default to true (unblocked)
           
           // If checkboxes are checked, it means "Do Not Share" for that category (block scripts)
           ccpaToggleCheckboxes.forEach(checkbox => {
@@ -866,14 +875,16 @@ async  function hideAllBanners(){
             unblockScriptsWithDataCategory();
           }
           
-          // Hide both CCPA banners
-          hideBanner(banners.ccpa);
-          const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
-          hideBanner(ccpaPreferencePanel);
-          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
-          hideBanner(ccpaBannerDiv);
+          // Hide both CCPA banners - close everything
           const mainConsentBanner = document.getElementById('main-consent-banner');
-          hideBanner(mainConsentBanner);
+          const initialConsentBanner = document.getElementById('initial-consent-banner');
+          
+          if (mainConsentBanner) {
+            hideBanner(mainConsentBanner);
+          }
+          if (initialConsentBanner) {
+            hideBanner(initialConsentBanner);
+          }
           
           // Set consent as given
           localStorage.setItem("consent-given", "true");
@@ -931,86 +942,17 @@ async  function hideAllBanners(){
         cancelBtn.onclick = async function(e) {
           e.preventDefault();
           
-          // Check if this is CCPA - simple banner switch
-          if (locationData && locationData.bannerType === "CCPA") {
-            // CCPA: Simple banner switch - hide main-consent-banner and show initial-consent-banner
-            const mainConsentBanner = document.getElementById('main-consent-banner');
-            const initialConsentBanner = document.getElementById('initial-consent-banner');
-            
-            if (mainConsentBanner) {
-              hideBanner(mainConsentBanner);
-            }
-            
-            if (initialConsentBanner) {
-              showBanner(initialConsentBanner);
-            }
-            
-            return; // Exit early for CCPA
+          // Always hide main-consent-banner when cancel is clicked
+          const mainConsentBanner = document.getElementById('main-consent-banner');
+          if (mainConsentBanner) {
+            hideBanner(mainConsentBanner);
           }
           
-          // GDPR: Complex consent processing (original behavior)
-          // STEP 1: Block all scripts except necessary/essential
-          blockScriptsByCategory();
-          
-          // STEP 2: Also block any scripts that are already running by disabling them
-          // Disable Google Analytics if present
-          if (typeof gtag !== 'undefined') {
-            gtag('consent', 'update', {
-              'analytics_storage': 'denied',
-              'ad_storage': 'denied',
-              'ad_personalization': 'denied',
-              'ad_user_data': 'denied',
-              'personalization_storage': 'denied'
-            });
+          // Show initial banner if it exists
+          const initialConsentBanner = document.getElementById('initial-consent-banner');
+          if (initialConsentBanner) {
+            showBanner(initialConsentBanner);
           }
-          
-          // Disable Google Tag Manager if present
-          if (typeof window.dataLayer !== 'undefined') {
-            window.dataLayer.push({
-              'event': 'consent_denied',
-              'analytics_storage': 'denied',
-              'ad_storage': 'denied'
-            });
-          }
-          
-          // STEP 3: Uncheck all preference checkboxes
-          const analyticsCheckbox = qs('[data-consent-id="analytics-checkbox"]');
-          const marketingCheckbox = qs('[data-consent-id="marketing-checkbox"]');
-          const personalizationCheckbox = qs('[data-consent-id="personalization-checkbox"]');
-          
-          if (analyticsCheckbox) {
-            analyticsCheckbox.checked = false;
-          }
-          if (marketingCheckbox) {
-            marketingCheckbox.checked = false;
-          }
-          if (personalizationCheckbox) {
-            personalizationCheckbox.checked = false;
-          }
-          
-          // STEP 4: Save consent state with all preferences as false (like decline behavior)
-          const preferences = { 
-            Analytics: false, 
-            Marketing: false, 
-            Personalization: false, 
-            bannerType: locationData ? locationData.bannerType : undefined 
-          };
-          
-          setConsentState(preferences, cookieDays);
-          updateGtagConsent(preferences);
-          
-          // STEP 5: Set consent as given and save to server
-          localStorage.setItem("consent-given", "true");
-          
-          try {
-            await saveConsentStateToServer(preferences, cookieDays, false); // Exclude userAgent like decline
-          } catch (error) {
-            // Silent error handling
-          }
-          
-          // STEP 6: Hide banners
-          hideBanner(banners.main);
-          hideBanner(banners.consent);
         };
       }
       // CCPA Link Block - Show CCPA Banner

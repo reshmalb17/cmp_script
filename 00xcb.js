@@ -627,8 +627,8 @@ async  function hideAllBanners(){
       if (!consentGiven) {
         // Show banner based on location data, or default GDPR banner if no location data
         if (locationData && locationData.bannerType === "CCPA") {
-          // CCPA: Unblock all scripts initially (opt-out model)
-          enableScriptsByCategories(['Analytics', 'Marketing', 'Personalization']);
+          // CCPA: Unblock all scripts with data-category initially (opt-out model)
+          unblockScriptsWithDataCategory();
           setConsentState({ Analytics: true, Marketing: true, Personalization: true }, cookieDays);
           showBanner(banners.ccpa);
           hideBanner(banners.consent);
@@ -859,62 +859,11 @@ async  function hideAllBanners(){
           
           // Handle script blocking/unblocking based on checkbox state
           if (doNotShareCheckbox && doNotShareCheckbox.checked) {
-            // CCPA: Block ALL scripts (ignore data-category for CCPA)
-            const allScripts = document.querySelectorAll('script');
-            allScripts.forEach(function(script) {
-              // Skip scripts that are already blocked or are essential scripts
-              if (script.type !== 'text/plain' && script.src !== '' && !script.hasAttribute('data-essential')) {
-                script.type = 'text/plain';
-                script.setAttribute('data-blocked-by-ccpa', 'true');
-              }
-            });
-            
-            // Also block any inline scripts that aren't essential
-            const inlineScripts = document.querySelectorAll('script:not([src]):not([data-essential])');
-            inlineScripts.forEach(function(script) {
-              if (script.type !== 'text/plain' && script.innerHTML.trim() !== '') {
-                script.type = 'text/plain';
-                script.setAttribute('data-blocked-by-ccpa', 'true');
-              }
-            });
+            // CCPA: Block all scripts with data-category attribute
+            blockScriptsWithDataCategory();
           } else {
-            // CCPA: Unblock ALL scripts (ignore data-category for CCPA)
-            
-            // Unblock scripts that were blocked by our CCPA logic
-            const ccpaBlockedScripts = document.querySelectorAll('script[data-blocked-by-ccpa="true"]');
-            ccpaBlockedScripts.forEach(function(oldScript) {
-              var newScript = document.createElement('script');
-              for (var i = 0; i < oldScript.attributes.length; i++) {
-                var attr = oldScript.attributes[i];
-                if (attr.name === 'type') {
-                  newScript.type = 'text/javascript';
-                } else if (attr.name !== 'data-blocked-by-ccpa') {
-                  newScript.setAttribute(attr.name, attr.value);
-                }
-              }
-              if (oldScript.innerHTML) {
-                newScript.innerHTML = oldScript.innerHTML;
-              }
-              oldScript.parentNode.replaceChild(newScript, oldScript);
-            });
-            
-            // Also unblock any scripts that were blocked by consent logic
-            const consentBlockedScripts = document.querySelectorAll('script[type="text/plain"][data-blocked-by-consent="true"]');
-            consentBlockedScripts.forEach(function(oldScript) {
-              var newScript = document.createElement('script');
-              for (var i = 0; i < oldScript.attributes.length; i++) {
-                var attr = oldScript.attributes[i];
-                if (attr.name === 'type') {
-                  newScript.type = 'text/javascript';
-                } else if (attr.name !== 'data-blocked-by-consent') {
-                  newScript.setAttribute(attr.name, attr.value);
-                }
-              }
-              if (oldScript.innerHTML) {
-                newScript.innerHTML = oldScript.innerHTML;
-              }
-              oldScript.parentNode.replaceChild(newScript, oldScript);
-            });
+            // CCPA: Unblock all scripts with data-category attribute
+            unblockScriptsWithDataCategory();
           }
           
           // Hide both CCPA banners
@@ -977,11 +926,29 @@ async  function hideAllBanners(){
         };
       }
       // Cancel button (go back to main banner)
-      const cancelBtn = qid('cancel-btn');
+      const cancelBtn = qid('close-consent-banner');
       if (cancelBtn) {
         cancelBtn.onclick = async function(e) {
           e.preventDefault();
           
+          // Check if this is CCPA - simple banner switch
+          if (locationData && locationData.bannerType === "CCPA") {
+            // CCPA: Simple banner switch - hide main-consent-banner and show initial-consent-banner
+            const mainConsentBanner = document.getElementById('main-consent-banner');
+            const initialConsentBanner = document.getElementById('initial-consent-banner');
+            
+            if (mainConsentBanner) {
+              hideBanner(mainConsentBanner);
+            }
+            
+            if (initialConsentBanner) {
+              showBanner(initialConsentBanner);
+            }
+            
+            return; // Exit early for CCPA
+          }
+          
+          // GDPR: Complex consent processing (original behavior)
           // STEP 1: Block all scripts except necessary/essential
           blockScriptsByCategory();
           
@@ -1111,5 +1078,37 @@ async  function hideAllBanners(){
         setConsentCookie('cb-consent-' + category + '_storage', '', -1);
       });
     }
+  }
+
+  // --- CCPA-specific script handling functions ---
+  function unblockScriptsWithDataCategory() {
+    // CCPA: Unblock ALL scripts with data-category attribute (ignore category values)
+    var scripts = document.querySelectorAll('script[type="text/plain"][data-category]');
+    scripts.forEach(function(oldScript) {
+      var newScript = document.createElement('script');
+      for (var i = 0; i < oldScript.attributes.length; i++) {
+        var attr = oldScript.attributes[i];
+        if (attr.name === 'type') {
+          newScript.type = 'text/javascript';
+        } else if (attr.name !== 'data-blocked-by-ccpa') {
+          newScript.setAttribute(attr.name, attr.value);
+        }
+      }
+      if (oldScript.innerHTML) {
+        newScript.innerHTML = oldScript.innerHTML;
+      }
+      oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
+  }
+  
+  function blockScriptsWithDataCategory() {
+    // CCPA: Block ALL scripts with data-category attribute (ignore category values)
+    var scripts = document.querySelectorAll('script[data-category]');
+    scripts.forEach(function(script) {
+      if (script.type !== 'text/plain') {
+        script.type = 'text/plain';
+        script.setAttribute('data-blocked-by-ccpa', 'true');
+      }
+    });
   }
 })(); 

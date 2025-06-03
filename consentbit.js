@@ -105,14 +105,18 @@
   }
   function showBanner(banner) {
     if (banner) {
-      banner.style.display = "block";
+      banner.style.setProperty("display", "block", "important");
+      banner.style.setProperty("visibility", "visible", "important");
+      banner.style.setProperty("opacity", "1", "important");
       banner.classList.add("show-banner");
       banner.classList.remove("hidden");
     }
   }
   function hideBanner(banner) {
     if (banner) {
-      banner.style.display = "none";
+      banner.style.setProperty("display", "none", "important");
+      banner.style.setProperty("visibility", "hidden", "important");
+      banner.style.setProperty("opacity", "0", "important");
       banner.classList.remove("show-banner");
       banner.classList.add("hidden");
     }
@@ -757,25 +761,18 @@ async  function hideAllBanners(){
           const initialBanner = document.getElementById('initial-consent-banner');
           if (initialBanner) {
             console.log('Hiding initial CCPA banner with force...');
+            console.log('Initial banner BEFORE hiding - display:', window.getComputedStyle(initialBanner).display);
+            console.log('Initial banner BEFORE hiding - visibility:', window.getComputedStyle(initialBanner).visibility);
+            console.log('Initial banner BEFORE hiding - opacity:', window.getComputedStyle(initialBanner).opacity);
             
-            // Aggressively hide the initial banner
-            initialBanner.style.setProperty('display', 'none', 'important');
-            initialBanner.style.setProperty('visibility', 'hidden', 'important');
-            initialBanner.style.setProperty('opacity', '0', 'important');
-            initialBanner.style.setProperty('height', '0', 'important');
-            initialBanner.style.setProperty('max-height', '0', 'important');
-            initialBanner.style.setProperty('overflow', 'hidden', 'important');
-            initialBanner.style.setProperty('position', 'absolute', 'important');
-            initialBanner.style.setProperty('left', '-9999px', 'important');
-            
-            // Add hiding classes and attributes
-            initialBanner.classList.add('hidden', 'd-none', 'hide');
-            initialBanner.classList.remove('show-banner', 'show', 'd-block', 'visible');
-            initialBanner.hidden = true;
-            initialBanner.setAttribute('aria-hidden', 'true');
-            
-            // Also use the hideBanner function
             hideBanner(initialBanner);
+            
+            // Check if it actually got hidden
+            setTimeout(() => {
+              console.log('Initial banner AFTER hiding - display:', window.getComputedStyle(initialBanner).display);
+              console.log('Initial banner AFTER hiding - visibility:', window.getComputedStyle(initialBanner).visibility);
+              console.log('Initial banner AFTER hiding - opacity:', window.getComputedStyle(initialBanner).opacity);
+            }, 10);
             
             console.log('Initial CCPA banner forcefully hidden');
           } else {
@@ -786,94 +783,37 @@ async  function hideAllBanners(){
           const mainBanner = document.getElementById('main-consent-banner');
           if (mainBanner) {
             console.log('Main consent banner found, forcing visibility...');
+            console.log('Main banner BEFORE showing - display:', window.getComputedStyle(mainBanner).display);
+            console.log('Main banner BEFORE showing - visibility:', window.getComputedStyle(mainBanner).visibility);
+            console.log('Main banner BEFORE showing - opacity:', window.getComputedStyle(mainBanner).opacity);
+            console.log('Main banner BEFORE showing - classes:', mainBanner.className);
             
-            // First, remove all potentially hiding CSS properties
-            mainBanner.style.removeProperty('display');
-            mainBanner.style.removeProperty('visibility');
-            mainBanner.style.removeProperty('opacity');
-            mainBanner.style.removeProperty('height');
-            mainBanner.style.removeProperty('max-height');
-            mainBanner.style.removeProperty('overflow');
+            showBanner(mainBanner);
             
-            // Force visibility with !important to override any CSS
-            mainBanner.style.setProperty('display', 'block', 'important');
-            mainBanner.style.setProperty('visibility', 'visible', 'important');
-            mainBanner.style.setProperty('opacity', '1', 'important');
-            mainBanner.style.setProperty('height', 'auto', 'important');
-            mainBanner.style.setProperty('max-height', 'none', 'important');
-            mainBanner.style.setProperty('overflow', 'visible', 'important');
-            mainBanner.style.setProperty('position', 'relative', 'important');
-            mainBanner.style.setProperty('z-index', '9999', 'important');
-            
-            // Remove any hiding classes
-            mainBanner.classList.remove('hidden', 'd-none', 'hide', 'invisible', 'sr-only', 'visually-hidden');
-            mainBanner.classList.add('show-banner', 'show', 'd-block', 'visible');
-            mainBanner.hidden = false;
-            mainBanner.setAttribute('aria-hidden', 'false');
-            
-            // Force a reflow to ensure visibility
-            mainBanner.offsetHeight;
-            
-            // Double-check and re-apply if needed
+            // Check if it actually became visible
             setTimeout(() => {
-              if (mainBanner.offsetParent === null) {
-                console.log('Banner still hidden after first attempt, trying again...');
-                mainBanner.style.setProperty('display', 'block', 'important');
-                mainBanner.style.setProperty('visibility', 'visible', 'important');
-                mainBanner.style.setProperty('opacity', '1', 'important');
+              console.log('Main banner AFTER showing - display:', window.getComputedStyle(mainBanner).display);
+              console.log('Main banner AFTER showing - visibility:', window.getComputedStyle(mainBanner).visibility);
+              console.log('Main banner AFTER showing - opacity:', window.getComputedStyle(mainBanner).opacity);
+              console.log('Main banner AFTER showing - classes:', mainBanner.className);
+              console.log('Main banner AFTER showing - offsetParent:', !!mainBanner.offsetParent);
+              
+              // If still not visible, let's see what CSS rules are applied
+              if (window.getComputedStyle(mainBanner).display === 'none') {
+                console.error('CCPA Main banner STILL HIDDEN after showBanner! CSS might be overriding it.');
+                console.log('All CSS rules on main banner:');
+                const styles = window.getComputedStyle(mainBanner);
+                console.log('Computed display:', styles.display);
+                console.log('Computed visibility:', styles.visibility);
+                console.log('Computed opacity:', styles.opacity);
+                console.log('Computed position:', styles.position);
+                console.log('Computed z-index:', styles.zIndex);
+              } else {
+                console.log('✅ CCPA Main banner is now visible!');
               }
-            }, 50);
-            
-            // NUCLEAR OPTION: If banner is still hidden, create and inject custom CSS to override everything
-            setTimeout(() => {
-              if (mainBanner.offsetParent === null || window.getComputedStyle(mainBanner).display === 'none') {
-                console.log('Banner still hidden - applying nuclear CSS override...');
-                
-                // Remove any existing override styles
-                const existingStyle = document.getElementById('main-banner-force-visible');
-                if (existingStyle) {
-                  existingStyle.remove();
-                }
-                
-                // Create a style element with maximum specificity to override everything
-                const style = document.createElement('style');
-                style.id = 'main-banner-force-visible';
-                style.innerHTML = `
-                  #main-consent-banner,
-                  #main-consent-banner.hidden,
-                  #main-consent-banner.d-none,
-                  #main-consent-banner.hide,
-                  .main-consent-banner,
-                  [id="main-consent-banner"] {
-                    display: block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    height: auto !important;
-                    max-height: none !important;
-                    overflow: visible !important;
-                    position: relative !important;
-                    z-index: 9999 !important;
-                    width: auto !important;
-                    min-height: 1px !important;
-                  }
-                `;
-                document.head.appendChild(style);
-                
-                // Force another reflow
-                mainBanner.offsetHeight;
-                
-                console.log('Nuclear CSS override applied');
-                console.log('Final banner state - display:', window.getComputedStyle(mainBanner).display);
-                console.log('Final banner state - visibility:', window.getComputedStyle(mainBanner).visibility);
-                console.log('Final banner state - opacity:', window.getComputedStyle(mainBanner).opacity);
-              }
-            }, 100);
+            }, 10);
             
             console.log('Main consent banner forced visible');
-            console.log('Banner display:', mainBanner.style.display);
-            console.log('Banner classes:', mainBanner.className);
-            console.log('Banner offsetParent (should not be null):', !!mainBanner.offsetParent);
-            
           } else {
             console.error('main-consent-banner NOT FOUND!');
             // Debug: show all available consent elements

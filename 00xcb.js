@@ -971,36 +971,7 @@ async  function hideAllBanners(){
       }
       
       // Close Consent Banner functionality (CCPA only)
-      const closeConsentBanner = document.getElementById('close-consent-banner');
-      const initialConsentBanner = document.getElementById('initial-consent-banner');
-      
-      // Only apply close banner logic for CCPA banners
-      if (closeConsentBanner && initialConsentBanner && locationData && locationData.bannerType === "CCPA") {
-        // Check if close-consent-banner is visible
-        const isCloseConsentVisible = closeConsentBanner.style.display !== 'none' && 
-                                    !closeConsentBanner.classList.contains('hidden') &&
-                                    closeConsentBanner.offsetParent !== null;
-        
-        if (isCloseConsentVisible) {
-          hideBanner(initialConsentBanner);
-        }
-        
-        // Handle close-consent-banner click
-        closeConsentBanner.onclick = function(e) {
-          e.preventDefault();
-          
-          // Hide close-consent-banner and show initial-consent-banner
-          hideBanner(closeConsentBanner);
-          showBanner(initialConsentBanner);
-          
-          // Force display initial consent banner
-          initialConsentBanner.style.display = "block";
-          initialConsentBanner.style.visibility = "visible";
-          initialConsentBanner.hidden = false;
-          initialConsentBanner.classList.remove("hidden");
-          initialConsentBanner.classList.add("show-banner");
-        };
-      }
+    
       
       // Load consent styles after banners are shown
       loadConsentStyles();

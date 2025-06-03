@@ -982,24 +982,6 @@ async  function hideAllBanners(){
         cancelBtn.onclick = async function(e) {
           e.preventDefault();
           
-          // Check if this is CCPA - simple banner switch
-          if (locationData && locationData.bannerType === "CCPA") {
-            // CCPA: Simple banner switch - hide main-consent-banner and show initial-consent-banner
-            const mainConsentBanner = document.getElementById('main-consent-banner');
-            const initialConsentBanner = document.getElementById('initial-consent-banner');
-            
-            if (mainConsentBanner) {
-              hideBanner(mainConsentBanner);
-            }
-            
-            if (initialConsentBanner) {
-              showBanner(initialConsentBanner);
-            }
-            
-            return; // Exit early for CCPA
-          }
-          
-          // GDPR: Complex consent processing (original behavior)
           // STEP 1: Block all scripts except necessary/essential
           blockScriptsByCategory();
           

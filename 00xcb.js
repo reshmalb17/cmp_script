@@ -1,1 +1,1133 @@
-function _0x1c31(_0x20b2a5,_0x369aaf){const _0x2fab15=_0x2fab();return _0x1c31=function(_0x1c310e,_0x262bf7){_0x1c310e=_0x1c310e-0x122;let _0x221fce=_0x2fab15[_0x1c310e];return _0x221fce;},_0x1c31(_0x20b2a5,_0x369aaf);}(function(_0x17cd0c,_0x4428c3){const _0x276c2b=_0x1c31,_0x2dbed=_0x17cd0c();while(!![]){try{const _0x43cfac=-parseInt(_0x276c2b(0x150))/0x1+-parseInt(_0x276c2b(0x14f))/0x2+parseInt(_0x276c2b(0x14c))/0x3*(-parseInt(_0x276c2b(0x14a))/0x4)+parseInt(_0x276c2b(0x148))/0x5+-parseInt(_0x276c2b(0x1a3))/0x6*(-parseInt(_0x276c2b(0x1ad))/0x7)+parseInt(_0x276c2b(0x157))/0x8+parseInt(_0x276c2b(0x16a))/0x9;if(_0x43cfac===_0x4428c3)break;else _0x2dbed['push'](_0x2dbed['shift']());}catch(_0x29c74b){_0x2dbed['push'](_0x2dbed['shift']());}}}(_0x2fab,0xd171c),(function(){const _0x5ad990=_0x1c31,_0x24f2d4='t95w6oAeL1hr0rrtCGKok/3GFNwxzfLxiWTETfZurpI=',_0x49c9af=_0x5ad990(0x18a);function _0x5bdab7(_0x4d1144,_0x3d5982,_0x13eab7){const _0x4620a3=_0x5ad990;let _0x2b5852='';if(_0x13eab7){const _0x241413=new Date();_0x241413['setTime'](_0x241413[_0x4620a3(0x16e)]()+_0x13eab7*0x18*0x3c*0x3c*0x3e8),_0x2b5852=_0x4620a3(0x125)+_0x241413['toUTCString']();}let _0x1cec8e=_0x4d1144+'='+_0x3d5982+_0x2b5852+';\x20path=/;\x20SameSite=Lax';location['protocol']===_0x4620a3(0x190)&&(_0x1cec8e+=_0x4620a3(0x141)),document['cookie']=_0x1cec8e;}function _0x3be05a(_0x200d22){const _0x49a96b=_0x5ad990,_0x150bd4=';\x20'+document[_0x49a96b(0x155)],_0x4faa26=_0x150bd4[_0x49a96b(0x1da)](';\x20'+_0x200d22+'=');if(_0x4faa26[_0x49a96b(0x188)]===0x2)return _0x4faa26[_0x49a96b(0x132)]()[_0x49a96b(0x1da)](';')[_0x49a96b(0x159)]();}function _0x1bd839(){const _0x3ace18=_0x5ad990;var _0x1d88c9=document[_0x3ace18(0x194)](_0x3ace18(0x1ca));_0x1d88c9['forEach'](function(_0x3560ee){const _0x18970c=_0x3ace18;var _0x5cd544=_0x3560ee['getAttribute'](_0x18970c(0x1b4));if(_0x5cd544&&_0x3560ee[_0x18970c(0x1dc)]!==_0x18970c(0x1c0)){var _0x507736=_0x5cd544[_0x18970c(0x1da)](',')[_0x18970c(0x186)](function(_0x2a8b9f){const _0x162103=_0x18970c;return _0x2a8b9f[_0x162103(0x12e)]();}),_0x3ba2b5=_0x507736[_0x18970c(0x17c)](function(_0x41692d){const _0x19bd68=_0x18970c;var _0x8ae84a=_0x41692d[_0x19bd68(0x16d)]();return _0x8ae84a==='necessary'||_0x8ae84a===_0x19bd68(0x146);});!_0x3ba2b5&&(_0x3560ee[_0x18970c(0x1dc)]=_0x18970c(0x1c0),_0x3560ee[_0x18970c(0x1cb)](_0x18970c(0x1a7),'true'));}});}function _0x42178c(_0x3d753f){const _0x26166=_0x5ad990;var _0x37379b=document[_0x26166(0x194)]('script[type=\x22text/plain\x22][data-category]');_0x37379b['forEach'](function(_0x86d1b5){const _0x533edd=_0x26166;var _0x4bca5c=_0x86d1b5['getAttribute'](_0x533edd(0x1b4)),_0x6717ae=_0x4bca5c[_0x533edd(0x1da)](',')[_0x533edd(0x186)](function(_0x4430da){const _0x21b064=_0x533edd;return _0x4430da[_0x21b064(0x12e)]();}),_0x408bfd=_0x6717ae[_0x533edd(0x17c)](function(_0x393276){const _0x1d755b=_0x533edd;return _0x3d753f[_0x1d755b(0x197)](_0x393276);});if(_0x408bfd){var _0xa20650=document[_0x533edd(0x156)](_0x533edd(0x16b));for(var _0x271c65=0x0;_0x271c65<_0x86d1b5[_0x533edd(0x14d)][_0x533edd(0x188)];_0x271c65++){var _0x44d846=_0x86d1b5[_0x533edd(0x14d)][_0x271c65];_0x44d846['name']===_0x533edd(0x1dc)?_0xa20650[_0x533edd(0x1dc)]=_0x533edd(0x1d2):_0xa20650[_0x533edd(0x1cb)](_0x44d846[_0x533edd(0x137)],_0x44d846[_0x533edd(0x1e2)]);}_0x86d1b5[_0x533edd(0x169)]&&(_0xa20650[_0x533edd(0x169)]=_0x86d1b5[_0x533edd(0x169)]),_0x86d1b5[_0x533edd(0x1ab)][_0x533edd(0x12d)](_0xa20650,_0x86d1b5);}});}function _0x34ecf6(_0x5ce246){const _0x1c3e81=_0x5ad990;typeof gtag===_0x1c3e81(0x135)&&gtag(_0x1c3e81(0x178),_0x1c3e81(0x1c3),{'analytics_storage':_0x5ce246[_0x1c3e81(0x12b)]?'granted':_0x1c3e81(0x18b),'functionality_storage':_0x1c3e81(0x1b7),'ad_storage':_0x5ce246[_0x1c3e81(0x19d)]?_0x1c3e81(0x1b7):_0x1c3e81(0x18b),'ad_personalization':_0x5ce246[_0x1c3e81(0x19d)]?_0x1c3e81(0x1b7):_0x1c3e81(0x18b),'ad_user_data':_0x5ce246[_0x1c3e81(0x19d)]?'granted':_0x1c3e81(0x18b),'personalization_storage':_0x5ce246[_0x1c3e81(0x1bc)]?_0x1c3e81(0x1b7):'denied','security_storage':_0x1c3e81(0x1b7)});}function _0x357195(_0x45b0cf,_0x37ee04){const _0x318ef2=_0x5ad990;[_0x318ef2(0x12b),_0x318ef2(0x19d),_0x318ef2(0x1bc)][_0x318ef2(0x153)](function(_0x34d1d5){const _0x16972c=_0x318ef2;_0x5bdab7(_0x16972c(0x19e)+_0x34d1d5[_0x16972c(0x16d)]()+_0x16972c(0x134),_0x45b0cf[_0x34d1d5]?_0x16972c(0x196):_0x16972c(0x1cd),_0x37ee04||0x16d);}),_0x34ecf6(_0x45b0cf);const _0x3379f2=Date['now']()+_0x37ee04*0x18*0x3c*0x3c*0x3e8;localStorage[_0x318ef2(0x176)](_0x318ef2(0x1ba),_0x3379f2['toString']()),localStorage['setItem'](_0x318ef2(0x1b0),_0x37ee04['toString']());}function _0xeb73d1(){const _0x1bf407=_0x5ad990;return{'Analytics':_0x3be05a(_0x1bf407(0x140))==='true','Marketing':_0x3be05a(_0x1bf407(0x191))===_0x1bf407(0x196),'Personalization':_0x3be05a(_0x1bf407(0x163))==='true'};}function _0x1e5730(_0x26bdc0){const _0xbdf956=_0x5ad990;_0x26bdc0&&(_0x26bdc0['style'][_0xbdf956(0x1a9)](_0xbdf956(0x1e3),_0xbdf956(0x1e7),_0xbdf956(0x184)),_0x26bdc0[_0xbdf956(0x142)][_0xbdf956(0x1a9)](_0xbdf956(0x123),_0xbdf956(0x126),_0xbdf956(0x184)),_0x26bdc0[_0xbdf956(0x142)][_0xbdf956(0x1a9)]('opacity','1',_0xbdf956(0x184)),_0x26bdc0[_0xbdf956(0x1d4)][_0xbdf956(0x1df)](_0xbdf956(0x193)),_0x26bdc0[_0xbdf956(0x1d4)][_0xbdf956(0x1a6)](_0xbdf956(0x171)));}function _0x4d0665(_0x250730){const _0x4b5789=_0x5ad990;_0x250730&&(_0x250730[_0x4b5789(0x142)]['setProperty'](_0x4b5789(0x1e3),_0x4b5789(0x166),_0x4b5789(0x184)),_0x250730[_0x4b5789(0x142)]['setProperty'](_0x4b5789(0x123),_0x4b5789(0x171),'important'),_0x250730[_0x4b5789(0x142)][_0x4b5789(0x1a9)](_0x4b5789(0x1aa),'0',_0x4b5789(0x184)),_0x250730[_0x4b5789(0x1d4)][_0x4b5789(0x1a6)]('show-banner'),_0x250730['classList']['add']('hidden'));}async function _0x247cbe(){const _0x15648b=_0x5ad990;_0x4d0665(document[_0x15648b(0x1a1)](_0x15648b(0x164))),_0x4d0665(document[_0x15648b(0x1a1)](_0x15648b(0x124))),_0x4d0665(document[_0x15648b(0x1a1)](_0x15648b(0x136))),_0x4d0665(document['getElementById']('main-consent-banner')),_0x4d0665(document[_0x15648b(0x1a1)](_0x15648b(0x19b)));}function _0x46e867(){const _0x4edc82=_0x5ad990;_0x1e5730(document[_0x4edc82(0x1a1)](_0x4edc82(0x164))),_0x1e5730(document['getElementById']('initial-consent-banner')),_0x1e5730(document[_0x4edc82(0x1a1)](_0x4edc82(0x136))),_0x1e5730(document[_0x4edc82(0x1a1)]('main-consent-banner')),_0x1e5730(document[_0x4edc82(0x1a1)](_0x4edc82(0x19b)));}function _0x210792(_0x53555e){const _0x1ba827=_0x5ad990,_0x268df5=atob(_0x53555e),_0x45c5a7=new Uint8Array(_0x268df5[_0x1ba827(0x188)]);for(let _0x55c9e6=0x0;_0x55c9e6<_0x268df5[_0x1ba827(0x188)];_0x55c9e6++){_0x45c5a7[_0x55c9e6]=_0x268df5[_0x1ba827(0x1ce)](_0x55c9e6);}return _0x45c5a7;}function _0x5ed4ed(_0x57b227){const _0x41f793=_0x5ad990;return btoa(String[_0x41f793(0x12f)](..._0x57b227));}async function _0x1af4e(){const _0xfe6d8d=_0x5ad990,_0x4dc97f=_0x210792(_0x24f2d4);return crypto[_0xfe6d8d(0x1c6)][_0xfe6d8d(0x1c2)](_0xfe6d8d(0x1e4),_0x4dc97f,{'name':'AES-GCM'},![],['encrypt',_0xfe6d8d(0x133)]);}async function _0x119206(_0x43626b){const _0x25b62b=_0x5ad990;try{const _0x46e1a9=await _0x1af4e(),_0x3935d9=_0x210792(_0x49c9af),_0x3c662e=new TextEncoder(),_0x2d57ef=await crypto[_0x25b62b(0x1c6)][_0x25b62b(0x1c7)]({'name':_0x25b62b(0x17a),'iv':_0x3935d9},_0x46e1a9,_0x3c662e[_0x25b62b(0x1be)](_0x43626b));return _0x5ed4ed(new Uint8Array(_0x2d57ef));}catch(_0x10467b){throw _0x10467b;}}function _0x43296e(_0x27f08f){const _0x5968df=_0x5ad990;if(!_0x27f08f)return!![];const [_0x210647]=_0x27f08f[_0x5968df(0x1da)]('.');if(!_0x210647)return!![];try{const _0x280417=JSON[_0x5968df(0x19f)](atob(_0x210647));if(!_0x280417['exp'])return!![];return _0x280417[_0x5968df(0x187)]<Math['floor'](Date[_0x5968df(0x18f)]()/0x3e8);}catch{return!![];}}async function _0x574a6f(){const _0x4418e1=_0x5ad990;let _0x268b8d=localStorage[_0x4418e1(0x1a4)](_0x4418e1(0x158));return!_0x268b8d&&(_0x268b8d=crypto[_0x4418e1(0x179)](),localStorage[_0x4418e1(0x176)](_0x4418e1(0x158),_0x268b8d)),_0x268b8d;}async function _0x356db1(_0x2d1abf){const _0x458807=_0x5ad990;let _0x353eb4=_0x2d1abf['replace'](/^www\./,'');return _0x353eb4=_0x353eb4[_0x458807(0x1da)]('.')[0x0],_0x353eb4;}function _0x1cbe2e(){const _0x5c41c0=_0x5ad990;localStorage[_0x5c41c0(0x127)](_0x5c41c0(0x158)),localStorage[_0x5c41c0(0x127)](_0x5c41c0(0x1d5)),localStorage[_0x5c41c0(0x127)](_0x5c41c0(0x130)),localStorage[_0x5c41c0(0x127)]('consentExpiresAt'),localStorage[_0x5c41c0(0x127)](_0x5c41c0(0x1b0));}let _0x5c019b=![];async function _0x2bc813(){const _0x16c8d0=_0x5ad990;try{if(_0x5c019b){await new Promise(_0x3b0d32=>setTimeout(_0x3b0d32,0x3e8));const _0x22ca51=localStorage[_0x16c8d0(0x1a4)](_0x16c8d0(0x1d5));if(_0x22ca51&&!_0x43296e(_0x22ca51))return _0x22ca51;}const _0x5d7765=localStorage[_0x16c8d0(0x1a4)](_0x16c8d0(0x1d5));if(_0x5d7765&&!_0x43296e(_0x5d7765))return _0x5d7765;_0x5c019b=!![];const _0x1792d4=await _0x574a6f(),_0x1a4e72=await _0x356db1(window['location']['hostname']),_0x4f03f7=await fetch(_0x16c8d0(0x128),{'method':_0x16c8d0(0x143),'headers':{'Content-Type':_0x16c8d0(0x1c8)},'body':JSON['stringify']({'visitorId':_0x1792d4,'siteName':_0x1a4e72})});if(!_0x4f03f7['ok']){if(_0x4f03f7[_0x16c8d0(0x1b2)]===0x1f4){_0x1cbe2e();const _0x56553f=await _0x574a6f(),_0x34c72c=await fetch(_0x16c8d0(0x128),{'method':_0x16c8d0(0x143),'headers':{'Content-Type':_0x16c8d0(0x1c8)},'body':JSON['stringify']({'visitorId':_0x56553f,'siteName':_0x1a4e72})});if(!_0x34c72c['ok'])throw new Error(_0x16c8d0(0x14e)+_0x34c72c[_0x16c8d0(0x1b2)]);const _0x1f16a9=await _0x34c72c['json']();return localStorage['setItem'](_0x16c8d0(0x1d5),_0x1f16a9[_0x16c8d0(0x1a0)]),_0x1f16a9[_0x16c8d0(0x1a0)];}throw new Error(_0x16c8d0(0x165)+_0x4f03f7[_0x16c8d0(0x1b2)]);}const _0x3ded97=await _0x4f03f7['json']();return localStorage[_0x16c8d0(0x176)]('visitorSessionToken',_0x3ded97[_0x16c8d0(0x1a0)]),_0x3ded97[_0x16c8d0(0x1a0)];}catch(_0x4e87f0){return null;}finally{_0x5c019b=![];}}async function _0x46da4b(){const _0x3bec6e=_0x5ad990,_0x4d6ace=localStorage[_0x3bec6e(0x1a4)]('visitorSessionToken');if(!_0x4d6ace)return 0xb4;try{const _0x51683a=window[_0x3bec6e(0x19a)][_0x3bec6e(0x15b)][_0x3bec6e(0x1a8)](/^www\./,'')[_0x3bec6e(0x1da)]('.')[0x0],_0x3ea3c1=_0x3bec6e(0x15c)+encodeURIComponent(_0x51683a),_0x5e9747=await fetch(_0x3ea3c1,{'method':_0x3bec6e(0x13a),'headers':{'Authorization':_0x3bec6e(0x1b9)+_0x4d6ace,'Accept':_0x3bec6e(0x1c8)}});if(!_0x5e9747['ok'])return 0xb4;const _0x45b2b9=await _0x5e9747[_0x3bec6e(0x175)]();if(_0x45b2b9&&_0x45b2b9[_0x3bec6e(0x182)]!==null&&_0x45b2b9[_0x3bec6e(0x182)]!==undefined)return parseInt(_0x45b2b9[_0x3bec6e(0x182)],0xa);return 0xb4;}catch{return 0xb4;}}function _0x23461e(){const _0x3e9e2c=_0x5ad990,_0x27d372=localStorage['getItem'](_0x3e9e2c(0x1d6));if(_0x27d372)try{return JSON['parse'](_0x27d372);}catch{return null;}return null;}let _0x57cfef=null;async function _0x1fe1b4(){const _0x5cdb2a=_0x5ad990;try{const _0x3d37e0=localStorage[_0x5cdb2a(0x1a4)](_0x5cdb2a(0x1d5));if(!_0x3d37e0)return null;const _0x39fd2e=window[_0x5cdb2a(0x19a)][_0x5cdb2a(0x15b)]['replace'](/^www\./,'')[_0x5cdb2a(0x1da)]('.')[0x0],_0x549d7e='https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName='+encodeURIComponent(_0x39fd2e),_0x5c77cd=await fetch(_0x549d7e,{'method':_0x5cdb2a(0x13a),'headers':{'Authorization':_0x5cdb2a(0x1b9)+_0x3d37e0,'Content-Type':_0x5cdb2a(0x1c8),'Accept':_0x5cdb2a(0x1c8)}});if(!_0x5c77cd['ok'])return null;const _0x4a5023=await _0x5c77cd[_0x5cdb2a(0x175)]();if(!_0x4a5023[_0x5cdb2a(0x1ac)])return null;return _0x57cfef=_0x4a5023[_0x5cdb2a(0x1c1)],_0x4a5023;}catch(_0x5e88d4){return null;}}async function _0x41acd6(_0x5ef1f8,_0xa3009b,_0x4b407f){const _0x22c26e=_0x5ad990;try{const _0x360a69=window[_0x22c26e(0x19a)][_0x22c26e(0x15b)],_0x41f6e8=localStorage['getItem'](_0x22c26e(0x158)),_0x4afbac=_0x22c26e(0x1c5),_0x366630=new Date()[_0x22c26e(0x17e)](),_0xe44356=localStorage[_0x22c26e(0x1a4)](_0x22c26e(0x1d5));if(!_0xe44356)return;const _0x49636b={'clientId':_0x360a69,'visitorId':_0x41f6e8,'preferences':_0x5ef1f8,'policyVersion':_0x4afbac,'timestamp':_0x366630,'country':_0x57cfef||'IN','bannerType':_0x5ef1f8[_0x22c26e(0x1ac)]||_0x22c26e(0x13c),'expiresAtTimestamp':Date[_0x22c26e(0x18f)]()+(_0xa3009b||0x16d)*0x18*0x3c*0x3c*0x3e8,'expirationDurationDays':_0xa3009b||0x16d,'metadata':{..._0x4b407f&&{'userAgent':navigator[_0x22c26e(0x18c)]},'language':navigator[_0x22c26e(0x129)],'platform':navigator[_0x22c26e(0x192)]?.[_0x22c26e(0x180)]||_0x22c26e(0x160),'timezone':Intl['DateTimeFormat']()[_0x22c26e(0x18d)]()['timeZone']}},_0x42119e=await _0x119206(JSON[_0x22c26e(0x1c4)](_0x49636b)),_0x3be740={'encryptedData':_0x42119e},_0x19e44c=await fetch(_0x22c26e(0x1b5),{'method':_0x22c26e(0x143),'headers':{'Content-Type':_0x22c26e(0x1c8),'Authorization':_0x22c26e(0x1b9)+_0xe44356},'body':JSON[_0x22c26e(0x1c4)](_0x3be740)});if(!_0x19e44c['ok']){const _0x2a29b5=await _0x19e44c[_0x22c26e(0x198)]();throw new Error(_0x22c26e(0x1e1)+_0x19e44c[_0x22c26e(0x1b2)]+'\x20'+_0x19e44c['statusText']);}const _0x323180=await _0x19e44c[_0x22c26e(0x175)]();}catch(_0x322263){}}function _0x563f26(_0xc696d2){const _0x3417f8=_0x5ad990,_0x2196bc=document[_0x3417f8(0x139)]('[data-consent-id=\x22necessary-checkbox\x22]'),_0xa20411=document['querySelector'](_0x3417f8(0x138)),_0x489f14=document[_0x3417f8(0x139)](_0x3417f8(0x144)),_0x13abe9=document[_0x3417f8(0x139)](_0x3417f8(0x1cc));_0x2196bc&&(_0x2196bc[_0x3417f8(0x195)]=!![],_0x2196bc[_0x3417f8(0x1dd)]=!![]),_0xa20411&&(_0xa20411[_0x3417f8(0x195)]=Boolean(_0xc696d2['Marketing'])),_0x489f14&&(_0x489f14[_0x3417f8(0x195)]=Boolean(_0xc696d2[_0x3417f8(0x1bc)])),_0x13abe9&&(_0x13abe9[_0x3417f8(0x195)]=Boolean(_0xc696d2[_0x3417f8(0x12b)]));}async function _0x1ad086(){const _0x58ff12=_0x5ad990;try{const _0x17bd4e=localStorage[_0x58ff12(0x1a4)](_0x58ff12(0x1d5));if(!_0x17bd4e)return![];const _0x502127=window[_0x58ff12(0x19a)][_0x58ff12(0x15b)],_0x59d8f0=_0x58ff12(0x1bf)+encodeURIComponent(_0x502127),_0x3b2215=await fetch(_0x59d8f0,{'method':'GET','headers':{'Authorization':_0x58ff12(0x1b9)+_0x17bd4e,'Accept':_0x58ff12(0x1c8)}});if(!_0x3b2215['ok'])return![];const _0x317f33=await _0x3b2215[_0x58ff12(0x175)]();return _0x317f33[_0x58ff12(0x1e5)]===!![];}catch(_0x4840e4){return![];}}function _0x5987d7(){const _0x213e51=_0x5ad990,_0x23c397=[_0x213e51(0x19c),_0x213e51(0x15f),_0x213e51(0x1a2),'.consentbit-ccpa-banner-div',_0x213e51(0x185)];_0x23c397[_0x213e51(0x153)](_0x422971=>{const _0x4f07df=_0x213e51,_0x3f09be=document['querySelectorAll'](_0x422971);_0x3f09be['forEach'](_0x25eed8=>_0x25eed8[_0x4f07df(0x1a6)]());});}function _0x2c35a4(){const _0x322975=_0x5ad990,_0x513e9d=window['location'][_0x322975(0x15b)];return _0x513e9d[_0x322975(0x197)](_0x322975(0x1e0))||_0x513e9d[_0x322975(0x197)](_0x322975(0x1d7))||_0x513e9d[_0x322975(0x197)]('127.0.0.1');}function _0x1085b4(){const _0x51f1fc=_0x5ad990;try{const _0x203c6b=document[_0x51f1fc(0x156)]('link');_0x203c6b[_0x51f1fc(0x13d)]=_0x51f1fc(0x152),_0x203c6b[_0x51f1fc(0x17b)]=_0x51f1fc(0x131),_0x203c6b[_0x51f1fc(0x1dc)]=_0x51f1fc(0x162);const _0x1ffb83=document[_0x51f1fc(0x156)](_0x51f1fc(0x147));_0x1ffb83[_0x51f1fc(0x13d)]=_0x51f1fc(0x152),_0x1ffb83[_0x51f1fc(0x17b)]=_0x51f1fc(0x151),document['head'][_0x51f1fc(0x13e)](_0x1ffb83),_0x203c6b[_0x51f1fc(0x15e)]=function(){},_0x203c6b[_0x51f1fc(0x1bb)]=function(){},document[_0x51f1fc(0x154)][_0x51f1fc(0x13e)](_0x203c6b);}catch(_0xa85023){}}document['addEventListener'](_0x5ad990(0x177),async function(){const _0x4c2bf1=_0x5ad990;await _0x247cbe(),_0x6641bb();let _0x4c18fc=![],_0x1064ab=![],_0x5d4132=null;const _0x244fde=document[_0x4c2bf1(0x1a1)](_0x4c2bf1(0x17d));_0x244fde&&(_0x244fde[_0x4c2bf1(0x1ae)]=function(_0x585c07){const _0x120aed=_0x4c2bf1;_0x585c07['preventDefault']();const _0x4a1d04=document[_0x120aed(0x1a1)]('consent-banner'),_0x32b07c=document['getElementById'](_0x120aed(0x124)),_0x42c7ae=document[_0x120aed(0x1a1)](_0x120aed(0x136));if(_0x5d4132&&_0x5d4132[_0x120aed(0x1ac)]===_0x120aed(0x1b1)&&_0x32b07c)_0x247cbe(),_0x1e5730(_0x32b07c),_0x32b07c[_0x120aed(0x142)][_0x120aed(0x1e3)]=_0x120aed(0x1e7),_0x32b07c[_0x120aed(0x142)][_0x120aed(0x123)]=_0x120aed(0x126),_0x32b07c[_0x120aed(0x171)]=![],_0x32b07c[_0x120aed(0x1d4)][_0x120aed(0x1a6)](_0x120aed(0x171)),_0x32b07c['classList'][_0x120aed(0x1df)](_0x120aed(0x193));else _0x4a1d04&&(_0x247cbe(),_0x1e5730(_0x4a1d04),_0x4a1d04[_0x120aed(0x142)][_0x120aed(0x1e3)]=_0x120aed(0x1e7),_0x4a1d04['style']['visibility']=_0x120aed(0x126),_0x4a1d04[_0x120aed(0x171)]=![],_0x4a1d04[_0x120aed(0x1d4)][_0x120aed(0x1a6)](_0x120aed(0x171)),_0x4a1d04[_0x120aed(0x1d4)][_0x120aed(0x1df)](_0x120aed(0x193)));typeof _0x563f26===_0x120aed(0x135)&&_0x563f26(_0xeb73d1());});try{const _0x4d89b6=await _0x2bc813();if(!_0x4d89b6){_0x1cbe2e();const _0x55f812=await _0x2bc813();if(!_0x55f812){setTimeout(()=>location[_0x4c2bf1(0x1d0)](),0xbb8);return;}localStorage[_0x4c2bf1(0x176)]('visitorSessionToken',_0x55f812);}else!localStorage['getItem'](_0x4c2bf1(0x1d5))&&localStorage[_0x4c2bf1(0x176)](_0x4c2bf1(0x1d5),_0x4d89b6);_0x4c18fc=await _0x1ad086(),_0x1064ab=_0x2c35a4();if(!_0x4c18fc&&!_0x1064ab){_0x5987d7();return;}}catch(_0x16fe6d){_0x1cbe2e(),setTimeout(()=>location['reload'](),0xbb8);return;}if(_0x4c18fc||_0x1064ab){function _0x50b6e6(_0x247277){const _0x4e5043=_0x4c2bf1;return document[_0x4e5043(0x1a1)](_0x247277);}function _0x4f0a18(_0xce763a){const _0x4110d4=_0x4c2bf1;return document[_0x4110d4(0x139)](_0xce763a);}const _0x956f58={'consent':_0x50b6e6(_0x4c2bf1(0x164)),'ccpa':_0x50b6e6(_0x4c2bf1(0x124)),'main':_0x50b6e6('main-banner')},_0x2d2f61=_0x23461e();_0x2d2f61?(_0x5d4132=_0x2d2f61,_0x57cfef=_0x2d2f61[_0x4c2bf1(0x1c1)]):_0x5d4132=await _0x1fe1b4();const _0x1fb500=localStorage[_0x4c2bf1(0x1a4)](_0x4c2bf1(0x130));let _0x9340b9=await _0x46da4b();const _0x564efb=_0xeb73d1();_0x563f26(_0x564efb);!_0x1fb500?_0x5d4132&&_0x5d4132[_0x4c2bf1(0x1ac)]===_0x4c2bf1(0x1b1)?(_0x42178c([_0x4c2bf1(0x12b),'Marketing',_0x4c2bf1(0x1bc)]),_0x357195({'Analytics':!![],'Marketing':!![],'Personalization':!![]},_0x9340b9),_0x1e5730(_0x956f58[_0x4c2bf1(0x181)]),_0x4d0665(_0x956f58[_0x4c2bf1(0x178)]),_0x956f58['ccpa']&&(_0x956f58[_0x4c2bf1(0x181)]['style']['display']=_0x4c2bf1(0x1e7),_0x956f58[_0x4c2bf1(0x181)]['style']['visibility']=_0x4c2bf1(0x126),_0x956f58[_0x4c2bf1(0x181)][_0x4c2bf1(0x171)]=![],_0x956f58[_0x4c2bf1(0x181)]['classList'][_0x4c2bf1(0x1a6)](_0x4c2bf1(0x171)),_0x956f58['ccpa'][_0x4c2bf1(0x1d4)][_0x4c2bf1(0x1df)](_0x4c2bf1(0x193)))):(_0x1e5730(_0x956f58['consent']),_0x4d0665(_0x956f58[_0x4c2bf1(0x181)])):_0x564efb[_0x4c2bf1(0x12b)]||_0x564efb[_0x4c2bf1(0x19d)]||_0x564efb[_0x4c2bf1(0x1bc)]?(_0x42178c(Object[_0x4c2bf1(0x168)](_0x564efb)['filter'](_0xfe3ea9=>_0x564efb[_0xfe3ea9])),_0x34ecf6(_0x564efb),_0x4d0665(_0x956f58[_0x4c2bf1(0x178)]),_0x4d0665(_0x956f58[_0x4c2bf1(0x181)])):(_0x1bd839(),_0x34ecf6(_0x564efb),_0x4d0665(_0x956f58[_0x4c2bf1(0x178)]),_0x4d0665(_0x956f58[_0x4c2bf1(0x181)]));const _0x1ecd98=_0x50b6e6(_0x4c2bf1(0x15a));_0x1ecd98&&(_0x1ecd98['onclick']=async function(_0x48a62c){const _0x58cd29=_0x4c2bf1;_0x48a62c['preventDefault']();const _0x4ba020={'Analytics':!![],'Marketing':!![],'Personalization':!![],'bannerType':_0x5d4132?_0x5d4132[_0x58cd29(0x1ac)]:undefined};_0x357195(_0x4ba020,_0x9340b9);const _0x4b8a66=document['querySelectorAll']('script[type=\x22text/plain\x22][data-blocked-by-consent=\x22true\x22]');_0x4b8a66[_0x58cd29(0x153)](function(_0x35418b){const _0x3674fa=_0x58cd29;var _0x20e799=document['createElement']('script');for(var _0x3cae6e=0x0;_0x3cae6e<_0x35418b['attributes'][_0x3674fa(0x188)];_0x3cae6e++){var _0x3cb207=_0x35418b[_0x3674fa(0x14d)][_0x3cae6e];if(_0x3cb207[_0x3674fa(0x137)]===_0x3674fa(0x1dc))_0x20e799['type']=_0x3674fa(0x1d2);else _0x3cb207[_0x3674fa(0x137)]!==_0x3674fa(0x1a7)&&_0x20e799[_0x3674fa(0x1cb)](_0x3cb207[_0x3674fa(0x137)],_0x3cb207[_0x3674fa(0x1e2)]);}_0x35418b[_0x3674fa(0x169)]&&(_0x20e799[_0x3674fa(0x169)]=_0x35418b['innerHTML']),_0x35418b[_0x3674fa(0x1ab)]['replaceChild'](_0x20e799,_0x35418b);}),_0x4d0665(_0x956f58[_0x58cd29(0x178)]),_0x4d0665(_0x956f58['ccpa']),_0x4d0665(_0x956f58[_0x58cd29(0x14b)]),localStorage['setItem'](_0x58cd29(0x130),'true'),await _0x41acd6(_0x4ba020,_0x9340b9,!![]),_0x563f26(_0x4ba020);});const _0x274d3c=_0x50b6e6(_0x4c2bf1(0x1bd));_0x274d3c&&(_0x274d3c[_0x4c2bf1(0x1ae)]=async function(_0xd9fbdd){const _0x565aa3=_0x4c2bf1;_0xd9fbdd[_0x565aa3(0x16f)]();const _0x3ddd2d={'Analytics':![],'Marketing':![],'Personalization':![],'bannerType':_0x5d4132?_0x5d4132[_0x565aa3(0x1ac)]:undefined};_0x357195(_0x3ddd2d,_0x9340b9),_0x1bd839(),_0x4d0665(_0x956f58[_0x565aa3(0x178)]),_0x4d0665(_0x956f58[_0x565aa3(0x181)]),_0x4d0665(_0x956f58['main']),localStorage[_0x565aa3(0x176)]('consent-given',_0x565aa3(0x196)),await _0x41acd6(_0x3ddd2d,_0x9340b9,![]),_0x563f26(_0x3ddd2d);});const _0x51682e=_0x50b6e6('do-not-share-link');_0x51682e&&(_0x51682e['onclick']=function(_0xaafa1e){const _0x22fa1c=_0x4c2bf1;_0xaafa1e[_0x22fa1c(0x16f)]();const _0x545def=document[_0x22fa1c(0x1a1)](_0x22fa1c(0x124));_0x545def&&_0x4d0665(_0x545def);const _0x50932e=document['getElementById']('main-consent-banner');_0x50932e&&_0x1e5730(_0x50932e);});const _0x26790a=document[_0x4c2bf1(0x1a1)](_0x4c2bf1(0x174));_0x26790a&&(_0x26790a[_0x4c2bf1(0x1ae)]=async function(_0x1798e2){const _0x3678e4=_0x4c2bf1;_0x1798e2[_0x3678e4(0x16f)]();const _0x45f9f5=document[_0x3678e4(0x194)](_0x3678e4(0x15d));let _0x485848={'Analytics':!![],'Marketing':!![],'Personalization':!![]};_0x45f9f5['forEach'](_0x37745b=>{const _0x428847=_0x3678e4;if(_0x37745b[_0x428847(0x195)]){const _0x280339=_0x37745b[_0x428847(0x137)]||_0x37745b[_0x428847(0x122)]('data-category')||'';if(_0x280339[_0x428847(0x16d)]()[_0x428847(0x197)]('analytics'))_0x485848[_0x428847(0x12b)]=![];else{if(_0x280339[_0x428847(0x16d)]()[_0x428847(0x197)]('marketing')||_0x280339[_0x428847(0x16d)]()[_0x428847(0x197)](_0x428847(0x170)))_0x485848[_0x428847(0x19d)]=![];else(_0x280339[_0x428847(0x16d)]()['includes'](_0x428847(0x173))||_0x280339[_0x428847(0x16d)]()['includes'](_0x428847(0x1d9)))&&(_0x485848[_0x428847(0x1bc)]=![]);}}}),_0x485848[_0x3678e4(0x1ac)]=_0x5d4132?_0x5d4132[_0x3678e4(0x1ac)]:undefined,_0x485848[_0x3678e4(0x1d3)]=![],_0x357195(_0x485848,_0x9340b9);_0x485848[_0x3678e4(0x12b)]||_0x485848['Marketing']||_0x485848['Personalization']?_0x42178c(Object['keys'](_0x485848)[_0x3678e4(0x1b6)](_0x26ba95=>_0x485848[_0x26ba95])):_0x1bd839();_0x4d0665(_0x956f58[_0x3678e4(0x181)]);const _0x20bd7f=document[_0x3678e4(0x139)](_0x3678e4(0x185));_0x4d0665(_0x20bd7f);const _0x3891e9=document['querySelector'](_0x3678e4(0x16c));_0x4d0665(_0x3891e9),localStorage[_0x3678e4(0x176)]('consent-given',_0x3678e4(0x196)),await _0x41acd6(_0x485848,_0x9340b9,!![]),_0x563f26(_0x485848);});const _0x35680e=document[_0x4c2bf1(0x1a1)](_0x4c2bf1(0x1cf));_0x35680e&&(_0x35680e[_0x4c2bf1(0x1ae)]=async function(_0x1750a6){const _0x35090a=_0x4c2bf1;_0x1750a6[_0x35090a(0x16f)]();const _0x5235db={'Analytics':![],'Marketing':![],'Personalization':![],'donotshare':!![],'bannerType':_0x5d4132?_0x5d4132[_0x35090a(0x1ac)]:undefined};_0x357195(_0x5235db,_0x9340b9),_0x1bd839(),_0x4d0665(_0x956f58[_0x35090a(0x181)]);const _0x4726d2=document[_0x35090a(0x139)](_0x35090a(0x185));_0x4d0665(_0x4726d2);const _0x2d8a1c=document[_0x35090a(0x139)](_0x35090a(0x16c));_0x4d0665(_0x2d8a1c),localStorage[_0x35090a(0x176)](_0x35090a(0x130),_0x35090a(0x196)),await _0x41acd6(_0x5235db,_0x9340b9,!![]),_0x563f26(_0x5235db);});const _0xa37cc9=_0x50b6e6(_0x4c2bf1(0x189));_0xa37cc9&&(_0xa37cc9[_0x4c2bf1(0x1ae)]=async function(_0x2e2d75){const _0x4109c9=_0x4c2bf1;_0x2e2d75[_0x4109c9(0x16f)]();const _0x37a742=document[_0x4109c9(0x139)](_0x4109c9(0x167));let _0x22a475,_0x3e351e;_0x37a742&&_0x37a742[_0x4109c9(0x195)]?(_0x22a475={'Analytics':![],'Marketing':![],'Personalization':![],'donotshare':!![],'bannerType':_0x5d4132?_0x5d4132[_0x4109c9(0x1ac)]:undefined},_0x3e351e=![]):(_0x22a475={'Analytics':!![],'Marketing':!![],'Personalization':!![],'donotshare':![],'bannerType':_0x5d4132?_0x5d4132['bannerType']:undefined},_0x3e351e=!![]);_0x357195(_0x22a475,_0x9340b9);if(_0x37a742&&_0x37a742[_0x4109c9(0x195)]){const _0x4d8226=document['querySelectorAll']('script');_0x4d8226[_0x4109c9(0x153)](function(_0x23c912){const _0x2d5ecf=_0x4109c9;_0x23c912['type']!==_0x2d5ecf(0x1c0)&&_0x23c912['src']!==''&&!_0x23c912[_0x2d5ecf(0x12a)](_0x2d5ecf(0x1af))&&(_0x23c912[_0x2d5ecf(0x1dc)]='text/plain',_0x23c912[_0x2d5ecf(0x1cb)](_0x2d5ecf(0x1db),'true'));});const _0x729afb=document['querySelectorAll'](_0x4109c9(0x17f));_0x729afb[_0x4109c9(0x153)](function(_0x247cdb){const _0x1b8dfa=_0x4109c9;_0x247cdb[_0x1b8dfa(0x1dc)]!==_0x1b8dfa(0x1c0)&&_0x247cdb[_0x1b8dfa(0x169)][_0x1b8dfa(0x12e)]()!==''&&(_0x247cdb[_0x1b8dfa(0x1dc)]=_0x1b8dfa(0x1c0),_0x247cdb['setAttribute'](_0x1b8dfa(0x1db),_0x1b8dfa(0x196)));});}else{const _0x1c9087=document['querySelectorAll'](_0x4109c9(0x12c));_0x1c9087[_0x4109c9(0x153)](function(_0x2999b3){const _0x4eb6cc=_0x4109c9;var _0x50ef14=document['createElement']('script');for(var _0x4af7dc=0x0;_0x4af7dc<_0x2999b3[_0x4eb6cc(0x14d)][_0x4eb6cc(0x188)];_0x4af7dc++){var _0x443659=_0x2999b3[_0x4eb6cc(0x14d)][_0x4af7dc];if(_0x443659['name']===_0x4eb6cc(0x1dc))_0x50ef14[_0x4eb6cc(0x1dc)]='text/javascript';else _0x443659[_0x4eb6cc(0x137)]!=='data-blocked-by-ccpa'&&_0x50ef14[_0x4eb6cc(0x1cb)](_0x443659[_0x4eb6cc(0x137)],_0x443659[_0x4eb6cc(0x1e2)]);}_0x2999b3[_0x4eb6cc(0x169)]&&(_0x50ef14['innerHTML']=_0x2999b3[_0x4eb6cc(0x169)]),_0x2999b3['parentNode'][_0x4eb6cc(0x12d)](_0x50ef14,_0x2999b3);});const _0x3fc9c1=document[_0x4109c9(0x194)](_0x4109c9(0x172));_0x3fc9c1[_0x4109c9(0x153)](function(_0x25ca73){const _0x107183=_0x4109c9;var _0x4d1b9a=document['createElement'](_0x107183(0x16b));for(var _0x357720=0x0;_0x357720<_0x25ca73[_0x107183(0x14d)][_0x107183(0x188)];_0x357720++){var _0x808550=_0x25ca73['attributes'][_0x357720];if(_0x808550[_0x107183(0x137)]===_0x107183(0x1dc))_0x4d1b9a[_0x107183(0x1dc)]=_0x107183(0x1d2);else _0x808550[_0x107183(0x137)]!==_0x107183(0x1a7)&&_0x4d1b9a[_0x107183(0x1cb)](_0x808550[_0x107183(0x137)],_0x808550[_0x107183(0x1e2)]);}_0x25ca73[_0x107183(0x169)]&&(_0x4d1b9a['innerHTML']=_0x25ca73[_0x107183(0x169)]),_0x25ca73[_0x107183(0x1ab)][_0x107183(0x12d)](_0x4d1b9a,_0x25ca73);});}_0x4d0665(_0x956f58[_0x4109c9(0x181)]);const _0x19d5b0=document[_0x4109c9(0x139)](_0x4109c9(0x185));_0x4d0665(_0x19d5b0);const _0x1a691d=document[_0x4109c9(0x139)](_0x4109c9(0x16c));_0x4d0665(_0x1a691d);const _0x303ec2=document[_0x4109c9(0x1a1)]('main-consent-banner');_0x4d0665(_0x303ec2),localStorage[_0x4109c9(0x176)](_0x4109c9(0x130),_0x4109c9(0x196)),await _0x41acd6(_0x22a475,_0x9340b9,_0x3e351e),_0x563f26(_0x22a475);});const _0x15403d=_0x50b6e6(_0x4c2bf1(0x1d1));_0x15403d&&(_0x15403d['onclick']=function(_0x3221ab){const _0x37c963=_0x4c2bf1;_0x3221ab[_0x37c963(0x16f)](),_0x4d0665(_0x956f58[_0x37c963(0x178)]),_0x1e5730(_0x956f58[_0x37c963(0x14b)]),_0x563f26(_0xeb73d1());});const _0x2b0acf=_0x50b6e6(_0x4c2bf1(0x183));_0x2b0acf&&(_0x2b0acf['onclick']=async function(_0xe2b7e9){const _0x2b466b=_0x4c2bf1;_0xe2b7e9[_0x2b466b(0x16f)]();const _0x11058d=!!_0x4f0a18(_0x2b466b(0x13b)),_0x4d36e4=!!_0x4f0a18(_0x2b466b(0x13f)),_0x3b8582=!!_0x4f0a18(_0x2b466b(0x1b3)),_0x31a629={'Analytics':_0x11058d,'Marketing':_0x4d36e4,'Personalization':_0x3b8582,'bannerType':_0x5d4132?_0x5d4132[_0x2b466b(0x1ac)]:undefined};_0x357195(_0x31a629,_0x9340b9),_0x1bd839();const _0x551f42=Object[_0x2b466b(0x168)](_0x31a629)['filter'](_0x136e50=>_0x31a629[_0x136e50]&&_0x136e50!==_0x2b466b(0x1ac));_0x551f42['length']>0x0&&_0x42178c(_0x551f42),_0x4d0665(_0x956f58[_0x2b466b(0x14b)]),_0x4d0665(_0x956f58[_0x2b466b(0x178)]),_0x4d0665(_0x956f58[_0x2b466b(0x181)]),localStorage[_0x2b466b(0x176)]('consent-given',_0x2b466b(0x196)),await _0x41acd6(_0x31a629,_0x9340b9,!![]),_0x563f26(_0x31a629);});const _0x539803=_0x50b6e6(_0x4c2bf1(0x1a5));_0x539803&&(_0x539803[_0x4c2bf1(0x1ae)]=async function(_0x34d99c){const _0x41924d=_0x4c2bf1;_0x34d99c[_0x41924d(0x16f)]();if(_0x5d4132&&_0x5d4132[_0x41924d(0x1ac)]===_0x41924d(0x1b1)){const _0x2dba5f=document['getElementById']('main-consent-banner'),_0x16d883=document[_0x41924d(0x1a1)]('initial-consent-banner');_0x2dba5f&&_0x4d0665(_0x2dba5f);_0x16d883&&_0x1e5730(_0x16d883);return;}_0x1bd839();typeof gtag!==_0x41924d(0x1de)&&gtag('consent',_0x41924d(0x1c3),{'analytics_storage':'denied','ad_storage':'denied','ad_personalization':_0x41924d(0x18b),'ad_user_data':_0x41924d(0x18b),'personalization_storage':'denied'});typeof window[_0x41924d(0x1d8)]!==_0x41924d(0x1de)&&window[_0x41924d(0x1d8)]['push']({'event':_0x41924d(0x145),'analytics_storage':_0x41924d(0x18b),'ad_storage':_0x41924d(0x18b)});const _0x356860=_0x4f0a18('[data-consent-id=\x22analytics-checkbox\x22]'),_0x2d539f=_0x4f0a18(_0x41924d(0x138)),_0x96fc25=_0x4f0a18(_0x41924d(0x144));_0x356860&&(_0x356860[_0x41924d(0x195)]=![]);_0x2d539f&&(_0x2d539f[_0x41924d(0x195)]=![]);_0x96fc25&&(_0x96fc25[_0x41924d(0x195)]=![]);const _0x1f7327={'Analytics':![],'Marketing':![],'Personalization':![],'bannerType':_0x5d4132?_0x5d4132[_0x41924d(0x1ac)]:undefined};_0x357195(_0x1f7327,_0x9340b9),_0x34ecf6(_0x1f7327),localStorage[_0x41924d(0x176)](_0x41924d(0x130),_0x41924d(0x196));try{await _0x41acd6(_0x1f7327,_0x9340b9,![]);}catch(_0x2da53d){}_0x4d0665(_0x956f58['main']),_0x4d0665(_0x956f58[_0x41924d(0x178)]);});const _0x417ab1=document[_0x4c2bf1(0x1a1)](_0x4c2bf1(0x1e6));_0x417ab1&&(_0x417ab1[_0x4c2bf1(0x1ae)]=function(_0x1eafe7){const _0x3052f8=_0x4c2bf1;_0x1eafe7[_0x3052f8(0x16f)]();const _0x861efe=document['querySelector'](_0x3052f8(0x16c));_0x1e5730(_0x861efe),_0x1e5730(_0x956f58[_0x3052f8(0x181)]);});const _0x10cef0=document[_0x4c2bf1(0x1a1)](_0x4c2bf1(0x161)),_0xd2aaa1=document['getElementById'](_0x4c2bf1(0x124));if(_0x10cef0&&_0xd2aaa1&&_0x5d4132&&_0x5d4132[_0x4c2bf1(0x1ac)]===_0x4c2bf1(0x1b1)){const _0x5b5941=_0x10cef0['style']['display']!==_0x4c2bf1(0x166)&&!_0x10cef0['classList'][_0x4c2bf1(0x199)]('hidden')&&_0x10cef0[_0x4c2bf1(0x149)]!==null;_0x5b5941&&_0x4d0665(_0xd2aaa1),_0x10cef0[_0x4c2bf1(0x1ae)]=function(_0x248c1c){const _0x13b998=_0x4c2bf1;_0x248c1c['preventDefault'](),_0x4d0665(_0x10cef0),_0x1e5730(_0xd2aaa1),_0xd2aaa1[_0x13b998(0x142)][_0x13b998(0x1e3)]='block',_0xd2aaa1[_0x13b998(0x142)]['visibility']=_0x13b998(0x126),_0xd2aaa1[_0x13b998(0x171)]=![],_0xd2aaa1[_0x13b998(0x1d4)][_0x13b998(0x1a6)](_0x13b998(0x171)),_0xd2aaa1[_0x13b998(0x1d4)]['add']('show-banner');};}_0x1085b4();}});function _0x6641bb(){const _0x3e6c0d=_0x5ad990,_0x38b5a8=localStorage['getItem']('consentExpiresAt');_0x38b5a8&&Date[_0x3e6c0d(0x18f)]()>parseInt(_0x38b5a8,0xa)&&(localStorage[_0x3e6c0d(0x127)](_0x3e6c0d(0x130)),localStorage['removeItem'](_0x3e6c0d(0x1b8)),localStorage[_0x3e6c0d(0x127)]('consentExpiresAt'),localStorage[_0x3e6c0d(0x127)]('consentExpirationDays'),[_0x3e6c0d(0x18e),_0x3e6c0d(0x1c9),_0x3e6c0d(0x173)][_0x3e6c0d(0x153)](_0x594e89=>{const _0x118f89=_0x3e6c0d;_0x5bdab7(_0x118f89(0x19e)+_0x594e89+_0x118f89(0x134),'',-0x1);}));}}()));function _0x2fab(){const _0x446d98=['shift','accept-btn','hostname','https://cb-server.web-8fb.workers.dev/api/app-data?siteName=','.consentbit-ccpa-prefrence-toggle\x20input[type=\x22checkbox\x22]','onerror','.consentbit-preference-div','unknown','close-consent-banner','text/css','cb-consent-personalization_storage','consent-banner','Failed\x20to\x20get\x20visitor\x20session\x20token:\x20','none','[data-consent-id=\x22do-not-share-checkbox\x22]','keys','innerHTML','3081708frlhbU','script','.consentbit-ccpa-banner-div','toLowerCase','getTime','preventDefault','advertising','hidden','script[type=\x22text/plain\x22][data-blocked-by-consent=\x22true\x22]','personalization','consebit-ccpa-prefrence-accept','json','setItem','DOMContentLoaded','consent','randomUUID','AES-GCM','href','some','toggle-consent-btn','toISOString','script:not([src]):not([data-essential])','platform','ccpa','cookieExpiration','save-preferences-btn','important','.consentbit-ccpa_preference','map','exp','length','save-btn','yVSYDuWajEid8kDz','denied','userAgent','resolvedOptions','analytics','now','https:','cb-consent-marketing_storage','userAgentData','show-banner','querySelectorAll','checked','true','includes','text','contains','location','simple-consent-banner','.consentbit-gdpr-banner-div','Marketing','cb-consent-','parse','token','getElementById','.consentbit-change-preference','6015018dzMKmT','getItem','cancel-btn','remove','data-blocked-by-consent','replace','setProperty','opacity','parentNode','bannerType','7wOPVXF','onclick','data-essential','consentExpirationDays','CCPA','status','[data-consent-id=\x22personalization-checkbox\x22]:checked','data-category','https://cb-server.web-8fb.workers.dev/api/cmp/consent','filter','granted','consent-preferences','Bearer\x20','consentExpiresAt','onload','Personalization','decline-btn','encode','https://cb-server.web-8fb.workers.dev/api/site/subscription-status?siteDomain=','text/plain','country','importKey','update','stringify','1.2','subtle','encrypt','application/json','marketing','script[data-category]','setAttribute','[data-consent-id=\x22analytics-checkbox\x22]','false','charCodeAt','consebit-ccpa-prefrence-decline','reload','preferences-btn','text/javascript','donotshare','classList','visitorSessionToken','test_location_override','localhost','dataLayer','functional','split','data-blocked-by-ccpa','type','disabled','undefined','add','.webflow.io','Server\x20error:\x20','value','display','raw','canPublishToCustomDomain','consentbit-ccpa-linkblock','block','getAttribute','visibility','initial-consent-banner',';\x20expires=','visible','removeItem','https://cb-server.web-8fb.workers.dev/api/visitor-token','language','hasAttribute','Analytics','script[data-blocked-by-ccpa=\x22true\x22]','replaceChild','trim','fromCharCode','consent-given','https://cdn.jsdelivr.net/gh/snm62/consentbit@d6b0288/consentbitstyle.css','pop','decrypt','_storage','function','main-banner','name','[data-consent-id=\x22marketing-checkbox\x22]','querySelector','GET','[data-consent-id=\x22analytics-checkbox\x22]:checked','GDPR','rel','appendChild','[data-consent-id=\x22marketing-checkbox\x22]:checked','cb-consent-analytics_storage',';\x20Secure','style','POST','[data-consent-id=\x22personalization-checkbox\x22]','consent_denied','essential','link','3152200tOrmYg','offsetParent','4MdPVGI','main','2316273fSGlDa','attributes','Retry\x20failed\x20after\x20clearing\x20session:\x20','978962XDaizP','1392954gToycz','https://cdn.jsdelivr.net/gh/snm62/consentbit@8c69a0b/consentbit.css','stylesheet','forEach','head','cookie','createElement','12296440ryGnZn','visitorId'];_0x2fab=function(){return _0x446d98;};return _0x2fab();}
+(function () {
+  // --- Hardcoded Encryption Keys (matching server) ---
+  const ENCRYPTION_KEY = "t95w6oAeL1hr0rrtCGKok/3GFNwxzfLxiWTETfZurpI="; // Base64 encoded 256-bit key
+  const ENCRYPTION_IV = "yVSYDuWajEid8kDz"; // Base64 encoded 128-bit IV
+
+  // --- Helper functions ---
+  function setConsentCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days*24*60*60*1000));
+      expires = "; expires=" + date.toUTCString();
+    }
+    let cookieString = name + "=" + value + expires + "; path=/; SameSite=Lax";
+    if (location.protocol === 'https:') {
+      cookieString += "; Secure";
+    }
+    document.cookie = cookieString;
+  }
+  function getConsentCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+  function blockScriptsByCategory() {
+    var scripts = document.querySelectorAll('script[data-category]');
+    scripts.forEach(function(script) {
+      var category = script.getAttribute('data-category');
+      if (category && script.type !== 'text/plain') {
+        // Handle comma-separated categories
+        var categories = category.split(',').map(function(cat) { return cat.trim(); });
+        
+        // Check if ANY category is necessary or essential (these should never be blocked)
+        var hasEssentialCategory = categories.some(function(cat) { 
+          var lowercaseCat = cat.toLowerCase();
+          return lowercaseCat === 'necessary' || lowercaseCat === 'essential'; 
+        });
+        
+        // Only block if NO categories are essential/necessary
+        if (!hasEssentialCategory) {
+          script.type = 'text/plain';
+          script.setAttribute('data-blocked-by-consent', 'true');
+        }
+      }
+    });
+  }
+  function enableScriptsByCategories(allowedCategories) {
+    var scripts = document.querySelectorAll('script[type="text/plain"][data-category]');
+    scripts.forEach(function(oldScript) {
+      var category = oldScript.getAttribute('data-category');
+      // Handle comma-separated categories
+      var categories = category.split(',').map(function(cat) { return cat.trim(); });
+      var shouldEnable = categories.some(function(cat) { 
+        return allowedCategories.includes(cat); 
+      });
+      if (shouldEnable) {
+        var newScript = document.createElement('script');
+        for (var i = 0; i < oldScript.attributes.length; i++) {
+          var attr = oldScript.attributes[i];
+          if (attr.name === 'type') {
+            newScript.type = 'text/javascript';
+          } else {
+            newScript.setAttribute(attr.name, attr.value);
+          }
+        }
+        if (oldScript.innerHTML) {
+          newScript.innerHTML = oldScript.innerHTML;
+        }
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      }
+    });
+  }
+  function updateGtagConsent(preferences) {
+    if (typeof gtag === "function") {
+      gtag('consent', 'update', {
+        'analytics_storage': preferences.Analytics ? 'granted' : 'denied',
+        'functionality_storage': 'granted',
+        'ad_storage': preferences.Marketing ? 'granted' : 'denied',
+        'ad_personalization': preferences.Marketing ? 'granted' : 'denied',
+        'ad_user_data': preferences.Marketing ? 'granted' : 'denied',
+        'personalization_storage': preferences.Personalization ? 'granted' : 'denied',
+        'security_storage': 'granted'
+      });
+    }
+  }
+  function setConsentState(preferences, cookieDays) {
+    ['Analytics', 'Marketing', 'Personalization'].forEach(function(category) {
+      setConsentCookie(
+        'cb-consent-' + category.toLowerCase() + '_storage',
+        preferences[category] ? 'true' : 'false',
+        cookieDays || 365
+      );
+    });
+    updateGtagConsent(preferences);
+    const expiresAt = Date.now() + (cookieDays * 24 * 60 * 60 * 1000);
+    localStorage.setItem('consentExpiresAt', expiresAt.toString());
+    localStorage.setItem('consentExpirationDays', cookieDays.toString());
+  }
+  function getConsentPreferences() {
+    return {
+      Analytics: getConsentCookie('cb-consent-analytics_storage') === 'true',
+      Marketing: getConsentCookie('cb-consent-marketing_storage') === 'true',
+      Personalization: getConsentCookie('cb-consent-personalization_storage') === 'true'
+    };
+  }
+  function showBanner(banner) {
+    if (banner) {
+      banner.style.setProperty("display", "block", "important");
+      banner.style.setProperty("visibility", "visible", "important");
+      banner.style.setProperty("opacity", "1", "important");
+      banner.classList.add("show-banner");
+      banner.classList.remove("hidden");
+    }
+  }
+  function hideBanner(banner) {
+    if (banner) {
+      banner.style.setProperty("display", "none", "important");
+      banner.style.setProperty("visibility", "hidden", "important");
+      banner.style.setProperty("opacity", "0", "important");
+      banner.classList.remove("show-banner");
+      banner.classList.add("hidden");
+    }
+  }
+async  function hideAllBanners(){
+    hideBanner(document.getElementById("consent-banner"));
+    hideBanner(document.getElementById("initial-consent-banner"));
+    hideBanner(document.getElementById("main-banner"));
+    hideBanner(document.getElementById("main-consent-banner"));
+    hideBanner(document.getElementById("simple-consent-banner"));
+  }
+  function showAllBanners(){
+    showBanner(document.getElementById("consent-banner"));
+    showBanner(document.getElementById("initial-consent-banner"));
+    showBanner(document.getElementById("main-banner"));
+    showBanner(document.getElementById("main-consent-banner"));
+    showBanner(document.getElementById("simple-consent-banner"));
+  }
+
+  // --- Encryption Helper Functions ---
+  function base64ToUint8Array(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  function uint8ArrayToBase64(bytes) {
+    return btoa(String.fromCharCode(...bytes));
+  }
+
+  async function importHardcodedKey() {
+    const keyBytes = base64ToUint8Array(ENCRYPTION_KEY);
+    return crypto.subtle.importKey(
+      "raw",
+      keyBytes,
+      { name: "AES-GCM" },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  }
+
+  async function encryptWithHardcodedKey(data) {
+    try {
+      const key = await importHardcodedKey();
+      const iv = base64ToUint8Array(ENCRYPTION_IV);
+      const encoder = new TextEncoder();
+      const encryptedBuffer = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        encoder.encode(data)
+      );
+      return uint8ArrayToBase64(new Uint8Array(encryptedBuffer));
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // --- Advanced: Visitor session token generation ---
+  function isTokenExpired(token) {
+    if (!token) return true;
+    const [payloadBase64] = token.split('.');
+    if (!payloadBase64) return true;
+    try {
+      const payload = JSON.parse(atob(payloadBase64));
+      if (!payload.exp) return true;
+      return payload.exp < Math.floor(Date.now() / 1000);
+    } catch {
+      return true;
+    }
+  }
+  async function getOrCreateVisitorId() {
+    let visitorId = localStorage.getItem('visitorId');
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem('visitorId', visitorId);
+    }
+    return visitorId;
+  }
+  async function cleanHostname(hostname) {
+    let cleaned = hostname.replace(/^www\./, '');
+    cleaned = cleaned.split('.')[0];
+    return cleaned;
+  }
+  
+  // Add session cleanup function
+  function clearVisitorSession() {
+    localStorage.removeItem('visitorId');
+    localStorage.removeItem('visitorSessionToken');
+    localStorage.removeItem('consent-given');
+    localStorage.removeItem('consentExpiresAt');
+    localStorage.removeItem('consentExpirationDays');
+  }
+  
+  // Add flag to prevent concurrent token requests
+  let tokenRequestInProgress = false;
+  
+  async function getVisitorSessionToken() {
+    try {
+      // Prevent concurrent requests
+      if (tokenRequestInProgress) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const existingToken = localStorage.getItem('visitorSessionToken');
+        if (existingToken && !isTokenExpired(existingToken)) {
+          return existingToken;
+        }
+      }
+      
+      const existingToken = localStorage.getItem('visitorSessionToken');
+      if (existingToken && !isTokenExpired(existingToken)) {
+        return existingToken;
+      }
+      
+      // Set flag to prevent concurrent requests
+      tokenRequestInProgress = true;
+    
+      const visitorId = await getOrCreateVisitorId();
+      const siteName = await cleanHostname(window.location.hostname);
+      const response = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          visitorId: visitorId,
+          // userAgent: navigator.userAgent, // Removed to fix fingerprinting warnings
+          siteName: siteName
+        })
+      });
+      
+      if (!response.ok) {
+        // Handle 500 errors by clearing stale data and retrying
+        if (response.status === 500) {
+          clearVisitorSession();
+          
+          // Generate new visitor ID and retry once
+          const newVisitorId = await getOrCreateVisitorId();
+          const retryResponse = await fetch('https://cb-server.web-8fb.workers.dev/api/visitor-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              visitorId: newVisitorId,
+              // userAgent: navigator.userAgent, // Removed to fix fingerprinting warnings
+              siteName: siteName
+            })
+          });
+          
+          if (!retryResponse.ok) {
+            throw new Error(`Retry failed after clearing session: ${retryResponse.status}`);
+          }
+          
+          const retryData = await retryResponse.json();
+          // Store token immediately
+          localStorage.setItem('visitorSessionToken', retryData.token);
+          return retryData.token;
+        }
+        
+        throw new Error(`Failed to get visitor session token: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      // Store token immediately to prevent timing issues
+      localStorage.setItem('visitorSessionToken', data.token);
+      return data.token;
+    } catch (error) {
+      return null;
+    } finally {
+      // Always reset the flag regardless of success or failure
+      tokenRequestInProgress = false;
+    }
+  }
+
+  // --- Advanced: Fetch cookie expiration days from server ---
+  async function fetchCookieExpirationDays() {
+    const sessionToken = localStorage.getItem("visitorSessionToken");
+    if (!sessionToken) return 180;
+    try {
+      const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+      const apiUrl = `https://cb-server.web-8fb.workers.dev/api/app-data?siteName=${encodeURIComponent(siteName)}`;
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${sessionToken}`,
+          "Accept": "application/json"
+        }
+      });
+      if (!response.ok) return 180;
+      const data = await response.json();
+      if (data && data.cookieExpiration !== null && data.cookieExpiration !== undefined) {
+        return parseInt(data.cookieExpiration, 10);
+      }
+      return 180;
+    } catch {
+      return 180;
+    }
+  }
+
+  // --- Manual override for testing purposes ---
+  function getTestLocationOverride() {
+    // Check if there's a manual override in localStorage for testing
+    const override = localStorage.getItem('test_location_override');
+    if (override) {
+      try {
+        return JSON.parse(override);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // --- Advanced: Detect location and banner type ---
+  let country = null;
+  async function detectLocationAndGetBannerType() {
+    try {
+      const sessionToken = localStorage.getItem('visitorSessionToken');
+      
+      if (!sessionToken) {
+        return null;
+      }
+      
+      const siteName = window.location.hostname.replace(/^www\./, '').split('.')[0];
+      
+      const apiUrl = `https://cb-server.web-8fb.workers.dev/api/cmp/detect-location?siteName=${encodeURIComponent(siteName)}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+      });
+      
+      if (!response.ok) {
+        return null;
+      }
+      
+      const data = await response.json();
+      
+      if (!data.bannerType) {
+        return null;
+      }
+      
+      country = data.country;
+      
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // --- Advanced: Encrypt and save consent preferences to server ---
+  async function saveConsentStateToServer(preferences, cookieDays, includeUserAgent) {
+    try {
+      const clientId = window.location.hostname;
+      const visitorId = localStorage.getItem("visitorId");
+      const policyVersion = "1.2";
+      const timestamp = new Date().toISOString();
+      const sessionToken = localStorage.getItem("visitorSessionToken");
+      
+      if (!sessionToken) {
+        return;
+      }
+
+      // Prepare the complete payload first
+      const fullPayload = {
+        clientId,
+        visitorId,
+        preferences, // Raw preferences object, not encrypted individually
+        policyVersion,
+        timestamp,
+        country: country || "IN",
+        bannerType: preferences.bannerType || "GDPR",
+        expiresAtTimestamp: Date.now() + ((cookieDays || 365) * 24 * 60 * 60 * 1000),
+        expirationDurationDays: cookieDays || 365,
+        metadata: {
+          ...(includeUserAgent && { userAgent: navigator.userAgent }), // Only include userAgent if allowed
+          language: navigator.language,
+          platform: navigator.userAgentData?.platform || "unknown",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        }
+      };
+
+      // Encrypt the entire payload as one encrypted string
+      const encryptedPayload = await encryptWithHardcodedKey(JSON.stringify(fullPayload));
+
+      // Send only the encrypted payload
+      const requestBody = {
+        encryptedData: encryptedPayload
+      };
+
+      const response = await fetch("https://cb-server.web-8fb.workers.dev/api/cmp/consent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+    } catch (error) {
+      // Silent error handling
+    }
+  }
+
+  // --- Advanced: Show saved preferences in preferences panel ---
+  function updatePreferenceForm(preferences) {
+    const necessaryCheckbox = document.querySelector('[data-consent-id="necessary-checkbox"]');
+    const marketingCheckbox = document.querySelector('[data-consent-id="marketing-checkbox"]');
+    const personalizationCheckbox = document.querySelector('[data-consent-id="personalization-checkbox"]');
+    const analyticsCheckbox = document.querySelector('[data-consent-id="analytics-checkbox"]');
+    if (necessaryCheckbox) {
+      necessaryCheckbox.checked = true;
+      necessaryCheckbox.disabled = true;
+    }
+    if (marketingCheckbox) {
+      marketingCheckbox.checked = Boolean(preferences.Marketing);
+    }
+    if (personalizationCheckbox) {
+      personalizationCheckbox.checked = Boolean(preferences.Personalization);
+    }
+    if (analyticsCheckbox) {
+      analyticsCheckbox.checked = Boolean(preferences.Analytics);
+    }
+  }
+
+  // --- Publishing status and removal helpers ---
+  async function checkPublishingStatus() {
+    try {
+      const sessionToken = localStorage.getItem('visitorSessionToken');
+      if (!sessionToken) {
+        return false;
+      }
+      const siteDomain = window.location.hostname;
+      const apiUrl = `https://cb-server.web-8fb.workers.dev/api/site/subscription-status?siteDomain=${encodeURIComponent(siteDomain)}`;
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${sessionToken}`,
+          "Accept": "application/json"
+        }
+      });
+      if (!response.ok) {
+        return false;
+      }
+      const data = await response.json();
+      return data.canPublishToCustomDomain === true;
+    } catch (error) {
+      return false;
+    }
+  }
+  function removeConsentElements() {
+    const selectors = [
+      '.consentbit-gdpr-banner-div',
+      '.consentbit-preference-div',
+      '.consentbit-change-preference',
+      '.consentbit-ccpa-banner-div',
+      '.consentbit-ccpa_preference',
+    ];
+    selectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => el.remove());
+    });
+  }
+  function isStagingHostname() {
+    const hostname = window.location.hostname;
+    return hostname.includes('.webflow.io') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
+  }
+
+  // --- Load Consent Styles ---
+  function loadConsentStyles() {
+    try {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@d6b0288/consentbitstyle.css";
+      link.type = "text/css";
+      const link2 = document.createElement("link");
+      link2.rel = "stylesheet";
+      link2.href = "https://cdn.jsdelivr.net/gh/snm62/consentbit@8c69a0b/consentbit.css";
+      document.head.appendChild(link2);
+      link.onerror = function () {};
+      link.onload = function () {};
+      document.head.appendChild(link);
+    } catch (error) {
+      // Silent error handling
+    }
+  }
+
+  // --- Main ---
+  document.addEventListener('DOMContentLoaded', async function() {
+ await   hideAllBanners();
+    checkConsentExpiration();
+
+    let canPublish = false;
+    let isStaging = false;
+    let locationData = null;
+    
+    // Set up toggle consent button FIRST (outside conditional blocks)
+    const toggleConsentBtn = document.getElementById('toggle-consent-btn');
+    
+    if (toggleConsentBtn) {
+      toggleConsentBtn.onclick = function(e) {
+        e.preventDefault();
+        
+        // Find banner elements
+        const consentBanner = document.getElementById("consent-banner");
+        const ccpaBanner = document.getElementById("initial-consent-banner");
+        const mainBanner = document.getElementById("main-banner");
+        
+        // Force show appropriate banner
+        if (locationData && locationData.bannerType === "CCPA" && ccpaBanner) {
+          hideAllBanners();
+          showBanner(ccpaBanner);
+          
+          // Force display with additional methods if needed
+          ccpaBanner.style.display = "block";
+          ccpaBanner.style.visibility = "visible";
+          ccpaBanner.hidden = false;
+          ccpaBanner.classList.remove("hidden");
+          ccpaBanner.classList.add("show-banner");
+        } else if (consentBanner) {
+          hideAllBanners();
+          showBanner(consentBanner);
+          
+          // Force display with additional methods if needed
+          consentBanner.style.display = "block";
+          consentBanner.style.visibility = "visible";
+          consentBanner.hidden = false;
+          consentBanner.classList.remove("hidden");
+          consentBanner.classList.add("show-banner");
+        }
+        
+        // Update preferences if function exists
+        if (typeof updatePreferenceForm === 'function') {
+          updatePreferenceForm(getConsentPreferences());
+        }
+      };
+    }
+    
+    try {
+      const token = await getVisitorSessionToken();
+      if (!token) {
+        // Instead of immediate reload, try clearing session and retry once
+        clearVisitorSession();
+        const retryToken = await getVisitorSessionToken();
+        if (!retryToken) {
+          setTimeout(() => location.reload(), 3000);
+          return;
+        }
+        localStorage.setItem('visitorSessionToken', retryToken);
+      } else {
+        // Store token immediately if not already stored
+        if (!localStorage.getItem('visitorSessionToken')) {
+          localStorage.setItem('visitorSessionToken', token);
+        }
+      }
+      canPublish = await checkPublishingStatus();
+      isStaging = isStagingHostname();
+      
+      if (!canPublish && !isStaging) {
+        removeConsentElements();
+        return;
+      }
+    } catch (error) {
+      clearVisitorSession();
+      setTimeout(() => location.reload(), 3000);
+      return;
+    }
+
+    // Only show banners and run consent logic if canPublish or isStaging
+    if (canPublish || isStaging) {
+      function qid(id) { return document.getElementById(id); }
+      function qs(sel) { return document.querySelector(sel); }
+      const banners = {
+        consent: qid("consent-banner"),
+        ccpa: qid("initial-consent-banner"),
+        main: qid("main-banner")
+      };
+      
+      // Detect which banner to show
+      const testOverride = getTestLocationOverride();
+      if (testOverride) {
+        locationData = testOverride;
+        country = testOverride.country;
+      } else {
+        locationData = await detectLocationAndGetBannerType();
+      }
+      
+      const consentGiven = localStorage.getItem("consent-given");
+      let cookieDays = await fetchCookieExpirationDays();
+      // On load: apply preferences if already set
+      const prefs = getConsentPreferences();
+      updatePreferenceForm(prefs);
+      
+      // Only show banners if consent not given AND location data is available
+      if (!consentGiven) {
+        // Show banner based on location data, or default GDPR banner if no location data
+        if (locationData && locationData.bannerType === "CCPA") {
+          // CCPA: Unblock all scripts initially (opt-out model)
+          enableScriptsByCategories(['Analytics', 'Marketing', 'Personalization']);
+          setConsentState({ Analytics: true, Marketing: true, Personalization: true }, cookieDays);
+          showBanner(banners.ccpa);
+          hideBanner(banners.consent);
+          
+          // Force display CCPA banner with same logic as GDPR banner
+          if (banners.ccpa) {
+            banners.ccpa.style.display = "block";
+            banners.ccpa.style.visibility = "visible";
+            banners.ccpa.hidden = false;
+            banners.ccpa.classList.remove("hidden");
+            banners.ccpa.classList.add("show-banner");
+          }
+        } else {
+          // Show GDPR banner (default when no location data or when location indicates GDPR)
+          showBanner(banners.consent);
+          hideBanner(banners.ccpa);
+        }
+      } else {
+        // Consent already given - apply existing preferences
+        if (prefs.Analytics || prefs.Marketing || prefs.Personalization) {
+          enableScriptsByCategories(Object.keys(prefs).filter(k => prefs[k]));
+          updateGtagConsent(prefs);
+          hideBanner(banners.consent);
+          hideBanner(banners.ccpa);
+        } else {
+          blockScriptsByCategory();
+          updateGtagConsent(prefs);
+          hideBanner(banners.consent);
+          hideBanner(banners.ccpa);
+        }
+      }
+      // Accept all
+      const acceptBtn = qid('accept-btn');
+      if (acceptBtn) {
+        acceptBtn.onclick = async function(e) {
+          e.preventDefault();
+          const preferences = { Analytics: true, Marketing: true, Personalization: true, bannerType: locationData ? locationData.bannerType : undefined };
+          setConsentState(preferences, cookieDays);
+          // Unblock ALL scripts (no category consideration needed)
+          const allScripts = document.querySelectorAll('script[type="text/plain"][data-blocked-by-consent="true"]');
+          allScripts.forEach(function(oldScript) {
+            var newScript = document.createElement('script');
+            for (var i = 0; i < oldScript.attributes.length; i++) {
+              var attr = oldScript.attributes[i];
+              if (attr.name === 'type') {
+                newScript.type = 'text/javascript';
+              } else if (attr.name !== 'data-blocked-by-consent') {
+                newScript.setAttribute(attr.name, attr.value);
+              }
+            }
+            if (oldScript.innerHTML) {
+              newScript.innerHTML = oldScript.innerHTML;
+            }
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+          });
+          hideBanner(banners.consent);
+          hideBanner(banners.ccpa);
+          hideBanner(banners.main);
+          localStorage.setItem("consent-given", "true");
+          await saveConsentStateToServer(preferences, cookieDays, true); // Pass true to include userAgent
+          updatePreferenceForm(preferences);
+        };
+      }
+      // Reject all
+      const declineBtn = qid('decline-btn');
+      if (declineBtn) {
+        declineBtn.onclick = async function(e) {
+          e.preventDefault();
+          const preferences = { Analytics: false, Marketing: false, Personalization: false, bannerType: locationData ? locationData.bannerType : undefined };
+          setConsentState(preferences, cookieDays);
+          // Block ALL scripts except necessary/essential
+          blockScriptsByCategory();
+          hideBanner(banners.consent);
+          hideBanner(banners.ccpa);
+          hideBanner(banners.main);
+          localStorage.setItem("consent-given", "true");
+          await saveConsentStateToServer(preferences, cookieDays, false); // Pass false to exclude userAgent
+          updatePreferenceForm(preferences);
+        };
+      }
+      // Do Not Share (CCPA)
+      const doNotShareBtn = qid('do-not-share-link');
+      if (doNotShareBtn) {
+        doNotShareBtn.onclick = function(e) {
+          e.preventDefault();
+          
+          // Hide initial CCPA banner with FORCE
+          const initialBanner = document.getElementById('initial-consent-banner');
+          if (initialBanner) {
+            hideBanner(initialBanner);
+          }
+          
+          // Show main consent banner with force
+          const mainBanner = document.getElementById('main-consent-banner');
+          if (mainBanner) {
+            showBanner(mainBanner);
+          }
+        };
+      }
+      
+      // CCPA Preference Accept button
+      const ccpaPreferenceAcceptBtn = document.getElementById('consebit-ccpa-prefrence-accept');
+      if (ccpaPreferenceAcceptBtn) {
+        ccpaPreferenceAcceptBtn.onclick = async function(e) {
+          e.preventDefault();
+          
+          // Read CCPA preference checkbox values
+          const ccpaToggleCheckboxes = document.querySelectorAll('.consentbit-ccpa-prefrence-toggle input[type="checkbox"]');
+          let preferences = { Analytics: true, Marketing: true, Personalization: true }; // Default to true (unblocked)
+          
+          // If checkboxes are checked, it means "Do Not Share" for that category (block scripts)
+          ccpaToggleCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+              // Checkbox checked means DO NOT SHARE (block/false)
+              const checkboxName = checkbox.name || checkbox.getAttribute('data-category') || '';
+              if (checkboxName.toLowerCase().includes('analytics')) {
+                preferences.Analytics = false;
+              } else if (checkboxName.toLowerCase().includes('marketing') || checkboxName.toLowerCase().includes('advertising')) {
+                preferences.Marketing = false;
+              } else if (checkboxName.toLowerCase().includes('personalization') || checkboxName.toLowerCase().includes('functional')) {
+                preferences.Personalization = false;
+              }
+            }
+          });
+          
+          // Add banner type
+          preferences.bannerType = locationData ? locationData.bannerType : undefined;
+          preferences.donotshare = false; // CCPA Accept means do not share = false
+          
+          // Save consent state
+          setConsentState(preferences, cookieDays);
+          
+          // Block/enable scripts based on preferences (original CCPA logic)
+          if (preferences.Analytics || preferences.Marketing || preferences.Personalization) {
+            enableScriptsByCategories(Object.keys(preferences).filter(k => preferences[k]));
+          } else {
+            blockScriptsByCategory();
+          }
+          
+          // Hide both CCPA banners using hideBanner function
+          hideBanner(banners.ccpa);
+          const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
+          hideBanner(ccpaPreferencePanel);
+          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+          hideBanner(ccpaBannerDiv);
+          
+          // Set consent as given
+          localStorage.setItem("consent-given", "true");
+          
+          // Save to server (original CCPA logic - always include userAgent)
+          await saveConsentStateToServer(preferences, cookieDays, true);
+          updatePreferenceForm(preferences);
+        };
+      }
+      
+      // CCPA Preference Decline button
+      const ccpaPreferenceDeclineBtn = document.getElementById('consebit-ccpa-prefrence-decline');
+      if (ccpaPreferenceDeclineBtn) {
+        ccpaPreferenceDeclineBtn.onclick = async function(e) {
+          e.preventDefault();
+          
+          // Decline means block all scripts (all false)
+          const preferences = { 
+            Analytics: false, 
+            Marketing: false, 
+            Personalization: false, 
+            donotshare: true, // CCPA Decline means do not share = true
+            bannerType: locationData ? locationData.bannerType : undefined 
+          };
+          
+          // Save consent state
+          setConsentState(preferences, cookieDays);
+          
+          // Block all scripts (original CCPA logic)
+          blockScriptsByCategory();
+          
+          // Hide both CCPA banners using hideBanner function
+          hideBanner(banners.ccpa);
+          const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
+          hideBanner(ccpaPreferencePanel);
+          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+          hideBanner(ccpaBannerDiv);
+          
+          // Set consent as given
+          localStorage.setItem("consent-given", "true");
+          
+          // Save to server (original CCPA logic - always include userAgent)
+          await saveConsentStateToServer(preferences, cookieDays, true);
+          updatePreferenceForm(preferences);
+        };
+      }
+      
+      // Save button (CCPA)
+      const saveBtn = qid('save-btn');
+      if (saveBtn) {
+        saveBtn.onclick = async function(e) {
+          e.preventDefault();
+          
+          // Read the do-not-share checkbox value
+          const doNotShareCheckbox = document.querySelector('[data-consent-id="do-not-share-checkbox"]');
+          let preferences;
+          let includeUserAgent;
+          
+          if (doNotShareCheckbox && doNotShareCheckbox.checked) {
+            // Checkbox checked means "Do Not Share" - block all scripts and restrict userAgent
+            preferences = { 
+              Analytics: false, 
+              Marketing: false, 
+              Personalization: false,
+              donotshare: true,
+              bannerType: locationData ? locationData.bannerType : undefined 
+            };
+            includeUserAgent = false; // Restrict userAgent
+          } else {
+            // Checkbox unchecked means "Allow" - unblock all scripts and allow userAgent
+            preferences = { 
+              Analytics: true, 
+              Marketing: true, 
+              Personalization: true,
+              donotshare: false,
+              bannerType: locationData ? locationData.bannerType : undefined 
+            };
+            includeUserAgent = true; // Allow userAgent
+          }
+          
+          // Save consent state
+          setConsentState(preferences, cookieDays);
+          
+          // Handle script blocking/unblocking based on checkbox state
+          if (doNotShareCheckbox && doNotShareCheckbox.checked) {
+            // CCPA: Block ALL scripts (ignore data-category for CCPA)
+            const allScripts = document.querySelectorAll('script');
+            allScripts.forEach(function(script) {
+              // Skip scripts that are already blocked or are essential scripts
+              if (script.type !== 'text/plain' && script.src !== '' && !script.hasAttribute('data-essential')) {
+                script.type = 'text/plain';
+                script.setAttribute('data-blocked-by-ccpa', 'true');
+              }
+            });
+            
+            // Also block any inline scripts that aren't essential
+            const inlineScripts = document.querySelectorAll('script:not([src]):not([data-essential])');
+            inlineScripts.forEach(function(script) {
+              if (script.type !== 'text/plain' && script.innerHTML.trim() !== '') {
+                script.type = 'text/plain';
+                script.setAttribute('data-blocked-by-ccpa', 'true');
+              }
+            });
+          } else {
+            // CCPA: Unblock ALL scripts (ignore data-category for CCPA)
+            
+            // Unblock scripts that were blocked by our CCPA logic
+            const ccpaBlockedScripts = document.querySelectorAll('script[data-blocked-by-ccpa="true"]');
+            ccpaBlockedScripts.forEach(function(oldScript) {
+              var newScript = document.createElement('script');
+              for (var i = 0; i < oldScript.attributes.length; i++) {
+                var attr = oldScript.attributes[i];
+                if (attr.name === 'type') {
+                  newScript.type = 'text/javascript';
+                } else if (attr.name !== 'data-blocked-by-ccpa') {
+                  newScript.setAttribute(attr.name, attr.value);
+                }
+              }
+              if (oldScript.innerHTML) {
+                newScript.innerHTML = oldScript.innerHTML;
+              }
+              oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+            
+            // Also unblock any scripts that were blocked by consent logic
+            const consentBlockedScripts = document.querySelectorAll('script[type="text/plain"][data-blocked-by-consent="true"]');
+            consentBlockedScripts.forEach(function(oldScript) {
+              var newScript = document.createElement('script');
+              for (var i = 0; i < oldScript.attributes.length; i++) {
+                var attr = oldScript.attributes[i];
+                if (attr.name === 'type') {
+                  newScript.type = 'text/javascript';
+                } else if (attr.name !== 'data-blocked-by-consent') {
+                  newScript.setAttribute(attr.name, attr.value);
+                }
+              }
+              if (oldScript.innerHTML) {
+                newScript.innerHTML = oldScript.innerHTML;
+              }
+              oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+          }
+          
+          // Hide both CCPA banners
+          hideBanner(banners.ccpa);
+          const ccpaPreferencePanel = document.querySelector('.consentbit-ccpa_preference');
+          hideBanner(ccpaPreferencePanel);
+          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+          hideBanner(ccpaBannerDiv);
+          const mainConsentBanner = document.getElementById('main-consent-banner');
+          hideBanner(mainConsentBanner);
+          
+          // Set consent as given
+          localStorage.setItem("consent-given", "true");
+          
+          // Save to server with appropriate userAgent setting based on checkbox
+          await saveConsentStateToServer(preferences, cookieDays, includeUserAgent);
+          updatePreferenceForm(preferences);
+        };
+      }
+      
+      // Preferences button (show preferences panel)
+      const preferencesBtn = qid('preferences-btn');
+      if (preferencesBtn) {
+        preferencesBtn.onclick = function(e) {
+          e.preventDefault();
+          hideBanner(banners.consent);
+          showBanner(banners.main);
+          updatePreferenceForm(getConsentPreferences());
+        };
+      }
+      // Save Preferences button
+      const savePreferencesBtn = qid('save-preferences-btn');
+      if (savePreferencesBtn) {
+        savePreferencesBtn.onclick = async function(e) {
+          e.preventDefault();
+          // Read checkboxes
+          const analytics = !!qs('[data-consent-id="analytics-checkbox"]:checked');
+          const marketing = !!qs('[data-consent-id="marketing-checkbox"]:checked');
+          const personalization = !!qs('[data-consent-id="personalization-checkbox"]:checked');
+          const preferences = {
+            Analytics: analytics,
+            Marketing: marketing,
+            Personalization: personalization,
+            bannerType: locationData ? locationData.bannerType : undefined
+          };
+          setConsentState(preferences, cookieDays);
+          // First block ALL scripts except necessary/essential
+          blockScriptsByCategory();
+          // Then enable only scripts for selected categories
+          const selectedCategories = Object.keys(preferences).filter(k => preferences[k] && k !== 'bannerType');
+          if (selectedCategories.length > 0) {
+            enableScriptsByCategories(selectedCategories);
+          }
+          hideBanner(banners.main);
+          hideBanner(banners.consent);
+          hideBanner(banners.ccpa);
+          localStorage.setItem("consent-given", "true");
+          await saveConsentStateToServer(preferences, cookieDays, true); // Include userAgent for preferences
+          updatePreferenceForm(preferences);
+        };
+      }
+      // Cancel button (go back to main banner)
+      const cancelBtn = qid('cancel-btn');
+      if (cancelBtn) {
+        cancelBtn.onclick = async function(e) {
+          e.preventDefault();
+          
+          // Check if this is CCPA - simple banner switch
+          if (locationData && locationData.bannerType === "CCPA") {
+            // CCPA: Simple banner switch - hide main-consent-banner and show initial-consent-banner
+            const mainConsentBanner = document.getElementById('main-consent-banner');
+            const initialConsentBanner = document.getElementById('initial-consent-banner');
+            
+            if (mainConsentBanner) {
+              hideBanner(mainConsentBanner);
+            }
+            
+            if (initialConsentBanner) {
+              showBanner(initialConsentBanner);
+            }
+            
+            return; // Exit early for CCPA
+          }
+          
+          // GDPR: Complex consent processing (original behavior)
+          // STEP 1: Block all scripts except necessary/essential
+          blockScriptsByCategory();
+          
+          // STEP 2: Also block any scripts that are already running by disabling them
+          // Disable Google Analytics if present
+          if (typeof gtag !== 'undefined') {
+            gtag('consent', 'update', {
+              'analytics_storage': 'denied',
+              'ad_storage': 'denied',
+              'ad_personalization': 'denied',
+              'ad_user_data': 'denied',
+              'personalization_storage': 'denied'
+            });
+          }
+          
+          // Disable Google Tag Manager if present
+          if (typeof window.dataLayer !== 'undefined') {
+            window.dataLayer.push({
+              'event': 'consent_denied',
+              'analytics_storage': 'denied',
+              'ad_storage': 'denied'
+            });
+          }
+          
+          // STEP 3: Uncheck all preference checkboxes
+          const analyticsCheckbox = qs('[data-consent-id="analytics-checkbox"]');
+          const marketingCheckbox = qs('[data-consent-id="marketing-checkbox"]');
+          const personalizationCheckbox = qs('[data-consent-id="personalization-checkbox"]');
+          
+          if (analyticsCheckbox) {
+            analyticsCheckbox.checked = false;
+          }
+          if (marketingCheckbox) {
+            marketingCheckbox.checked = false;
+          }
+          if (personalizationCheckbox) {
+            personalizationCheckbox.checked = false;
+          }
+          
+          // STEP 4: Save consent state with all preferences as false (like decline behavior)
+          const preferences = { 
+            Analytics: false, 
+            Marketing: false, 
+            Personalization: false, 
+            bannerType: locationData ? locationData.bannerType : undefined 
+          };
+          
+          setConsentState(preferences, cookieDays);
+          updateGtagConsent(preferences);
+          
+          // STEP 5: Set consent as given and save to server
+          localStorage.setItem("consent-given", "true");
+          
+          try {
+            await saveConsentStateToServer(preferences, cookieDays, false); // Exclude userAgent like decline
+          } catch (error) {
+            // Silent error handling
+          }
+          
+          // STEP 6: Hide banners
+          hideBanner(banners.main);
+          hideBanner(banners.consent);
+        };
+      }
+      // CCPA Link Block - Show CCPA Banner
+      const ccpaLinkBlock = document.getElementById('consentbit-ccpa-linkblock');
+      if (ccpaLinkBlock) {
+        ccpaLinkBlock.onclick = function(e) {
+          e.preventDefault();
+          
+          // Show CCPA banner using showBanner function
+          const ccpaBannerDiv = document.querySelector('.consentbit-ccpa-banner-div');
+          showBanner(ccpaBannerDiv);
+          
+          // Also show the CCPA banner if it exists
+          showBanner(banners.ccpa);
+        };
+      }
+      
+      // Close Consent Banner functionality (CCPA only)
+      const closeConsentBanner = document.getElementById('close-consent-banner');
+      const initialConsentBanner = document.getElementById('initial-consent-banner');
+      
+      // Only apply close banner logic for CCPA banners
+      if (closeConsentBanner && initialConsentBanner && locationData && locationData.bannerType === "CCPA") {
+        // Check if close-consent-banner is visible
+        const isCloseConsentVisible = closeConsentBanner.style.display !== 'none' && 
+                                    !closeConsentBanner.classList.contains('hidden') &&
+                                    closeConsentBanner.offsetParent !== null;
+        
+        if (isCloseConsentVisible) {
+          hideBanner(initialConsentBanner);
+        }
+        
+        // Handle close-consent-banner click
+        closeConsentBanner.onclick = function(e) {
+          e.preventDefault();
+          
+          // Hide close-consent-banner and show initial-consent-banner
+          hideBanner(closeConsentBanner);
+          showBanner(initialConsentBanner);
+          
+          // Force display initial consent banner
+          initialConsentBanner.style.display = "block";
+          initialConsentBanner.style.visibility = "visible";
+          initialConsentBanner.hidden = false;
+          initialConsentBanner.classList.remove("hidden");
+          initialConsentBanner.classList.add("show-banner");
+        };
+      }
+      
+      // Load consent styles after banners are shown
+      loadConsentStyles();
+    }
+  });
+
+  function checkConsentExpiration() {
+    const expiresAt = localStorage.getItem('consentExpiresAt');
+    if (expiresAt && Date.now() > parseInt(expiresAt, 10)) {
+      // Consent expired: clear consent state
+      localStorage.removeItem('consent-given');
+      localStorage.removeItem('consent-preferences');
+      localStorage.removeItem('consentExpiresAt');
+      localStorage.removeItem('consentExpirationDays');
+      // Optionally, clear consent cookies as well
+      ['analytics', 'marketing', 'personalization'].forEach(category => {
+        setConsentCookie('cb-consent-' + category + '_storage', '', -1);
+      });
+    }
+  }
+})(); 
